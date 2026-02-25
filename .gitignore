@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+
+# Virtual environments
+.venv/
+venv/
+
+# PyInstaller
+dist/
+build/
+*.spec
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# IDE (keep .vscode tracked for shared config)
+.idea/
+
+# Generated
+followcursor/followcursor.ico

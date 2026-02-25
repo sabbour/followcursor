@@ -1,0 +1,25 @@
+{
+	"version": "0.2.0",
+	"configurations": [
+		{
+			"name": "Run FollowCursor",
+			"type": "debugpy",
+			"request": "launch",
+			"program": "main.py",
+			"cwd": "${workspaceFolder}/followcursor",
+			"python": "${workspaceFolder}/followcursor/.venv/Scripts/python.exe",
+			"console": "integratedTerminal",
+			"justMyCode": true
+		},
+		{
+			"name": "Debug FollowCursor (All Code)",
+			"type": "debugpy",
+			"request": "launch",
+			"program": "main.py",
+			"cwd": "${workspaceFolder}/followcursor",
+			"python": "${workspaceFolder}/followcursor/.venv/Scripts/python.exe",
+			"console": "integratedTerminal",
+			"justMyCode": false
+		}
+	]
+}

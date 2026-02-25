@@ -1,0 +1,51 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Run",
+			"type": "process",
+			"command": "${workspaceFolder}/followcursor/.venv/Scripts/python.exe",
+			"args": ["main.py"],
+			"options": {
+				"cwd": "${workspaceFolder}/followcursor"
+			},
+			"group": "none",
+			"presentation": {
+				"reveal": "always",
+				"panel": "shared"
+			},
+			"problemMatcher": []
+		},
+		{
+			"label": "Build",
+			"type": "process",
+			"command": "${workspaceFolder}/followcursor/build.bat",
+			"options": {
+				"cwd": "${workspaceFolder}/followcursor"
+			},
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			"presentation": {
+				"reveal": "always",
+				"panel": "shared"
+			},
+			"problemMatcher": []
+		},
+		{
+			"label": "Install Dependencies",
+			"type": "process",
+			"command": "${workspaceFolder}/followcursor/.venv/Scripts/python.exe",
+			"args": ["-m", "pip", "install", "-r", "requirements.txt"],
+			"options": {
+				"cwd": "${workspaceFolder}/followcursor"
+			},
+			"presentation": {
+				"reveal": "always",
+				"panel": "shared"
+			},
+			"problemMatcher": []
+		}
+	]
+}
