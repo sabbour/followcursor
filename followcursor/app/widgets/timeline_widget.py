@@ -549,15 +549,8 @@ class _TimelineTrack(QWidget):
         if event.button() == Qt.MouseButton.LeftButton and self.width() > 0:
             mx = event.position().x()
             my = event.position().y()
-            # Check trim handle drag first
-            trim_hit = self._trim_hit_test(mx)
-            if trim_hit:
-                self._dragging = True
-                self._drag_mode = trim_hit
-                self._selected_click_idx = -1
-                self._selected_segment_id = ""
-                return
-            # Check edge drag first
+            # Check zoom segment edge drag first — takes priority over trim handles so
+            # that blocks touching the video boundaries (x=0 or x=width) remain resizable.
             kf_id = self._edge_hit_test(mx, my)
             if kf_id:
                 self._dragging = True
@@ -587,6 +580,15 @@ class _TimelineTrack(QWidget):
                 self._drag_body_ids = [start_id, end_id]
                 self._drag_body_offset = click_ms - kf_start_ms
                 self._drag_body_seg_duration = kf_end_ms - kf_start_ms
+                self._selected_click_idx = -1
+                self._selected_segment_id = ""
+                return
+            # Check trim handle drag (after zoom blocks so handles at the video
+            # boundaries don't steal clicks from zoom blocks touching those edges).
+            trim_hit = self._trim_hit_test(mx)
+            if trim_hit:
+                self._dragging = True
+                self._drag_mode = trim_hit
                 self._selected_click_idx = -1
                 self._selected_segment_id = ""
                 return
@@ -645,11 +647,11 @@ class _TimelineTrack(QWidget):
                 return
 
         # Update cursor based on hover over edge handles, trim handles, or segment body
-        trim_hit = self._trim_hit_test(mx)
         kf_id = self._edge_hit_test(mx, my)
-        if trim_hit:
+        trim_hit = self._trim_hit_test(mx)
+        if kf_id:
             self.setCursor(Qt.CursorShape.SizeHorCursor)
-        elif kf_id:
+        elif trim_hit:
             self.setCursor(Qt.CursorShape.SizeHorCursor)
         elif self._segment_body_hit_info(mx, my):
             self.setCursor(Qt.CursorShape.OpenHandCursor)
