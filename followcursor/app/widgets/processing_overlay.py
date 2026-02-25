@@ -26,6 +26,7 @@ class ProcessingOverlay(QWidget):
         title: str = "Finishing recording\u2026",
         subtitle: str = "Processing video, please wait",
     ) -> None:
+        """Display the overlay with custom title and subtitle text."""
         self._title = title
         self._subtitle = subtitle
         self._pulse = 0.0
@@ -36,6 +37,7 @@ class ProcessingOverlay(QWidget):
         self._timer.start()
 
     def hide_overlay(self) -> None:
+        """Hide the overlay and stop the pulse animation."""
         self._timer.stop()
         self.setVisible(False)
 

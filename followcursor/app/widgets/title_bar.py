@@ -7,6 +7,12 @@ from ..version import __version__
 
 
 class TitleBar(QWidget):
+    """Custom frameless title bar with logo, export button, and window controls.
+
+    Supports drag-to-move, double-click-to-maximize, and displays the
+    current project name with an unsaved-changes indicator.
+    """
+
     export_clicked = Signal()
 
     def __init__(self, window: QWidget) -> None:
@@ -63,9 +69,11 @@ class TitleBar(QWidget):
     # ── public ──────────────────────────────────────────────────────
 
     def set_export_enabled(self, enabled: bool) -> None:
+        """Enable or disable the export button."""
         self._btn_export.setEnabled(enabled)
 
     def set_export_text(self, text: str) -> None:
+        """Update the export button label (e.g. during export progress)."""
         self._btn_export.setText(text)
 
     def set_title(self, project_name: str = "", unsaved: bool = False) -> None:

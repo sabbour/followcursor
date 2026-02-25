@@ -1,3 +1,12 @@
+"""Screen / window capture engine.
+
+Captures a monitor or individual window at up to 60 fps using
+Windows Graphics Capture (hardware-accelerated) with a GDI/mss
+fallback.  During recording, raw BGRA frames are piped to ffmpeg
+for lossless AVI encoding.  Non-recording mode emits QImage preview
+frames via the ``frame_ready`` signal.
+"""
+
 import logging
 import time
 import threading
@@ -144,6 +153,7 @@ class ScreenRecorder(QObject):
 
     @staticmethod
     def get_monitors() -> List[dict]:
+        """Return a list of available monitors with dimensions and positions."""
         with mss.mss() as sct:
             monitors: List[dict] = []
             for i, m in enumerate(sct.monitors):
@@ -163,6 +173,7 @@ class ScreenRecorder(QObject):
 
     @staticmethod
     def capture_thumbnail(monitor_index: int) -> Optional[QImage]:
+        """Grab a single frame from a monitor and return a scaled thumbnail."""
         try:
             with mss.mss() as sct:
                 monitor = sct.monitors[monitor_index]
@@ -222,6 +233,7 @@ class ScreenRecorder(QObject):
     # ── public API ──────────────────────────────────────────────────
 
     def start_capture(self, monitor_index: int, fps: int = 60) -> None:
+        """Begin capturing a monitor for live preview (no recording yet)."""
         self.stop_capture()
         self._capture_mode = "monitor"
         self._monitor_index = monitor_index
@@ -267,6 +279,7 @@ class ScreenRecorder(QObject):
         return temp_path
 
     def stop_recording(self) -> str:
+        """Stop recording and return the path to the raw AVI file."""
         with self._lock:
             self._recording = False
             elapsed = time.time() - self._start_time
@@ -277,6 +290,7 @@ class ScreenRecorder(QObject):
             return self._output_path
 
     def stop_capture(self) -> None:
+        """Stop the capture thread and release all resources."""
         self._capturing = False
         self._recording = False
         if self._thread:

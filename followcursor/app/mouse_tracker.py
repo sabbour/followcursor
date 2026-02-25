@@ -1,3 +1,10 @@
+"""Mouse position tracker — polls cursor position at 60 Hz via Win32.
+
+Uses ``GetCursorPos`` for **physical pixel** coordinates (not DPI-scaled)
+so they match the capture APIs (mss, WGC, PrintWindow).  Runs on a
+``QTimer`` in the main thread.
+"""
+
 import sys
 import time
 from typing import List
@@ -22,6 +29,12 @@ def _get_physical_cursor_pos() -> tuple[int, int]:
 
 
 class MouseTracker(QObject):
+    """QTimer-based cursor poller that records :class:`MousePosition` samples.
+
+    The polling interval defaults to 16 ms (~60 Hz).  All timestamps
+    are relative to a shared epoch so they align with keyboard and
+    click trackers.
+    """
 
     def __init__(self, interval_ms: int = 16, parent: QObject | None = None) -> None:
         super().__init__(parent)
@@ -42,6 +55,7 @@ class MouseTracker(QObject):
         self._timer.start(self._interval)
 
     def stop(self) -> List[MousePosition]:
+        """Stop polling and return the collected position samples."""
         self._timer.stop()
         return list(self._positions)
 

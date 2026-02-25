@@ -23,6 +23,7 @@ class FramePreset:
     padding: float            # fraction of canvas (0.0 = edge-to-edge)
 
     def to_dict(self) -> dict:
+        """Serialize to a plain dict for project file storage."""
         return {
             "name": self.name,
             "bezel_width": self.bezel_width,
@@ -38,6 +39,7 @@ class FramePreset:
 
     @staticmethod
     def from_dict(d: dict) -> "FramePreset":
+        """Reconstruct from a dict produced by ``to_dict()``."""
         return FramePreset(
             name=d["name"],
             bezel_width=d["bezel_width"],
@@ -53,6 +55,7 @@ class FramePreset:
 
     @property
     def is_none(self) -> bool:
+        """True if this preset produces no visible bezel or shadow."""
         return self.bezel_width <= 0 and self.shadow_layers <= 0
 
 

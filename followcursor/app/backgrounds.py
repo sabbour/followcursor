@@ -31,17 +31,21 @@ class BackgroundPreset:
 
     @property
     def is_gradient(self) -> bool:
+        """True if this preset uses a linear gradient."""
         return self.kind == "gradient"
 
     @property
     def is_wavy(self) -> bool:
+        """True if this preset uses a wavy pattern."""
         return self.kind == "wavy"
 
     @property
     def is_pattern(self) -> bool:
+        """True if this preset belongs to the pattern category."""
         return self.category == "pattern"
 
     def to_dict(self) -> dict:
+        """Serialize to a plain dict for project file storage."""
         return {
             "name": self.name,
             "kind": self.kind,
@@ -51,6 +55,7 @@ class BackgroundPreset:
 
     @staticmethod
     def from_dict(d: dict) -> "BackgroundPreset":
+        """Reconstruct from a dict produced by ``to_dict()``."""
         return BackgroundPreset(
             name=d["name"],
             kind=d["kind"],

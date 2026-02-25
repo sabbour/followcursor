@@ -247,6 +247,15 @@ class _FinalizeWorker(QThread):
 
 
 class MainWindow(QMainWindow):
+    """Central application window — orchestrates recording, editing, and export.
+
+    Manages the full lifecycle: source selection → countdown →
+    recording → finalization → editing (zoom, trim, background, frame)
+    → export.  Coordinates all worker threads, input trackers, and
+    child widgets.  Persists settings (geometry, encoder, presets)
+    via ``QSettings``.
+    """
+
     def __init__(self) -> None:
         super().__init__()
         self.setWindowTitle("FollowCursor")
@@ -624,6 +633,7 @@ class MainWindow(QMainWindow):
     # ════════════════════════════════════════════════════════════════
 
     def _select_source(self) -> None:
+        """Open the source picker dialog and start capturing the chosen source."""
         dlg = SourcePickerDialog(self, exclude_hwnd=int(self.winId()))
         if dlg.exec():
             source = dlg.chosen_source
@@ -654,6 +664,7 @@ class MainWindow(QMainWindow):
             self._btn_record.setVisible(True)
 
     def _start_recording(self) -> None:
+        """Initiate recording: show countdown, then begin capture + tracking."""
         if self._selected_monitor == 0 and self._source_type != "window":
             self._select_source()
             return
@@ -714,6 +725,7 @@ class MainWindow(QMainWindow):
             self._status_text.setText("Recording failed to start")
 
     def _stop_recording(self) -> None:
+        """Stop capturing, launch the finalize worker, and show the processing overlay."""
         if not self._recording:
             return
         self._recording = False
@@ -877,6 +889,7 @@ class MainWindow(QMainWindow):
                     pass
 
     def _set_view(self, view: str) -> None:
+        """Switch between 'record' and 'edit' views, updating sidebar and widgets."""
         self._view = view
 
         # sidebar highlight
@@ -1148,6 +1161,7 @@ class MainWindow(QMainWindow):
         return max(0.0, min(1.0, px)), max(0.0, min(1.0, py))
 
     def _add_keyframe(self, timestamp: float, zoom: float, x: float = -1.0, y: float = -1.0) -> None:
+        """Add a zoom keyframe at the given time, with auto zoom-out pairing."""
         # Sentinel -1.0 means "use current playback position"
         if timestamp < 0:
             timestamp = self._playback_time
@@ -1220,6 +1234,7 @@ class MainWindow(QMainWindow):
             self._refresh_editor()
 
     def _on_remove_keyframe(self, kf_id: str) -> None:
+        """Remove a keyframe by ID and refresh the editor."""
         self._zoom_engine.push_undo()
         self._zoom_engine.remove_keyframe(kf_id)
         self._mark_dirty()
@@ -1457,6 +1472,7 @@ class MainWindow(QMainWindow):
     # ── save / load ─────────────────────────────────────────────────
 
     def _save_recording(self) -> None:
+        """Export the recording as an H.264 MP4 via the video exporter."""
         if not self._video_path or not os.path.isfile(self._video_path):
             return
         default_name = f"followcursor-{int(self._rec_duration_ms)}.mp4"
@@ -1591,6 +1607,7 @@ class MainWindow(QMainWindow):
                     pass
 
     def _save_session(self, save_as: bool = False) -> None:
+        """Save the current session as a .fcproj ZIP on a background thread."""
         if not self._video_path or not os.path.isfile(self._video_path):
             return
         session = RecordingSession(
@@ -1652,6 +1669,7 @@ class MainWindow(QMainWindow):
         self._status_text.setText(f"Save error: {error}")
 
     def _load_session(self) -> None:
+        """Open a .fcproj file and restore the full session on a background thread."""
         path, _ = QFileDialog.getOpenFileName(
             self, "Open Project", self._last_project_dir,
             f"FollowCursor Project (*{PROJ_EXT})",
@@ -1745,6 +1763,7 @@ class MainWindow(QMainWindow):
             QTimer.singleShot(0, lambda: self.setStyleSheet(DARK_THEME))
 
     def closeEvent(self, event) -> None:  # type: ignore[override]
+        """Handle window close — prompt to save, persist settings, clean up."""
         # ── Unsaved-changes confirmation ────────────────────────────
         if self._unsaved_changes and self._video_path:
             dlg = QMessageBox(self)

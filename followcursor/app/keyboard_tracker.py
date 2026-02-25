@@ -57,7 +57,11 @@ if sys.platform == "win32":
 
 
 class _KeyboardHookThread(QThread):
-    """Runs a Win32 message loop with a low-level keyboard hook."""
+    """Dedicated thread running a Win32 message pump with a low-level keyboard hook.
+
+    Key-down events are filtered through ``_IGNORE_VKS`` and appended
+    directly to a shared list (no cross-thread signal overhead).
+    """
 
     def __init__(self, start_ms: float = 0.0,
                  events_list: List[KeyEvent] | None = None,

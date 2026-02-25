@@ -1,3 +1,11 @@
+"""Zoom engine — manages keyframes and interpolates zoom/pan state.
+
+The engine holds an ordered list of :class:`ZoomKeyframe` objects and
+computes the current ``(zoom, pan_x, pan_y)`` at any point in time
+using quintic ease-out interpolation.  It also maintains an undo/redo
+stack (deep-copy snapshots, max 50 entries).
+"""
+
 import copy
 from typing import List, Tuple
 from .models import ZoomKeyframe
@@ -25,6 +33,12 @@ MAX_UNDO = 50  # maximum undo history depth
 
 
 class ZoomEngine:
+    """Stateful zoom/pan interpolator with undo/redo support.
+
+    Keyframes are kept sorted by timestamp.  ``compute_at(time_ms)``
+    finds the most recent keyframe and eases from the previous state
+    to the target over ``keyframe.duration`` milliseconds.
+    """
     def __init__(self) -> None:
         self.keyframes: List[ZoomKeyframe] = []
         self.current_zoom: float = 1.0
@@ -82,13 +96,16 @@ class ZoomEngine:
         self._redo_stack.clear()
 
     def add_keyframe(self, kf: ZoomKeyframe) -> None:
+        """Insert a keyframe, keeping the list sorted by timestamp."""
         self.keyframes.append(kf)
         self.keyframes.sort(key=lambda k: k.timestamp)
 
     def remove_keyframe(self, kf_id: str) -> None:
+        """Remove a keyframe by its unique ID."""
         self.keyframes = [kf for kf in self.keyframes if kf.id != kf_id]
 
     def clear(self) -> None:
+        """Remove all keyframes and reset zoom/pan to defaults."""
         self.keyframes.clear()
         self.current_zoom = 1.0
         self.current_pan_x = 0.5
@@ -127,6 +144,11 @@ class ZoomEngine:
         return zoom, pan_x, pan_y
 
     def update(self, time_ms: float) -> None:
+        """Evaluate zoom state at *time_ms* and cache the result.
+
+        Convenience wrapper around ``compute_at()`` that stores the
+        result in ``current_zoom``, ``current_pan_x``, ``current_pan_y``.
+        """
         self.current_zoom, self.current_pan_x, self.current_pan_y = self.compute_at(
             time_ms
         )

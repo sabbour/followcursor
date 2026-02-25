@@ -1,3 +1,11 @@
+"""Core data models for FollowCursor.
+
+Defines the dataclasses used throughout the application for recording
+sessions, input events, and zoom keyframes.  All models support
+JSON serialization via ``to_dict()`` / ``from_dict()`` (or ``to_json()``
+/ ``from_json()`` for top-level sessions).
+"""
+
 from dataclasses import dataclass
 from typing import List
 import uuid
@@ -6,15 +14,21 @@ import json
 
 @dataclass
 class MousePosition:
+    """A single cursor position sample captured during recording.
+
+    Coordinates are in **physical screen pixels** (not DPI-scaled).
+    """
     x: float
     y: float
     timestamp: float  # ms since recording start
 
     def to_dict(self) -> dict:
+        """Serialize to a plain dict for JSON storage."""
         return {"x": self.x, "y": self.y, "timestamp": self.timestamp}
 
     @staticmethod
     def from_dict(d: dict) -> "MousePosition":
+        """Reconstruct from a dict produced by ``to_dict()``."""
         return MousePosition(x=d["x"], y=d["y"], timestamp=d["timestamp"])
 
 
@@ -48,6 +62,13 @@ class ClickEvent:
 
 @dataclass
 class ZoomKeyframe:
+    """A single zoom/pan keyframe used by the zoom engine.
+
+    Keyframes come in pairs: a zoom-in (``zoom > 1``) and a matching
+    zoom-out (``zoom = 1``).  The engine interpolates between
+    consecutive keyframes using quintic ease-out easing.
+    """
+
     id: str
     timestamp: float  # ms
     zoom: float
@@ -65,6 +86,7 @@ class ZoomKeyframe:
         duration: float = 600.0,
         reason: str = "",
     ) -> "ZoomKeyframe":
+        """Factory that auto-generates a UUID for the keyframe."""
         return ZoomKeyframe(
             id=str(uuid.uuid4()),
             timestamp=timestamp,
@@ -76,6 +98,7 @@ class ZoomKeyframe:
         )
 
     def to_dict(self) -> dict:
+        """Serialize to a plain dict for JSON storage."""
         d = {
             "id": self.id,
             "timestamp": self.timestamp,
@@ -90,6 +113,7 @@ class ZoomKeyframe:
 
     @staticmethod
     def from_dict(d: dict) -> "ZoomKeyframe":
+        """Reconstruct from a dict, ignoring unknown keys for forward compat."""
         # Filter to only known fields to avoid TypeError from extra keys
         known = {"id", "timestamp", "zoom", "x", "y", "duration", "reason"}
         filtered = {k: v for k, v in d.items() if k in known}
@@ -98,6 +122,13 @@ class ZoomKeyframe:
 
 @dataclass
 class RecordingSession:
+    """Top-level container for everything captured in one recording.
+
+    Includes mouse track, key/click events, zoom keyframes, trim
+    points, and per-frame timestamps.  Serialized to/from JSON for
+    ``.fcproj`` project files.
+    """
+
     id: str
     start_time: float
     duration: float
@@ -110,6 +141,7 @@ class RecordingSession:
     trim_end_ms: float = 0.0  # 0 = no trim (use full duration)
 
     def to_json(self) -> str:
+        """Serialize the entire session to a JSON string."""
         data = {
             "id": self.id,
             "startTime": self.start_time,
@@ -131,6 +163,7 @@ class RecordingSession:
 
     @staticmethod
     def from_json(s: str) -> "RecordingSession":
+        """Reconstruct a full session from its JSON representation."""
         d = json.loads(s)
         key_events = None
         if "keyEvents" in d:

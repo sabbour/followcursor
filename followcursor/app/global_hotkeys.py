@@ -75,6 +75,7 @@ class GlobalHotkeys(QObject):
         self._record_thread.start()
 
     def unregister_record_hotkey(self) -> None:
+        """Stop listening for the record-toggle hotkey and clean up the thread."""
         if self._record_thread is not None:
             self._record_thread.request_stop()
             self._record_thread.wait(2000)

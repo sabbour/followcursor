@@ -28,6 +28,12 @@ def _fmt_precise(ms: float) -> str:
 
 
 class _TimelineTrack(QWidget):
+    """Custom-painted track showing activity heatmap, zoom segments, and trim handles.
+
+    Handles hit-testing for segment edges (drag to resize), segment
+    bodies (click to select, drag to move), click markers (right-click
+    to delete), and trim handles at both ends.
+    """
     """Custom-painted track showing heatmap, zoom segments, keyframes, and playhead."""
 
     clicked = Signal(float)  # time ratio 0–1
@@ -804,6 +810,7 @@ class TimelineWidget(QWidget):
         trim_start_ms: float = 0.0,
         trim_end_ms: float = 0.0,
     ) -> None:
+        """Push new session data into the timeline and repaint."""
         self._track.duration = duration
         self._track.current_time = current_time
         self._track.keyframes = keyframes
@@ -819,6 +826,7 @@ class TimelineWidget(QWidget):
         self._track.update()
 
     def set_playing(self, playing: bool) -> None:
+        """Update the play/pause button icon to reflect playback state."""
         self._is_playing = playing
         self._play_btn.setText("⏸" if playing else "▶")
         self._play_btn.setToolTip("Pause" if playing else "Play")

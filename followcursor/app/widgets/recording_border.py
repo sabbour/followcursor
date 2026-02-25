@@ -29,6 +29,7 @@ class RecordingBorderOverlay(QWidget):
         self._pulse_timer.timeout.connect(self._pulse)
 
     def show_on_monitor(self, monitor_index: int) -> None:
+        """Position the border overlay around the given monitor and show it."""
         """Position and show around the given monitor using Qt screen geometry."""
         try:
             # Use Qt's screen list (index 1 in mss = screen 0 in Qt, etc.)
@@ -53,6 +54,7 @@ class RecordingBorderOverlay(QWidget):
             pass
 
     def hide_border(self) -> None:
+        """Stop the pulse animation and hide the overlay."""
         self._pulse_timer.stop()
         self.hide()
 

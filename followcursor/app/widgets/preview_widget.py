@@ -17,6 +17,14 @@ from ..models import MousePosition, ClickEvent, ZoomKeyframe
 
 
 class PreviewWidget(QWidget):
+    """Central preview canvas — displays live capture or recorded video.
+
+    Renders the full compositor scene (background + bezel + video +
+    cursor/click overlays) via QPainter.  Supports zoom/pan, debug
+    overlay, centroid-pick mode, and video playback with wall-clock
+    timing.
+    """
+
     # Signal: (timestamp_ms, zoom_level, pan_x, pan_y)
     zoom_at_requested = Signal(float, float, float, float)
     # Signal: (pan_x, pan_y) — emitted when centroid-pick mode click occurs
@@ -80,6 +88,7 @@ class PreviewWidget(QWidget):
         self.update()
 
     def set_zoom(self, zoom: float, pan_x: float, pan_y: float) -> None:
+        """Update the current zoom level and pan position for rendering."""
         self._zoom = zoom
         self._pan_x = pan_x
         self._pan_y = pan_y
@@ -244,6 +253,7 @@ class PreviewWidget(QWidget):
         return int(time_ms / 1000.0 * self._video_fps)
 
     def seek_to(self, time_ms: float) -> None:
+        """Jump video playback to the given timestamp."""
         if self._video_cap and self._video_cap.isOpened():
             self._playback_pos_ms = time_ms
             target_frame = self._time_to_frame(time_ms)
@@ -259,6 +269,7 @@ class PreviewWidget(QWidget):
                 self._play_start_pos_ms = time_ms
 
     def play(self) -> None:
+        """Start video playback from the current position."""
         if self._video_cap and not self._playing:
             # If at/near the end of the video, wrap back to the start
             if self._playback_pos_ms >= self._video_duration_ms - 100:
@@ -275,6 +286,7 @@ class PreviewWidget(QWidget):
             self._playback_timer.start(8)
 
     def pause(self) -> None:
+        """Pause video playback."""
         self._playing = False
         self._playback_timer.stop()
 

@@ -59,6 +59,14 @@ SENSITIVITY_PRESETS = {
 
 
 class EditorPanel(QWidget):
+    """Right-hand sidebar with zoom controls, auto-zoom, background/frame pickers.
+
+    Contains the manual zoom-add button, smart auto-zoom with
+    configurable sensitivity and depth, background and device frame
+    swatches, output dimension selector, undo/redo buttons, encoder
+    selection, and a settings menu with debug overlay toggle.
+    """
+
     remove_keyframe = Signal(str)          # kf id
     add_keyframe_at = Signal(float, float)  # timestamp, zoom
     auto_keyframes_generated = Signal(list)  # list of ZoomKeyframe
@@ -574,6 +582,7 @@ class EditorPanel(QWidget):
         trim_start_ms: float = 0.0,
         trim_end_ms: float = 0.0,
     ) -> None:
+        """Update cached session data used by auto-zoom and the info tooltip."""
         self._mouse_track = mouse_track
         self._key_events = key_events or []
         self._click_events = click_events or []

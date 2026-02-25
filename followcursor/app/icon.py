@@ -86,6 +86,7 @@ def _write_ico(path: str, images: List[Tuple[int, bytes]]) -> None:
 
 
 def _render(size: int) -> QPixmap:
+    """Paint the app icon at the given pixel size and return a QPixmap."""
     pm = QPixmap(size, size)
     pm.fill(Qt.GlobalColor.transparent)
 

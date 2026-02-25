@@ -33,6 +33,7 @@ _original_handler = None
 
 
 def _message_handler(msg_type, context, message):
+    """Custom Qt message handler that suppresses harmless DPI warnings."""
     if "QFont::setPointSize" in message:
         return  # suppress
     if _original_handler:
@@ -69,6 +70,7 @@ class _WinCloseFilter(QAbstractNativeEventFilter):
 
 
 def main() -> None:
+    """Application entry point — creates QApplication, applies theme, shows MainWindow."""
     sys.excepthook = _global_exception_handler
 
     # Suppress QFont::setPointSize warnings from Qt's stylesheet DPI recalc

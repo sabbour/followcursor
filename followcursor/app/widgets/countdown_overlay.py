@@ -20,6 +20,7 @@ class CountdownOverlay(QWidget):
         self._timer.timeout.connect(self._tick)
 
     def start(self) -> None:
+        """Begin the 3-2-1 countdown sequence."""
         self._count = 3
         self.setVisible(True)
         self.raise_()

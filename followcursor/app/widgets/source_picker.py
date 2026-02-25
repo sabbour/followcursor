@@ -69,6 +69,7 @@ class _WindowThumbWorker(QThread):
 
 
 class _SourceCard(QFrame):
+    """Clickable thumbnail card representing one capture source (monitor or window)."""
     def __init__(self, info: dict, thumb: Optional[QPixmap] = None,
                  parent: QWidget | None = None) -> None:
         super().__init__(parent)
