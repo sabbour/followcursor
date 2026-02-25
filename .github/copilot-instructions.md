@@ -103,8 +103,11 @@ followcursor/                    ← repo root
 - Default transition duration: 600ms
 - **Anticipation**: zoom-in and pan transitions complete `ANTICIPATION_MS` (200ms) *before* the activity starts, so the viewer sees the trigger from the beginning
 - Activity analyzer generates keyframes from mouse speed bursts, typing clusters, and click events
+- **Keyboard filtering**: modifier keys (Ctrl, Shift, Alt, Win, CapsLock, NumLock, ScrollLock) and app-hotkey keys (R, =, -) are excluded from keyboard tracking so they don't inflate typing activity signals
 - Spatial-aware clustering merges same-type peaks (clicks, typing) that are close in screen position
-- **Pan-while-zoomed chains**: consecutive clusters within `PAN_MERGE_GAP_MS` (3000ms) are grouped — camera zooms in at the first cluster, pans smoothly to each subsequent cluster while staying zoomed, then zooms out only after the last cluster. Chains are capped at `MAX_CHAIN_LENGTH = 4` clusters. Pan duration scales with distance (`PAN_TRANSITION_MS = 400`–`PAN_TRANSITION_MAX_MS = 700` ms)
+- **Max cluster duration**: clusters are split at `MAX_CLUSTER_DURATION_MS` (8000ms) so a single zoom block never spans the entire video
+- **Pan-while-zoomed chains**: consecutive clusters within `PAN_MERGE_GAP_MS` (1500ms) are grouped — camera zooms in at the first cluster, pans smoothly to each subsequent cluster while staying zoomed, then zooms out only after the last cluster. Chains are capped at `MAX_CHAIN_LENGTH = 4` clusters. Gap is measured from actual activity end to next activity start (hold period excluded). Pan duration scales with distance (`PAN_TRANSITION_MS = 400`–`PAN_TRANSITION_MAX_MS = 700` ms)
+- **Overlap prevention**: after generating keyframes, a post-processing pass ensures each zoom-out completes before the next zoom-in starts — overlapping transitions are shortened or shifted
 - Dampened panning: `_dampen_pan()` accepts `from_x`/`from_y` to compute the minimal shift from the current viewport position (not always from center). Viewport is clamped so it never flies off the source edge.
 - Manual keyframes via right-click on timeline or editor panel
 - **Undo/redo**: `ZoomEngine` has snapshot-based undo/redo (deep-copy, MAX_UNDO=50). `push_undo()` called before every mutation. Drag operations debounced via `_drag_undo_pushed` flag.
@@ -119,8 +122,7 @@ followcursor/                    ← repo root
 ### Project Path & Title Bar
 - `_project_path` tracks the current .fcproj file path; Ctrl+S re-saves without dialog
 - `TitleBar.set_title(name, unsaved)` updates the logo label to show project name + ● indicator
-- Close confirmation dialog (Save / Don’t Save / Cancel) when `_unsaved_changes` is True
-
+- Close confirmation dialog (Save / Don’t Save / Cancel) when `_unsaved_changes` is True- Project saving runs on a background `_SaveProjectWorker(QThread)` so the UI stays responsive during ZIP creation
 ### Processing Overlay
 - `ProcessingOverlay` widget (full-window, pulsing banner) shown during long-running operations
 - Reusable: `show_overlay(title, subtitle)` accepts configurable text — used for both recording finalization ("Processing…") and project loading ("Loading project…")

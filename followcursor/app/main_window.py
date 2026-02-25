@@ -42,7 +42,7 @@ from .click_tracker import ClickTracker
 from .screen_recorder import ScreenRecorder
 from .global_hotkeys import GlobalHotkeys
 from .video_exporter import VideoExporter
-from .project_file import save_project, PROJ_EXT
+from .project_file import PROJ_EXT
 from .backgrounds import PRESETS as BG_PRESETS
 from .frames import FRAME_PRESETS
 from .theme import DARK_THEME
@@ -75,6 +75,40 @@ class _LoadProjectWorker(QThread):
             from .project_file import load_project
             proj = load_project(self._path)
             self.done.emit(proj)
+        except Exception as exc:
+            self.failed.emit(str(exc))
+
+
+class _SaveProjectWorker(QThread):
+    """Background thread that writes a .fcproj ZIP file.
+
+    Bundling the AVI can take noticeable time; the GUI thread stays
+    responsive while this runs.
+    """
+    done = CoreSignal(str)     # saved file path on success
+    failed = CoreSignal(str)   # error message on failure
+
+    def __init__(self, path: str, video_path: str, session,
+                 monitor_rect, actual_fps: float,
+                 bg_preset, frame_preset, parent=None) -> None:
+        super().__init__(parent)
+        self._path = path
+        self._video_path = video_path
+        self._session = session
+        self._monitor_rect = monitor_rect
+        self._actual_fps = actual_fps
+        self._bg_preset = bg_preset
+        self._frame_preset = frame_preset
+
+    def run(self) -> None:  # noqa: D401
+        try:
+            from .project_file import save_project
+            save_project(
+                self._path, self._video_path, self._session,
+                self._monitor_rect, self._actual_fps,
+                self._bg_preset, self._frame_preset,
+            )
+            self.done.emit(self._path)
         except Exception as exc:
             self.failed.emit(str(exc))
 
@@ -952,6 +986,8 @@ class MainWindow(QMainWindow):
             self._monitor_rect,
             self._key_events,
             self._click_events,
+            self._trim_start_ms,
+            self._trim_end_ms,
         )
         self._timeline.set_data(
             self._rec_duration_ms,
@@ -971,6 +1007,8 @@ class MainWindow(QMainWindow):
         # Clear existing and add all generated keyframes
         self._zoom_engine.push_undo()
         self._zoom_engine.clear()
+        logger.info("Auto-generate: cleared %d old keyframes, adding %d new",
+                     0, len(keyframes))
         for kf in keyframes:
             self._zoom_engine.add_keyframe(kf)
         self._mark_dirty()
@@ -1048,6 +1086,17 @@ class MainWindow(QMainWindow):
     def _on_drag_finished(self) -> None:
         """Reset undo debounce flag when a timeline drag completes."""
         self._drag_undo_pushed = False
+        # Push updated trim bounds to editor so auto-gen uses the trimmed range
+        self._editor.refresh(
+            self._zoom_engine.keyframes,
+            self._mouse_track,
+            self._rec_duration_ms,
+            self._monitor_rect,
+            self._key_events,
+            self._click_events,
+            self._trim_start_ms,
+            self._trim_end_ms,
+        )
 
     # ── recording helpers ───────────────────────────────────────────
 
@@ -1549,7 +1598,7 @@ class MainWindow(QMainWindow):
             start_time=0,
             duration=self._rec_duration_ms,
             mouse_track=self._mouse_track,
-            keyframes=self._zoom_engine.keyframes,
+            keyframes=list(self._zoom_engine.keyframes),  # snapshot
             key_events=self._key_events,
             click_events=self._click_events,
             frame_timestamps=self._frame_timestamps or None,
@@ -1571,23 +1620,36 @@ class MainWindow(QMainWindow):
             self._last_project_dir = os.path.dirname(path)
             self._status_text.setOpenExternalLinks(False)
             self._status_text.setText("Saving project\u2026")
-            try:
-                save_project(
-                    path, self._video_path, session,
-                    self._monitor_rect, self._recorder.actual_fps,
-                    self._bg_preset, self._frame_preset,
-                )
-                self._project_path = path
-                self._unsaved_changes = False
-                self._update_title()
-                name = os.path.basename(path)
-                self._status_text.setText(
-                    f'Saved <a href="file:///{path.replace(os.sep, "/")}" '
-                    f'style="color: #a78bfa; text-decoration: underline;">{name}</a>'
-                )
-                self._status_text.setOpenExternalLinks(True)
-            except Exception as exc:
-                self._status_text.setText(f"Save error: {exc}")
+            # Run on background thread so the UI stays responsive
+            self._save_worker = _SaveProjectWorker(
+                path, self._video_path, session,
+                self._monitor_rect, self._recorder.actual_fps,
+                self._bg_preset, self._frame_preset,
+                parent=self,
+            )
+            self._save_worker.done.connect(self._on_save_done)
+            self._save_worker.failed.connect(self._on_save_failed)
+            # Optimistically mark unsaved=False so a quick Ctrl+S
+            # doesn't trigger a second save while the worker runs.
+            self._project_path = path
+            self._unsaved_changes = False
+            self._update_title()
+            self._save_worker.start()
+
+    def _on_save_done(self, path: str) -> None:
+        """Background save finished successfully."""
+        name = os.path.basename(path)
+        self._status_text.setText(
+            f'Saved <a href="file:///{path.replace(os.sep, "/")}" '
+            f'style="color: #a78bfa; text-decoration: underline;">{name}</a>'
+        )
+        self._status_text.setOpenExternalLinks(True)
+
+    def _on_save_failed(self, error: str) -> None:
+        """Background save failed."""
+        self._unsaved_changes = True
+        self._update_title()
+        self._status_text.setText(f"Save error: {error}")
 
     def _load_session(self) -> None:
         path, _ = QFileDialog.getOpenFileName(

@@ -191,15 +191,29 @@ Detects ≥ 2 mouse clicks within a 3-second sliding window — indicates intera
 - Zoom targets the centroid of the click positions
 - Score = click count × `WEIGHT_CLICK (0.8)`
 
+### Keyboard event filtering
+
+The keyboard tracker (`keyboard_tracker.py`) uses a Win32 low-level hook (`WH_KEYBOARD_LL`). To prevent modifier keys and app hotkey combos from inflating typing activity signals, the hook checks the virtual key code from `KBDLLHOOKSTRUCT` and skips:
+
+- Modifier keys: Ctrl, Shift, Alt, Win (both generic and left/right variants)
+- Lock keys: CapsLock, NumLock, ScrollLock
+- App hotkey keys: R (`0x52`), `=` (`0xBB`), `-` (`0xBD`)
+
+These key-down events are still passed along via `CallNextHookEx` so other hooks and the hotkey system work normally — they are simply not recorded as `KeyEvent` timestamps.
+
 ### Spatial-aware clustering
 
 After peak detection, peaks are clustered not just by time proximity but also by **spatial proximity**. Same-type peaks (click or typing) that are close in screen position (< 15% normalised distance) are merged into the same cluster even if their time gap exceeds the base `min_gap_ms` — up to 8 s for clicks and 6 s for typing. This prevents repeated zoom-out / zoom-in cycles when the user clicks or types in the same area with small pauses.
 
 Merged clusters use the full time range (first peak → last peak) for zoom-in / zoom-out timing, so the camera stays zoomed in for the entire activity span rather than just a single peak moment.
 
+### Maximum cluster duration
+
+After spatial clustering, any cluster whose time span exceeds `MAX_CLUSTER_DURATION_MS` (8000 ms) is split into sub-clusters by walking through its peaks and starting a new sub-cluster whenever the next peak would push the span past the limit. This prevents a single zoom block from spanning the entire video when activity (e.g. form-filling) is spread continuously across many seconds.
+
 ### Pan-while-zoomed chains
 
-After spatial clustering, consecutive clusters whose gaps are within `PAN_MERGE_GAP_MS` (3000 ms) are grouped into **chains**. Chains are capped at `MAX_CHAIN_LENGTH = 4` clusters — if more consecutive clusters exist, a new chain starts. Within a chain:
+After spatial clustering, consecutive clusters whose gaps are within `PAN_MERGE_GAP_MS` (1500 ms) are grouped into **chains**. Chains are capped at `MAX_CHAIN_LENGTH = 4` clusters — if more consecutive clusters exist, a new chain starts. The gap is measured from the actual activity **end** of one cluster to the **start** of the next (the hold/dwell period is excluded from the gap calculation so it doesn't cause unintended chaining). Within a chain:
 
 - The camera **zooms in** at the first cluster
 - For each subsequent cluster, a **pan keyframe** slides the viewport to the new target while staying zoomed — no zoom-out / zoom-in cycle

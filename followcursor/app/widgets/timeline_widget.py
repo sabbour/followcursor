@@ -16,7 +16,6 @@ from PySide6.QtGui import (
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QMenu
 
 from ..models import ZoomKeyframe, MousePosition, KeyEvent, ClickEvent
-from ..zoom_engine import ZoomEngine
 from ..utils import fmt_time as _fmt
 
 
@@ -80,6 +79,10 @@ class _TimelineTrack(QWidget):
 
         # Zoom segment selection
         self._selected_segment_id: str = ""     # start kf id of selected segment
+        # Track mouse press position to distinguish click from drag
+        self._press_pos: QPointF | None = None
+        self._drag_actually_moved: bool = False
+        self._pending_select_id: str = ""       # segment to select on release if no drag
 
     def _on_right_click(self, pos) -> None:
         """Right-click on a zoom segment or click event opens context menu."""
@@ -300,57 +303,35 @@ class _TimelineTrack(QWidget):
         if not self.keyframes or self.duration <= 0:
             return
 
-        # Build a temporary zoom engine to compute zoom ranges
-        engine = ZoomEngine()
-        for kf in self.keyframes:
-            engine.add_keyframe(kf)
-
-        # Sample the zoom level across the timeline to find zoom-active regions
-        n_samples = min(w, 500)
-        step_ms = self.duration / n_samples
-
-        # Find contiguous zoom-active segments with the start/end times in ms
-        raw_segments: list = []  # [(start_ms, end_ms, start_x, end_x)]
-        in_zoom = False
-        seg_start_ms = 0.0
-        seg_start_x = 0.0
-
-        for i in range(n_samples + 1):
-            t = i * step_ms
-            zoom, _, _ = engine.compute_at(t)
-            x = (t / self.duration) * w
-
-            if zoom > 1.01 and not in_zoom:
-                in_zoom = True
-                seg_start_ms = t
-                seg_start_x = x
-            elif zoom <= 1.01 and in_zoom:
-                in_zoom = False
-                if x - seg_start_x > 4:
-                    raw_segments.append((seg_start_ms, t, seg_start_x, x))
-
-        if in_zoom:
-            raw_segments.append((seg_start_ms, self.duration, seg_start_x, float(w)))
-
-        # Map each segment to the keyframes that define its start and end
+        # Build segments directly from keyframe pairs instead of sampling
+        # to avoid precision issues where close blocks merge visually.
         sorted_kfs = sorted(self.keyframes, key=lambda k: k.timestamp)
-
-        for seg_start_ms, seg_end_ms, sx, ex in raw_segments:
-            # Find the zoom-in keyframe closest to segment start
-            start_kf_id = ""
-            end_kf_id = ""
-            best_start_delta = float("inf")
-            best_end_delta = float("inf")
-            for kf in sorted_kfs:
-                d_start = abs(kf.timestamp - seg_start_ms)
-                if d_start < best_start_delta and kf.zoom > 1.01:
-                    best_start_delta = d_start
-                    start_kf_id = kf.id
-                d_end = abs(kf.timestamp - seg_end_ms)
-                if d_end < best_end_delta and kf.zoom <= 1.01:
-                    best_end_delta = d_end
-                    end_kf_id = kf.id
-            self._segments.append((sx, ex, start_kf_id, end_kf_id))
+        i = 0
+        while i < len(sorted_kfs):
+            kf = sorted_kfs[i]
+            if kf.zoom > 1.01:  # zoom-in → start of a block
+                start_ms = kf.timestamp
+                start_id = kf.id
+                # Walk forward past any pans (zoom > 1.01) to the zoom-out
+                j = i + 1
+                while j < len(sorted_kfs) and sorted_kfs[j].zoom > 1.01:
+                    j += 1
+                if j < len(sorted_kfs) and sorted_kfs[j].zoom <= 1.01:
+                    end_kf = sorted_kfs[j]
+                    end_ms = end_kf.timestamp + end_kf.duration
+                    end_id = end_kf.id
+                    i = j + 1
+                else:
+                    # No zoom-out found — block extends to end of video
+                    end_ms = self.duration
+                    end_id = ""
+                    i = len(sorted_kfs)
+                sx = (start_ms / self.duration) * w
+                ex = (end_ms / self.duration) * w
+                if ex - sx > 4:
+                    self._segments.append((sx, ex, start_id, end_id))
+            else:
+                i += 1
 
         # Draw each zoom segment
         font = QFont()
@@ -563,7 +544,6 @@ class _TimelineTrack(QWidget):
             seg_info = self._segment_body_hit_info(mx, my)
             if seg_info:
                 start_id, end_id, sx, ex = seg_info
-                self._selected_segment_id = start_id
                 click_ms = (mx / self.width()) * self.duration
                 # Use actual keyframe timestamps (not visual segment extent)
                 # to prevent the segment from growing on each drag cycle.
@@ -581,7 +561,11 @@ class _TimelineTrack(QWidget):
                 self._drag_body_offset = click_ms - kf_start_ms
                 self._drag_body_seg_duration = kf_end_ms - kf_start_ms
                 self._selected_click_idx = -1
-                self._selected_segment_id = ""
+                # Remember this segment for selection on release (if user
+                # just clicks without dragging).
+                self._pending_select_id = start_id
+                self._drag_actually_moved = False
+                self._press_pos = event.position()
                 return
             # Check trim handle drag (after zoom blocks so handles at the video
             # boundaries don't steal clicks from zoom blocks touching those edges).
@@ -634,6 +618,12 @@ class _TimelineTrack(QWidget):
                 self.keyframe_moved.emit(self._drag_kf_id, new_time)
                 return
             elif self._drag_mode == "body" and self._drag_body_ids:
+                # Only start actual drag if mouse moved more than a few pixels
+                if self._press_pos and not self._drag_actually_moved:
+                    delta = (event.position() - self._press_pos).manhattanLength()
+                    if delta < 4:
+                        return  # not a real drag yet
+                    self._drag_actually_moved = True
                 click_ms = (mx / self.width()) * self.duration
                 new_start = click_ms - self._drag_body_offset
                 new_start = max(0.0, min(new_start, self.duration - self._drag_body_seg_duration))
@@ -660,12 +650,21 @@ class _TimelineTrack(QWidget):
 
     def mouseReleaseEvent(self, event: QMouseEvent) -> None:  # type: ignore[override]
         if event.button() == Qt.MouseButton.LeftButton:
+            was_body_drag = self._drag_mode == "body"
             if self._dragging:
                 self.drag_finished.emit()
             self._dragging = False
             self._drag_kf_id = None
             self._drag_mode = ""
             self._drag_body_ids = []
+            # If user clicked a segment body without dragging, select it
+            # so Delete key can remove it.
+            if was_body_drag and not self._drag_actually_moved and self._pending_select_id:
+                self._selected_segment_id = self._pending_select_id
+                self._selected_click_idx = -1
+                self.update()
+            self._pending_select_id = ""
+            self._press_pos = None
 
     def _click_hit_test(self, x: float, y: float) -> int:
         """Check if position is over a click event marker.

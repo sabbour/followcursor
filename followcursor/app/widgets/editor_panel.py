@@ -80,6 +80,9 @@ class EditorPanel(QWidget):
         self._container.setSpacing(12)
 
         self._current_zoom_level = ZOOM_DEPTHS["Subtle"]
+        self._trim_start_ms: float = 0.0
+        self._trim_end_ms: float = 0.0
+        self._duration: float = 0.0
 
         # ── Add Keyframe ─────────────────────────────────────────────
         manual_title = QLabel("ADD KEYFRAME")
@@ -568,10 +571,15 @@ class EditorPanel(QWidget):
         monitor_rect: dict | None = None,
         key_events: List[KeyEvent] | None = None,
         click_events: List[ClickEvent] | None = None,
+        trim_start_ms: float = 0.0,
+        trim_end_ms: float = 0.0,
     ) -> None:
         self._mouse_track = mouse_track
         self._key_events = key_events or []
         self._click_events = click_events or []
+        self._duration = duration
+        self._trim_start_ms = trim_start_ms
+        self._trim_end_ms = trim_end_ms
         if monitor_rect is not None:
             self._monitor_rect = monitor_rect
 
@@ -583,6 +591,24 @@ class EditorPanel(QWidget):
 
     def _auto_keyframe(self) -> None:
         track = self._mouse_track
+
+        # Apply trim range: only analyze data within the trimmed window
+        t_start = self._trim_start_ms
+        t_end = self._trim_end_ms if self._trim_end_ms > 0 else self._duration
+        if t_start > 0 or (self._trim_end_ms > 0 and t_end < self._duration):
+            track = [m for m in track if t_start <= m.timestamp <= t_end]
+            filtered_keys: list = [
+                KeyEvent(timestamp=k.timestamp)
+                for k in self._key_events if t_start <= k.timestamp <= t_end
+            ]
+            filtered_clicks: list = [
+                ClickEvent(timestamp=c.timestamp, x=c.x, y=c.y)
+                for c in self._click_events if t_start <= c.timestamp <= t_end
+            ]
+        else:
+            filtered_keys = list(self._key_events)
+            filtered_clicks = list(self._click_events)
+
         if len(track) < 10:
             self._auto_status.setText("Not enough mouse data to analyze.")
             self._auto_status.setVisible(True)
@@ -599,8 +625,8 @@ class EditorPanel(QWidget):
         try:
             keyframes = analyze_activity(
                 track, self._monitor_rect,
-                key_events=self._key_events or None,
-                click_events=self._click_events or None,
+                key_events=filtered_keys or None,
+                click_events=filtered_clicks or None,
                 zoom_level=self._current_zoom_level,
                 follow_cursor=self.follow_cursor,
                 max_clusters=max_clusters,
@@ -616,7 +642,8 @@ class EditorPanel(QWidget):
             self._auto_status.setVisible(True)
             return
 
-        n_clusters = len(keyframes) // 2  # each cluster = zoom-in + zoom-out
+        # Count actual zoom-in keyframes (zoom > 1.0) as the cluster count
+        n_clusters = sum(1 for kf in keyframes if kf.zoom > 1.0 and not kf.reason.startswith("Pan to:"))
         self._auto_status.setText(
             f"Generated {len(keyframes)} keyframes from {n_clusters} activity cluster{'s' if n_clusters != 1 else ''}."
         )

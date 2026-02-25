@@ -23,6 +23,20 @@ WM_KEYDOWN = 0x0100
 WM_SYSKEYDOWN = 0x0104
 WM_QUIT = 0x0012
 
+# Virtual key codes to ignore — modifier keys and app hotkey combos
+# don't represent actual "typing" and would inflate activity signals.
+_IGNORE_VKS = frozenset((
+    0x10, 0x11, 0x12,          # Shift, Ctrl, Alt (generic)
+    0xA0, 0xA1,                # LShift, RShift
+    0xA2, 0xA3,                # LCtrl, RCtrl
+    0xA4, 0xA5,                # LAlt, RAlt
+    0x5B, 0x5C,                # LWin, RWin
+    0x14, 0x90, 0x91,          # CapsLock, NumLock, ScrollLock
+    0x52,                      # R  — part of Ctrl+Shift+R record toggle
+    0xBB,                      # OEM_PLUS (= key) — part of zoom-in hotkey
+    0xBD,                      # OEM_MINUS (- key) — part of zoom-out hotkey
+))
+
 # Low-level keyboard proc signature
 if sys.platform == "win32":
     HOOKPROC = ctypes.WINFUNCTYPE(
@@ -31,6 +45,15 @@ if sys.platform == "win32":
         wintypes.WPARAM,   # wParam (pointer-sized)
         wintypes.LPARAM,   # lParam (pointer-sized)
     )
+
+    class KBDLLHOOKSTRUCT(ctypes.Structure):
+        _fields_ = [
+            ("vkCode", wintypes.DWORD),
+            ("scanCode", wintypes.DWORD),
+            ("flags", wintypes.DWORD),
+            ("time", wintypes.DWORD),
+            ("dwExtraInfo", ctypes.POINTER(ctypes.c_ulong)),
+        ]
 
 
 class _KeyboardHookThread(QThread):
@@ -76,6 +99,12 @@ class _KeyboardHookThread(QThread):
         def low_level_handler(n_code, w_param, l_param):
             try:
                 if n_code >= 0 and w_param in (WM_KEYDOWN, WM_SYSKEYDOWN):
+                    # Skip modifier keys and app-hotkey keys
+                    kb = ctypes.cast(l_param, ctypes.POINTER(KBDLLHOOKSTRUCT)).contents
+                    if kb.vkCode in _IGNORE_VKS:
+                        return user32.CallNextHookEx(
+                            self._hook, n_code, w_param, l_param,
+                        )
                     ts = time.time() * 1000 - start_ms
                     events_list.append(KeyEvent(timestamp=ts))
             except Exception:

@@ -42,8 +42,9 @@ ZOOM_HOLD_CLICK_MS = 2000  # hold for click clusters
 TRANSITION_MS = 600       # easing duration (zoom-in)
 PAN_TRANSITION_MS = 400   # base duration for panning to new target while zoomed
 PAN_TRANSITION_MAX_MS = 700  # cap pan duration even for large distances
-PAN_MERGE_GAP_MS = 3000  # if next cluster starts within this gap of current cluster ending, pan instead of zoom-out/in
+PAN_MERGE_GAP_MS = 1500  # if next cluster starts within this gap of current cluster ending, pan instead of zoom-out/in
 MAX_CHAIN_LENGTH = 4     # max clusters in a single pan chain before forcing a zoom-out
+MAX_CLUSTER_DURATION_MS = 8000  # split clusters that exceed this total span
 ANTICIPATION_MS = 100     # arrive this many ms *before* action starts so the viewer sees the trigger
 
 # Thresholds
@@ -353,6 +354,28 @@ def analyze_activity(
             current_cluster = [p]
     clusters.append(current_cluster)
 
+    # Split clusters that exceed MAX_CLUSTER_DURATION_MS so a single
+    # zoom block never spans the whole video.
+    split_clusters: List[List[WindowInfo]] = []
+    for cluster in clusters:
+        cluster.sort(key=lambda p: p[0])
+        span = cluster[-1][0] - cluster[0][0]
+        if span <= MAX_CLUSTER_DURATION_MS:
+            split_clusters.append(cluster)
+            continue
+        # Walk through peaks; start a new sub-cluster whenever adding
+        # the next peak would exceed the duration limit.
+        sub: List[WindowInfo] = [cluster[0]]
+        for p in cluster[1:]:
+            if p[0] - sub[0][0] > MAX_CLUSTER_DURATION_MS:
+                split_clusters.append(sub)
+                sub = [p]
+            else:
+                sub.append(p)
+        if sub:
+            split_clusters.append(sub)
+    clusters = split_clusters
+
     # Keep top N clusters by peak score
     def cluster_peak_score(c: List[WindowInfo]) -> float:
         return max(p[1] for p in c)
@@ -437,8 +460,9 @@ def analyze_activity(
     for ci_idx in range(1, len(cluster_info)):
         prev_ci = cluster_info[current_chain[-1]]
         curr_ci = cluster_info[ci_idx]
-        prev_end_with_hold = prev_ci["end"] + prev_ci["hold_ms"]
-        gap = curr_ci["start"] - prev_end_with_hold
+        # Gap between actual activity end and next activity start
+        # (hold period is just camera dwell — doesn't affect chaining)
+        gap = curr_ci["start"] - prev_ci["end"]
 
         if gap < PAN_MERGE_GAP_MS and len(current_chain) < MAX_CHAIN_LENGTH:
             # Close enough and chain not too long → stay zoomed, pan
@@ -533,4 +557,44 @@ def analyze_activity(
         keyframes.append(kf_out)
 
     keyframes.sort(key=lambda k: k.timestamp)
+
+    # ── 6. Prevent overlap between consecutive chains ──────────────
+    #
+    # A zoom-out from chain A must finish before the zoom-in from
+    # chain B starts.  If they overlap, push the zoom-in later or
+    # shorten the zoom-out.
+    i = 0
+    while i < len(keyframes) - 1:
+        curr = keyframes[i]
+        nxt = keyframes[i + 1]
+        # Only check zoom-out → zoom-in boundaries
+        if curr.zoom <= 1.01 and nxt.zoom > 1.01:
+            curr_end = curr.timestamp + curr.duration
+            if curr_end > nxt.timestamp:
+                # Shrink the gap: shorten the zoom-out duration so it
+                # finishes right at the next keyframe's start, leaving
+                # at least a small buffer.
+                available = nxt.timestamp - curr.timestamp
+                if available > 100:
+                    # Enough room — just shorten the zoom-out transition
+                    keyframes[i] = ZoomKeyframe.create(
+                        timestamp=curr.timestamp,
+                        zoom=curr.zoom,
+                        x=curr.x,
+                        y=curr.y,
+                        duration=max(100, available - 50),
+                        reason=curr.reason,
+                    )
+                else:
+                    # Not enough room — push the zoom-in later
+                    keyframes[i + 1] = ZoomKeyframe.create(
+                        timestamp=curr_end + 50,
+                        zoom=nxt.zoom,
+                        x=nxt.x,
+                        y=nxt.y,
+                        duration=nxt.duration,
+                        reason=nxt.reason,
+                    )
+        i += 1
+
     return keyframes
