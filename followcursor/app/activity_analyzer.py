@@ -52,7 +52,7 @@ MOUSE_STILL_PX_MS = 0.5   # mouse speed below this = "still" (px/ms)
 MOUSE_TYPING_PX_MS = 3.0  # mouse speed below this = "slow enough for typing" (px/ms)
 DECEL_MIN_RATIO = 3.0     # speed must drop by at least this factor to count
 CLICK_WINDOW_MS = 3000    # sliding window for click-cluster detection
-CLICK_MIN_COUNT = 1       # minimum clicks in window to trigger zoom
+CLICK_MIN_COUNT = 2       # minimum clicks in window to trigger zoom
 
 # Signal weights (higher = preferred when ranking mixed clusters)
 WEIGHT_TYPING = 1.0
