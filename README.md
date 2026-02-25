@@ -6,8 +6,6 @@ Record your screen or any individual window, then export a polished MP4 video wh
 
 > **New here?** Jump to the [Quickstart Guide](docs/QUICKSTART.md) to get recording in under 5 minutes.
 
-![FollowCursor screenshot](./screenshot.png)
-
 ## Documentation
 
 | Document | Description |
@@ -18,6 +16,8 @@ Record your screen or any individual window, then export a polished MP4 video wh
 | [Contributing Guide](docs/CONTRIBUTING.md) | Dev setup, coding conventions, release process |
 
 ## Features
+
+![FollowCursor screenshot](./screenshot.png)
 
 - **Screen & Window Recording** — Capture any monitor (hardware-accelerated via Windows Graphics Capture) or individual windows
 - **Smart Auto-Zoom** — Automatically detects mouse settlements, typing bursts, and click clusters to generate zoom keyframes with configurable sensitivity (Low / Medium / High). Spatial-aware clustering merges nearby same-area events into sustained zooms, and consecutive clusters are chained together (up to 4 per chain) — the camera stays zoomed in and pans smoothly between them instead of zooming out and back in
