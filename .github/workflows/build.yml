@@ -113,9 +113,16 @@ jobs:
           path: followcursor/dist/FollowCursor/
           retention-days: 30
 
+      - name: Zip release artifact
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: pwsh
+        run: |
+          Compress-Archive -Path followcursor/dist/FollowCursor/* -DestinationPath "FollowCursor-${{ steps.version.outputs.APP_VERSION }}-windows.zip"
+
       - name: Create GitHub Release
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
           name: FollowCursor ${{ steps.version.outputs.APP_VERSION }}
           generate_release_notes: true
+          files: FollowCursor-${{ steps.version.outputs.APP_VERSION }}-windows.zip
