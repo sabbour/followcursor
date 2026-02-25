@@ -4,7 +4,7 @@ A Windows screen recorder with cinematic cursor-following zoom — built with **
 
 Record your screen or any individual window, then export a polished MP4 video where the camera smoothly follows and zooms into your cursor movements. Perfect for tutorials, demos, and product walkthroughs.
 
-> **New here?** Jump to the [Quickstart Guide](../docs/QUICKSTART.md) to get recording in under 5 minutes.
+> **New here?** Jump to the [Quickstart Guide](docs/QUICKSTART.md) to get recording in under 5 minutes.
 
 ![FollowCursor screenshot](./screenshot.png)
 
@@ -12,10 +12,10 @@ Record your screen or any individual window, then export a polished MP4 video wh
 
 | Document | Description |
 | -------- | ----------- |
-| [User Guide](../docs/USER_GUIDE.md) | Complete feature reference — every feature explained |
-| [Quickstart Guide](../docs/QUICKSTART.md) | Install, record, edit, export — step by step |
-| [Architecture Guide](../docs/ARCHITECTURE.md) | How the codebase works: data flow, zoom engine, capture pipeline |
-| [Contributing Guide](../docs/CONTRIBUTING.md) | Dev setup, coding conventions, release process |
+| [User Guide](docs/USER_GUIDE.md) | Complete feature reference — every feature explained |
+| [Quickstart Guide](docs/QUICKSTART.md) | Install, record, edit, export — step by step |
+| [Architecture Guide](docs/ARCHITECTURE.md) | How the codebase works: data flow, zoom engine, capture pipeline |
+| [Contributing Guide](docs/CONTRIBUTING.md) | Dev setup, coding conventions, release process |
 
 ## Features
 
