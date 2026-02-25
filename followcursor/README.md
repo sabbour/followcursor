@@ -97,9 +97,10 @@ A GitHub Actions workflow (`.github/workflows/build.yml`) runs on every push/PR 
 1. Sets up Python 3.13 on a Windows runner
 2. Extracts the app version from `app/version.py`
 3. Installs dependencies
-4. Builds with PyInstaller
-5. Uploads the versioned build artifact (retained 30 days)
-6. Creates a GitHub Release when a version tag (`v*`) is pushed
+4. Runs the pytest test suite
+5. Builds with PyInstaller
+6. Uploads the versioned build artifact (retained 30 days)
+7. Creates a GitHub Release when a version tag (`v*`) is pushed
 
 You can also trigger a build manually from the Actions tab.
 
@@ -137,6 +138,15 @@ followcursor/
 ├── build.bat                        # PyInstaller build script
 ├── dev.bat                          # Dev setup & launch script
 ├── followcursor.ico                 # App icon
+├── pytest.ini                       # Pytest configuration
+├── tests/                           # Unit test suite (pytest)
+│   ├── conftest.py                  # Shared fixtures
+│   ├── test_models.py               # Dataclass serialization roundtrips
+│   ├── test_zoom_engine.py          # Interpolation, undo/redo
+│   ├── test_activity_analyzer.py    # Cluster detection, chains, overlap
+│   ├── test_utils.py                # fmt_time, encoder args
+│   ├── test_frames_backgrounds.py   # Preset data & serialization
+│   └── test_project_file.py         # .fcproj save/load roundtrips
 ├── app/
 │   ├── version.py                   # Semantic version (__version__)
 │   ├── models.py                    # Data classes (MousePosition, ZoomKeyframe, ClickEvent, …)

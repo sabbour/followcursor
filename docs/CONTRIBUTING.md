@@ -113,9 +113,15 @@ followcursor/              ← repo root (.git, .github, .vscode live here)
    .venv\Scripts\python.exe -c "import py_compile, pathlib; [py_compile.compile(str(f), doraise=True) for f in pathlib.Path('.').rglob('*.py') if '.venv' not in str(f)]"
    ```
 
-4. Test manually — launch the app and verify your changes work
-5. Commit with a descriptive message
-6. Push and open a Pull Request
+4. Run the test suite:
+
+   ```bat
+   .venv\Scripts\python.exe -m pytest tests/ -v
+   ```
+
+5. Test manually — launch the app and verify your changes work
+6. Commit with a descriptive message
+7. Push and open a Pull Request
 
 ### Adding a new widget
 

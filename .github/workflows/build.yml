@@ -43,6 +43,10 @@ jobs:
           pip install -r requirements.txt
           pip install pyinstaller
 
+      - name: Run tests
+        working-directory: followcursor
+        run: python -m pytest tests/ -v
+
       - name: Build with PyInstaller
         working-directory: followcursor
         run: |

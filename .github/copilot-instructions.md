@@ -154,8 +154,17 @@ followcursor/                    ← repo root
 
 - **Run**: `dev.bat` or press `F5` in VS Code
 - **Build**: `build.bat` or press `Ctrl+Shift+B`
+- **Test**: `.venv\Scripts\python.exe -m pytest tests/ -v` from `followcursor/`
 - **Debug**: F5 launches with debugpy attached
 - VS Code automation terminals use `cmd.exe` (not WSL) — configured via `terminal.integrated.automationProfile.windows`
+
+### Test Suite
+
+- **Framework**: pytest (configured via `followcursor/pytest.ini`)
+- **Location**: `followcursor/tests/` — tests target the pure-logic layer (no Qt dependency)
+- **Modules tested**: models, zoom_engine, activity_analyzer, utils, frames, backgrounds, project_file
+- **CI**: tests run automatically before the PyInstaller build in GitHub Actions
+- **Convention**: one `test_<module>.py` per source module; shared fixtures in `conftest.py`
 
 ## Coding Conventions
 
