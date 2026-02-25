@@ -1,4 +1,4 @@
-# FollowCursor
+# FollowCursor [![Build](https://github.com/sabbour/followcursor/actions/workflows/build.yml/badge.svg)](https://github.com/sabbour/followcursor/actions/workflows/build.yml)
 
 A Windows screen recorder with cinematic cursor-following zoom — built with **Python** and **PySide6 (Qt 6)**.
 
