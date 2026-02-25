@@ -1,4 +1,4 @@
-"""Tests for app.utils — fmt_time, encoder profiles, build_encoder_args."""
+"""Tests for app.utils — fmt_time, encoder profiles, build_encoder_args, GIF."""
 
 import pytest
 from unittest.mock import patch
@@ -10,8 +10,9 @@ from app.utils import (
     encoder_display_name,
     best_hw_encoder,
     detect_available_encoders,
+    GIF_FPS,
+    build_gif_args,
 )
-
 
 # ── fmt_time ────────────────────────────────────────────────────────
 
@@ -139,3 +140,47 @@ class TestEncoderDetection:
             encoders = detect_available_encoders()
             assert encoders == ["libx264"]
         app.utils._available_encoders = None
+
+
+# ── GIF export support ───────────────────────────────────────────────
+
+
+class TestGifExport:
+    def test_gif_fps_is_positive_int(self) -> None:
+        assert isinstance(GIF_FPS, int)
+        assert GIF_FPS > 0
+
+    def test_build_gif_args_returns_list(self) -> None:
+        args = build_gif_args()
+        assert isinstance(args, list)
+        assert len(args) > 0
+
+    def test_build_gif_args_contains_vf(self) -> None:
+        args = build_gif_args()
+        assert "-vf" in args
+
+    def test_build_gif_args_loop_flag(self) -> None:
+        args = build_gif_args()
+        assert "-loop" in args
+        loop_val = args[args.index("-loop") + 1]
+        assert loop_val == "0"  # loop forever
+
+    def test_build_gif_args_default_fps(self) -> None:
+        args = build_gif_args()
+        vf = args[args.index("-vf") + 1]
+        assert f"fps={GIF_FPS}" in vf
+
+    def test_build_gif_args_custom_fps(self) -> None:
+        args = build_gif_args(gif_fps=10)
+        vf = args[args.index("-vf") + 1]
+        assert "fps=10" in vf
+
+    def test_build_gif_args_contains_palettegen(self) -> None:
+        args = build_gif_args()
+        vf = args[args.index("-vf") + 1]
+        assert "palettegen" in vf
+
+    def test_build_gif_args_contains_paletteuse(self) -> None:
+        args = build_gif_args()
+        vf = args[args.index("-vf") + 1]
+        assert "paletteuse" in vf

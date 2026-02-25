@@ -333,16 +333,32 @@ The preview accurately reflects the export output:
 
 ### Export Settings
 
-Click **⬆ Export** in the title bar to start an export. You'll be asked to choose a destination folder and filename.
+Click **⬆ Export** in the title bar to start an export. You'll be asked to choose a destination folder, filename, and format.
 
-Export uses these settings:
+Two export formats are available:
+
+| Format | Extension | Best for |
+| ------ | --------- | -------- |
+| **MP4 Video** | `.mp4` | Sharing, uploading to platforms, embedding in presentations |
+| **GIF Animation** | `.gif` | Embedding in GitHub READMEs, Markdown docs, Slack, and other inline-image contexts |
+
+#### MP4 export settings
 
 - **Codec:** H.264 — hardware-accelerated when available (see [Video Encoder](#video-encoder) below), software `libx264` as fallback
 - **Quality:** CRF 18 equivalent (HW encoders use tuned quality parameters to match)
 - **Pixel format:** yuv420p (maximum compatibility)
 - **Preset:** medium (balanced speed/compression)
 
-Frames are piped directly to ffmpeg via stdin — no temporary files are written to disk.
+#### GIF export settings
+
+- **Frame rate:** 15 fps (optimised for size/quality balance)
+- **Colours:** 256-colour palette generated per export using `palettegen` (diff mode) for maximum colour accuracy
+- **Dithering:** Bayer dithering (scale 5, diff mode) to reduce colour banding
+- **Loop:** Loops forever (`-loop 0`)
+
+For both formats, frames are piped directly to ffmpeg via stdin — no temporary files are written to disk.
+
+> **Note:** GIF files can be significantly larger than MP4 for the same content. If file size matters, prefer MP4 or reduce the output resolution via the **OUTPUT SIZE** picker before exporting.
 
 ### Video Encoder
 

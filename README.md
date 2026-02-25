@@ -32,7 +32,7 @@ Record your screen or any individual window, then export a polished MP4 video wh
 - **Timeline Editor** — Visual timeline with mouse-speed heatmap, gradient-styled zoom segments, draggable edges, and click-to-seek
 - **Trimming** — Drag trim handles on the timeline edges to cut unwanted content from the start or end of your recording; export respects the trimmed range
 - **Undo & Redo** — Full undo/redo for all zoom keyframe changes (Ctrl+Z / Ctrl+Shift+Z / Ctrl+Y), up to 50 levels deep
-- **Cinematic Export** — H.264 MP4 via ffmpeg with ease-out easing, cursor rendering, click ripple effects, and device frame overlays. Supports GPU-accelerated encoding (NVENC, QuickSync, AMF) with automatic detection and fallback to software x264. Status bar shows active encoder name during export
+- **Cinematic Export** — H.264 MP4 or GIF via ffmpeg with ease-out easing, cursor rendering, click ripple effects, and device frame overlays. MP4 supports GPU-accelerated encoding (NVENC, QuickSync, AMF) with automatic detection and fallback to software x264. GIF uses palette-based encoding (`palettegen` + `paletteuse`) for accurate colours and bayer dithering. Status bar shows active format/encoder during export
 - **Output Dimensions** — Choose from Auto, 16:9, 3:2, 4:3, 1:1, or 9:16 aspect ratios for the exported video. Preview shows crop boundaries with a semi-transparent overlay
 - **Background Presets** — 84 backgrounds (39 solids + 37 gradients + 8 patterns) with category picker
 - **Device Frames** — 5 frame styles: Wide Bezel, Slim Bezel, Thin Border, Shadow Only, No Frame
@@ -51,7 +51,7 @@ Record your screen or any individual window, then export a polished MP4 video wh
 | Screen Capture | Windows Graphics Capture (WGC) | Hardware-accelerated monitor/window capture |
 | Window Capture | Win32 PrintWindow (ctypes) | Per-window capture without bleed-through |
 | Recording Pipe | ffmpeg via imageio-ffmpeg | Lossless intermediate AVI (huffyuv) piped via stdin |
-| Video Export | ffmpeg (libx264 / HW accel) | H.264 MP4 encoding (CRF 18 equivalent) with zoom/cursor baked in; auto-detects NVENC, QuickSync, AMF |
+| Video Export | ffmpeg (libx264 / HW accel / GIF) | H.264 MP4 or GIF export with zoom/cursor baked in; MP4 auto-detects NVENC, QuickSync, AMF; GIF uses palettegen + paletteuse |
 | Image Processing | OpenCV + NumPy | Frame manipulation, thumbnails, cursor rendering |
 | Input Tracking | Win32 Hooks (ctypes) | Low-level mouse, keyboard, and click tracking |
 | Zoom Engine | Pure Python | Ease-out-eased keyframe interpolation |

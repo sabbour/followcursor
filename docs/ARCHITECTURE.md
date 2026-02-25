@@ -241,7 +241,7 @@ Configurable via sensitivity presets (Low/Medium/High) which vary `max_clusters`
 
 ## Video Export
 
-`VideoExporter` (`app/video_exporter.py`) renders the final MP4:
+`VideoExporter` (`app/video_exporter.py`) renders the final MP4 or GIF:
 
 ### Export Pipeline
 
@@ -251,8 +251,13 @@ Source AVI → frame-by-frame decode (OpenCV) →
   apply zoom/pan (content-only or whole-canvas, depending on frame preset) →
   draw cursor overlay (virtual screen-rect mapping, clipped to screen area) →
   draw click ripple effects (virtual screen-rect mapping, clipped to screen area) →
-  pipe to ffmpeg (encoder selected at runtime, yuv420p) → MP4
+  pipe to ffmpeg → MP4 (H.264, encoder selected at runtime, yuv420p)
+                 → GIF  (palettegen + paletteuse filtergraph, 15 fps, loops forever)
 ```
+
+### GIF export
+
+When the output path ends in `.gif`, the exporter uses a palette-based GIF pipeline instead of the H.264 encoder chain. The ffmpeg filtergraph runs `fps=15,split[s0][s1];[s0]palettegen=max_colors=256:stats_mode=diff[p];[s1][p]paletteuse=dither=bayer:bayer_scale=5:diff_mode=rectangle` in a single pass. The `GIF_FPS` constant (default `15`) and `build_gif_args()` helper live in `app/utils.py`. The encoder fallback chain is not used for GIF exports.
 
 ### Encoder selection
 

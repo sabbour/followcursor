@@ -108,3 +108,28 @@ def build_encoder_args(enc_id: str) -> List[str]:
     _, codec, quality_args = profile
     args = ["-c:v", codec] + quality_args + ["-pix_fmt", "yuv420p"]
     return args
+
+
+# ── GIF export support ───────────────────────────────────────────────
+
+# Default frames per second for GIF output (balances quality and file size)
+GIF_FPS: int = 15
+
+
+def build_gif_args(gif_fps: int = GIF_FPS) -> List[str]:
+    """Return ffmpeg ``-vf`` filter arguments for high-quality GIF output.
+
+    Uses palette generation (``palettegen`` + ``paletteuse``) for accurate
+    colours and bayer dithering to reduce banding artefacts.  The filter is
+    applied in a single ffmpeg pass via the ``split`` filter so no temporary
+    file is required.
+
+    Returns ``["-vf", "<filtergraph>", "-loop", "0"]``.
+    """
+    vf = (
+        f"fps={gif_fps},"
+        "split[s0][s1];"
+        "[s0]palettegen=max_colors=256:stats_mode=diff[p];"
+        "[s1][p]paletteuse=dither=bayer:bayer_scale=5:diff_mode=rectangle"
+    )
+    return ["-vf", vf, "-loop", "0"]

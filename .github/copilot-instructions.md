@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-FollowCursor is a **Windows screen recorder** with cinematic cursor-following zoom. It captures screen or window content, tracks mouse/keyboard/click activity, and exports polished MP4 videos where the camera smoothly follows and zooms into the user's cursor movements.
+FollowCursor is a **Windows screen recorder** with cinematic cursor-following zoom. It captures screen or window content, tracks mouse/keyboard/click activity, and exports polished MP4 or GIF files where the camera smoothly follows and zooms into the user's cursor movements.
 
 **Target audience**: People creating tutorials, demos, and product walkthroughs.
 
@@ -14,7 +14,7 @@ FollowCursor is a **Windows screen recorder** with cinematic cursor-following zo
 | UI Framework | PySide6 (Qt 6) | Frameless window, custom dark theme |
 | Screen Capture | dxcam (DXGI) + mss fallback | Hardware-accelerated monitor capture |
 | Window Capture | Win32 PrintWindow (ctypes) | Per-window capture without bleed-through |
-| Video Export | ffmpeg via imageio-ffmpeg | H.264 MP4 piped via stdin; auto-detects HW encoders (NVENC, QuickSync, AMF) with libx264 fallback |
+| Video Export | ffmpeg via imageio-ffmpeg | H.264 MP4 or GIF piped via stdin; MP4 auto-detects HW encoders (NVENC, QuickSync, AMF) with libx264 fallback; GIF uses palettegen + paletteuse |
 | Image Processing | OpenCV (cv2) + NumPy | Frame manipulation, thumbnails, cursor rendering |
 | Input Tracking | Win32 Hooks (ctypes) | WH_MOUSE_LL, WH_KEYBOARD_LL via WINFUNCTYPE |
 | Build | PyInstaller | Single-folder .exe distribution |
@@ -36,7 +36,7 @@ followcursor/                    ← repo root
 │       ├── main_window.py       ← Central coordinator (~1000 lines)
 │       ├── models.py            ← Data classes
 │       ├── screen_recorder.py   ← Capture engine (monitor + window modes)
-│       ├── video_exporter.py    ← H.264 MP4 export with zoom/cursor/bezel
+│       ├── video_exporter.py    ← H.264 MP4 / GIF export with zoom/cursor/bezel
 │       ├── compositor.py        ← QPainter compositing (frame + background)
 │       ├── zoom_engine.py       ← Ease-out keyframe interpolation
 │       ├── activity_analyzer.py ← Auto-zoom from activity bursts
@@ -84,14 +84,15 @@ followcursor/                    ← repo root
 
 ### Video Export Pipeline
 - Frames are piped to ffmpeg via stdin (not written to temp files)
-- GPU-accelerated encoding: `detect_available_encoders()` in `utils.py` probes NVENC / QuickSync / AMF at startup; `best_hw_encoder()` picks the fastest available, falling back to `libx264`
+- **MP4 export**: GPU-accelerated encoding: `detect_available_encoders()` in `utils.py` probes NVENC / QuickSync / AMF at startup; `best_hw_encoder()` picks the fastest available, falling back to `libx264`
 - `ENCODER_PROFILES` dict maps each encoder ID to codec + quality args (tuned to approximate CRF 18)
 - `build_encoder_args(encoder_id)` returns the ffmpeg arg list for the selected encoder
 - Encoder choice is persisted via QSettings and exposed in the editor panel's ⚙ settings menu as a **Video encoder** submenu
 - `VideoExporter.export()` and `_run()` accept an `encoder_id` parameter; the ffmpeg command is built dynamically via `build_encoder_args()`
 - **Encoder fallback chain (two-phase)**: (1) immediate check — if ffmpeg exits within 100ms, try the next available HW encoder in priority order (NVENC → QuickSync → AMF), falling back to `libx264` only after all HW encoders are exhausted; (2) mid-stream retry — if the HW encoder fails partway through, restart the full encode walking the same fallback chain. `VideoExporter` emits `status = Signal(str)` and `MainWindow._on_export_status()` updates the status bar on each fallback attempt
+- **GIF export**: when the output path ends in `.gif`, the exporter skips the H.264 encoder chain and uses `build_gif_args()` from `utils.py` to construct a palette-based ffmpeg filtergraph (`fps=15,palettegen+paletteuse`). `GIF_FPS = 15` constant controls the default frame rate. No encoder fallback is used for GIF; the palette generation timeout is 300 s (GIF palettegen buffers all frames before writing).
 - **Pipe error handling**: both `BrokenPipeError` and `OSError` are caught on pipe writes (Windows raises `OSError(22)` instead of `BrokenPipeError`)
-- Status bar shows active encoder display name during export (e.g. "Encoding with NVIDIA NVENC…") and updates on each fallback attempt (e.g. "Encoder fallback: trying Intel QuickSync…", then "Encoder fallback: using libx264…")
+- Status bar shows active encoder/format during export (e.g. "Encoding with NVIDIA NVENC…" or "Exporting GIF…") and updates on each fallback attempt (e.g. "Encoder fallback: trying Intel QuickSync…", then "Encoder fallback: using libx264…")
 - **Zoom behavior is conditional on frame preset**:
   - **No Frame**: zoom/pan applies only to the video content inside the screen area — background stays static. Cursor and click overlays use virtual screen-rect mapping with clip rect when zoomed.
   - **Device frame (any bezel)**: zoom/pan moves the device (frame + video) while the background stays static — like physically bringing a device closer and moving it around. The background gradient/pattern is always visible and never zooms.
