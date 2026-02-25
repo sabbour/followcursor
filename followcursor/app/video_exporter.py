@@ -1,4 +1,4 @@
-"""Export video with zoom keyframes baked in — produces H.264 MP4."""
+"""Export video with zoom keyframes baked in — produces H.264 MP4 or GIF."""
 
 import logging
 import os
@@ -20,7 +20,7 @@ from .backgrounds import BackgroundPreset, DEFAULT_PRESET, WAVE_LAYERS
 from .frames import FramePreset, DEFAULT_FRAME
 
 
-from .utils import ffmpeg_exe as _ffmpeg_exe, subprocess_kwargs as _subprocess_kwargs, build_encoder_args as _build_encoder_args
+from .utils import ffmpeg_exe as _ffmpeg_exe, subprocess_kwargs as _subprocess_kwargs, build_encoder_args as _build_encoder_args, build_gif_args as _build_gif_args
 
 
 # ── Numpy-based compositor for export (fast) ────────────────────────
@@ -273,7 +273,7 @@ def _compose_cv(frame_bgr: np.ndarray, zoom: float, pan_x: float,
 
 
 class VideoExporter(QObject):
-    """Reads the raw recording, applies zoom/pan per-frame, writes H.264 MP4."""
+    """Reads the raw recording, applies zoom/pan per-frame, writes H.264 MP4 or GIF."""
 
     progress = Signal(float)  # 0.0–1.0
     finished = Signal(str)    # output path
@@ -413,8 +413,9 @@ class VideoExporter(QObject):
             w = w + (w % 2)
             h = h + (h % 2)
 
-            # Ensure .mp4 extension
-            if not output_path.lower().endswith(".mp4"):
+            # Normalise extension: allow .gif; everything else becomes .mp4
+            _is_gif = output_path.lower().endswith(".gif")
+            if not _is_gif and not output_path.lower().endswith(".mp4"):
                 output_path = output_path.rsplit(".", 1)[0] + ".mp4"
 
             # Pre-build the gradient background and bezel layer (once)
@@ -514,24 +515,39 @@ class VideoExporter(QObject):
                 self.error.emit("Output dimensions too small for encoding")
                 return
 
-            # Pipe raw BGR frames to ffmpeg for H.264 encoding
+            # Pipe raw BGR frames to ffmpeg for encoding (H.264 or GIF)
             ffmpeg = _ffmpeg_exe()
             original_encoder_id = encoder_id
 
             def _launch_ffmpeg(enc_id: str) -> subprocess.Popen:
-                enc_args = _build_encoder_args(enc_id)
-                cmd = [
-                    ffmpeg, "-y",
-                    "-f", "rawvideo",
-                    "-vcodec", "rawvideo",
-                    "-s", f"{w}x{h}",
-                    "-pix_fmt", "bgr24",
-                    "-r", str(fps),
-                    "-i", "pipe:",
-                ] + enc_args + [
-                    output_path,
-                ]
-                logger.info("Launching ffmpeg with encoder %s: %s", enc_id, " ".join(cmd))
+                if _is_gif:
+                    gif_args = _build_gif_args()
+                    cmd = [
+                        ffmpeg, "-y",
+                        "-f", "rawvideo",
+                        "-vcodec", "rawvideo",
+                        "-s", f"{w}x{h}",
+                        "-pix_fmt", "bgr24",
+                        "-r", str(fps),
+                        "-i", "pipe:",
+                    ] + gif_args + [
+                        output_path,
+                    ]
+                    logger.info("Launching ffmpeg for GIF export: %s", " ".join(cmd))
+                else:
+                    enc_args = _build_encoder_args(enc_id)
+                    cmd = [
+                        ffmpeg, "-y",
+                        "-f", "rawvideo",
+                        "-vcodec", "rawvideo",
+                        "-s", f"{w}x{h}",
+                        "-pix_fmt", "bgr24",
+                        "-r", str(fps),
+                        "-i", "pipe:",
+                    ] + enc_args + [
+                        output_path,
+                    ]
+                    logger.info("Launching ffmpeg with encoder %s: %s", enc_id, " ".join(cmd))
                 return subprocess.Popen(
                     cmd,
                     stdin=subprocess.PIPE,
@@ -657,7 +673,32 @@ class VideoExporter(QObject):
 
                 return True
 
-            # ── Try encoding (with HW fallback chain) ────────────────
+            # ── Try encoding (with HW fallback chain for MP4; direct for GIF) ──
+
+            if _is_gif:
+                # GIF export uses palette-based encoding — no fallback chain
+                self.status.emit("Exporting GIF\u2026")
+                proc = _launch_ffmpeg(encoder_id)
+                pipe_ok = _encode_frames(proc)
+                proc.stdin.close()
+                # GIF palettegen buffers all frames before writing; allow more time
+                try:
+                    stderr_out = proc.communicate(timeout=300)[1]
+                except subprocess.TimeoutExpired:
+                    proc.kill()
+                    stderr_out = proc.communicate()[1]
+                stderr_text = stderr_out.decode(errors="replace") if stderr_out else ""
+                cap.release()
+                if proc.returncode != 0:
+                    err_msg = stderr_text.strip()[-800:] if stderr_text else "Unknown ffmpeg error"
+                    logger.error("GIF export failed (rc=%s): %s", proc.returncode, err_msg)
+                    self.error.emit(f"GIF export error: {err_msg[:500]}")
+                    return
+                self.progress.emit(1.0)
+                self.finished.emit(output_path)
+                return
+
+            # ── MP4: try encoding with HW fallback chain ──────────────
             #
             # Build a fallback chain: try other available HW encoders
             # before falling back to software (libx264).

@@ -1472,26 +1472,36 @@ class MainWindow(QMainWindow):
     # ── save / load ─────────────────────────────────────────────────
 
     def _save_recording(self) -> None:
-        """Export the recording as an H.264 MP4 via the video exporter."""
+        """Export the recording as an H.264 MP4 or GIF via the video exporter."""
         if not self._video_path or not os.path.isfile(self._video_path):
             return
         default_name = f"followcursor-{int(self._rec_duration_ms)}.mp4"
         default_path = os.path.join(self._last_export_dir, default_name) if self._last_export_dir else default_name
-        path, _ = QFileDialog.getSaveFileName(
+        path, selected_filter = QFileDialog.getSaveFileName(
             self,
             "Export Recording",
             default_path,
-            "Video Files (*.mp4)",
+            "MP4 Video (*.mp4);;GIF Animation (*.gif)",
         )
         if path:
             try:
+                # Append the correct extension when the user omitted it
+                _is_gif_filter = "gif" in selected_filter.lower()
+                if _is_gif_filter and not path.lower().endswith(".gif"):
+                    path += ".gif"
+                elif not _is_gif_filter and not path.lower().endswith(".mp4"):
+                    path += ".mp4"
+
                 self._last_export_dir = os.path.dirname(path)
                 self._title_bar.set_export_text("Exporting\u2026")
                 self._title_bar.set_export_enabled(False)
                 self._status_text.setOpenExternalLinks(False)
-                from .utils import encoder_display_name
-                enc_label = encoder_display_name(self._editor.encoder_id)
-                self._status_text.setText(f"Encoding with {enc_label}\u2026")
+                if path.lower().endswith(".gif"):
+                    self._status_text.setText("Exporting GIF\u2026")
+                else:
+                    from .utils import encoder_display_name
+                    enc_label = encoder_display_name(self._editor.encoder_id)
+                    self._status_text.setText(f"Encoding with {enc_label}\u2026")
                 fps = self._recorder.actual_fps
                 if self._actual_fps_override > 0:
                     fps = self._actual_fps_override
