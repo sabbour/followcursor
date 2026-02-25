@@ -6,7 +6,7 @@ Record your screen or any individual window, then export a polished MP4 video wh
 
 > **New here?** Jump to the [Quickstart Guide](../docs/QUICKSTART.md) to get recording in under 5 minutes.
 
-![FollowCursor screenshot](../screenshot.png)
+![FollowCursor screenshot](./screenshot.png)
 
 ## Documentation
 
