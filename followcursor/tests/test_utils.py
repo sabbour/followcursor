@@ -11,6 +11,8 @@ from app.utils import (
     best_hw_encoder,
     detect_available_encoders,
     GIF_FPS,
+    GIF_MAX_WIDTH,
+    GIF_MAX_HEIGHT,
     build_gif_args,
 )
 
@@ -184,3 +186,26 @@ class TestGifExport:
         args = build_gif_args()
         vf = args[args.index("-vf") + 1]
         assert "paletteuse" in vf
+
+    def test_gif_max_dimensions_are_1080p(self) -> None:
+        assert GIF_MAX_WIDTH == 1920
+        assert GIF_MAX_HEIGHT == 1080
+
+    def test_build_gif_args_contains_scale_filter(self) -> None:
+        """Scale filter must be present to cap resolution at 1080p."""
+        args = build_gif_args()
+        vf = args[args.index("-vf") + 1]
+        assert "scale=" in vf
+
+    def test_build_gif_args_scale_uses_max_dimensions(self) -> None:
+        """Scale filter must reference the 1080p cap dimensions."""
+        args = build_gif_args()
+        vf = args[args.index("-vf") + 1]
+        assert f"scale={GIF_MAX_WIDTH}:{GIF_MAX_HEIGHT}" in vf
+
+    def test_build_gif_args_scale_decrease_only(self) -> None:
+        """Scale filter must use force_original_aspect_ratio=decrease so small
+        sources are never upscaled."""
+        args = build_gif_args()
+        vf = args[args.index("-vf") + 1]
+        assert "force_original_aspect_ratio=decrease" in vf
