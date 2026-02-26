@@ -1,8 +1,24 @@
 """Red border overlay window — frameless transparent window around the recorded monitor."""
 
+import ctypes
+import ctypes.wintypes
+
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QPainter, QColor, QPen, QGuiApplication
 from PySide6.QtWidgets import QWidget
+
+# SetWindowDisplayAffinity constants (Windows 10 2004+)
+_WDA_EXCLUDEFROMCAPTURE = 0x00000011
+
+
+def _exclude_from_capture(hwnd: int) -> None:
+    """Exclude a window from screen capture using SetWindowDisplayAffinity."""
+    try:
+        ctypes.windll.user32.SetWindowDisplayAffinity(
+            ctypes.wintypes.HWND(hwnd), _WDA_EXCLUDEFROMCAPTURE
+        )
+    except Exception:
+        pass
 
 
 class RecordingBorderOverlay(QWidget):
@@ -49,6 +65,9 @@ class RecordingBorderOverlay(QWidget):
                 geom.height(),
             )
             self.show()
+            # Exclude from screen capture so the red border doesn't appear
+            # in the recorded output (requires Windows 10 version 2004+).
+            _exclude_from_capture(int(self.winId()))
             self._pulse_timer.start()
         except Exception:
             pass
