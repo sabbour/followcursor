@@ -198,14 +198,20 @@ class TestGifExport:
         assert "scale=" in vf
 
     def test_build_gif_args_scale_uses_max_dimensions(self) -> None:
-        """Scale filter must reference the 1080p cap dimensions."""
+        """Scale filter must reference the GIF max dimensions, but may use
+        expressions (e.g. min/if) rather than a literal scale=W:H."""
         args = build_gif_args()
         vf = args[args.index("-vf") + 1]
-        assert f"scale={GIF_MAX_WIDTH}:{GIF_MAX_HEIGHT}" in vf
+        assert str(GIF_MAX_WIDTH) in vf
+        assert str(GIF_MAX_HEIGHT) in vf
 
-    def test_build_gif_args_scale_decrease_only(self) -> None:
-        """Scale filter must use force_original_aspect_ratio=decrease so small
-        sources are never upscaled."""
+    def test_build_gif_args_scale_never_upscales(self) -> None:
+        """Scale filter must clamp each dimension to min(source_dim, max_dim)
+        so small sources are never upscaled."""
         args = build_gif_args()
         vf = args[args.index("-vf") + 1]
-        assert "force_original_aspect_ratio=decrease" in vf
+        # Expect expressions like scale=min(iw,1920):min(ih,1080)
+        assert "min(iw" in vf
+        assert str(GIF_MAX_WIDTH) in vf
+        assert "min(ih" in vf
+        assert str(GIF_MAX_HEIGHT) in vf

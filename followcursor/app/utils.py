@@ -137,7 +137,8 @@ def build_gif_args(gif_fps: int = GIF_FPS) -> List[str]:
     """
     vf = (
         f"fps={gif_fps},"
-        f"scale={GIF_MAX_WIDTH}:{GIF_MAX_HEIGHT}:force_original_aspect_ratio=decrease,"
+        f"scale='min(iw,{GIF_MAX_WIDTH})':'min(ih,{GIF_MAX_HEIGHT})':"
+        "force_original_aspect_ratio=decrease,"
         "split[s0][s1];"
         "[s0]palettegen=max_colors=256:stats_mode=diff[p];"
         "[s1][p]paletteuse=dither=bayer:bayer_scale=5:diff_mode=rectangle"
