@@ -352,6 +352,7 @@ Two export formats are available:
 #### GIF export settings
 
 - **Frame rate:** 15 fps (optimised for size/quality balance)
+- **Maximum resolution:** 1920×1080 — sources larger than 1080p are downscaled while preserving aspect ratio; smaller sources are never upscaled
 - **Colours:** 256-colour palette generated per export using `palettegen` (diff mode) for maximum colour accuracy
 - **Dithering:** Bayer dithering (scale 5, diff mode) to reduce colour banding
 - **Loop:** Loops forever (`-loop 0`)
