@@ -11,6 +11,8 @@ from app.utils import (
     best_hw_encoder,
     detect_available_encoders,
     GIF_FPS,
+    GIF_MAX_WIDTH,
+    GIF_MAX_HEIGHT,
     build_gif_args,
 )
 
@@ -184,3 +186,32 @@ class TestGifExport:
         args = build_gif_args()
         vf = args[args.index("-vf") + 1]
         assert "paletteuse" in vf
+
+    def test_gif_max_dimensions_are_1080p(self) -> None:
+        assert GIF_MAX_WIDTH == 1920
+        assert GIF_MAX_HEIGHT == 1080
+
+    def test_build_gif_args_contains_scale_filter(self) -> None:
+        """Scale filter must be present to cap resolution at 1080p."""
+        args = build_gif_args()
+        vf = args[args.index("-vf") + 1]
+        assert "scale=" in vf
+
+    def test_build_gif_args_scale_uses_max_dimensions(self) -> None:
+        """Scale filter must reference the GIF max dimensions, but may use
+        expressions (e.g. min/if) rather than a literal scale=W:H."""
+        args = build_gif_args()
+        vf = args[args.index("-vf") + 1]
+        assert str(GIF_MAX_WIDTH) in vf
+        assert str(GIF_MAX_HEIGHT) in vf
+
+    def test_build_gif_args_scale_never_upscales(self) -> None:
+        """Scale filter must clamp each dimension to min(source_dim, max_dim)
+        so small sources are never upscaled."""
+        args = build_gif_args()
+        vf = args[args.index("-vf") + 1]
+        # Expect expressions like scale=min(iw,1920):min(ih,1080)
+        assert "min(iw" in vf
+        assert str(GIF_MAX_WIDTH) in vf
+        assert "min(ih" in vf
+        assert str(GIF_MAX_HEIGHT) in vf

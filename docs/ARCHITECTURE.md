@@ -257,7 +257,7 @@ Source AVI → frame-by-frame decode (OpenCV) →
 
 ### GIF export
 
-When the output path ends in `.gif`, the exporter uses a palette-based GIF pipeline instead of the H.264 encoder chain. The ffmpeg filtergraph runs `fps=15,split[s0][s1];[s0]palettegen=max_colors=256:stats_mode=diff[p];[s1][p]paletteuse=dither=bayer:bayer_scale=5:diff_mode=rectangle` in a single pass. The `GIF_FPS` constant (default `15`) and `build_gif_args()` helper live in `app/utils.py`. The encoder fallback chain is not used for GIF exports.
+When the output path ends in `.gif`, the exporter uses a palette-based GIF pipeline instead of the H.264 encoder chain. The ffmpeg filtergraph runs `fps=15,scale='min(iw,1920)':'min(ih,1080)':force_original_aspect_ratio=decrease,split[s0][s1];[s0]palettegen=max_colors=256:stats_mode=diff[p];[s1][p]paletteuse=dither=bayer:bayer_scale=5:diff_mode=rectangle` in a single pass. The `scale` step caps output at 1920×1080 (using `min()` expressions so sources smaller than that are never upscaled). The `GIF_FPS` constant (default `15`), `GIF_MAX_WIDTH` / `GIF_MAX_HEIGHT` constants (1920 / 1080), and `build_gif_args()` helper live in `app/utils.py`. The encoder fallback chain is not used for GIF exports.
 
 ### Encoder selection
 

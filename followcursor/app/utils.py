@@ -115,6 +115,11 @@ def build_encoder_args(enc_id: str) -> List[str]:
 # Default frames per second for GIF output (balances quality and file size)
 GIF_FPS: int = 15
 
+# Maximum GIF output dimensions — downscales 4K+ sources to keep file sizes
+# reasonable.  Videos smaller than these limits are never upscaled.
+GIF_MAX_WIDTH: int = 1920
+GIF_MAX_HEIGHT: int = 1080
+
 
 def build_gif_args(gif_fps: int = GIF_FPS) -> List[str]:
     """Return ffmpeg ``-vf`` filter arguments for high-quality GIF output.
@@ -124,10 +129,16 @@ def build_gif_args(gif_fps: int = GIF_FPS) -> List[str]:
     applied in a single ffmpeg pass via the ``split`` filter so no temporary
     file is required.
 
+    Output is capped at :data:`GIF_MAX_WIDTH` × :data:`GIF_MAX_HEIGHT`
+    (1920 × 1080) while preserving the original aspect ratio.  Sources
+    smaller than this limit are never upscaled.
+
     Returns ``["-vf", "<filtergraph>", "-loop", "0"]``.
     """
     vf = (
         f"fps={gif_fps},"
+        f"scale='min(iw,{GIF_MAX_WIDTH})':'min(ih,{GIF_MAX_HEIGHT})':"
+        "force_original_aspect_ratio=decrease,"
         "split[s0][s1];"
         "[s0]palettegen=max_colors=256:stats_mode=diff[p];"
         "[s1][p]paletteuse=dither=bayer:bayer_scale=5:diff_mode=rectangle"
