@@ -124,6 +124,8 @@ followcursor/                    ← repo root
 - `_project_path` tracks the current .fcproj file path; Ctrl+S re-saves without dialog
 - `TitleBar.set_title(name, unsaved)` updates the logo label to show project name + ● indicator
 - Close confirmation dialog (Save / Don’t Save / Cancel) when `_unsaved_changes` is True- Project saving runs on a background `_SaveProjectWorker(QThread)` so the UI stays responsive during ZIP creation
+- **↩ New Recording** button in title bar (visible only in edit view) calls `_discard_recording()` which resets all session state and switches back to the record view; a confirmation dialog (Discard / Cancel) is shown when `_unsaved_changes` is True
+- `TitleBar.set_discard_visible(bool)` shows/hides the New Recording button; called by `_set_view()`
 ### Processing Overlay
 - `ProcessingOverlay` widget (full-window, pulsing banner) shown during long-running operations
 - Reusable: `show_overlay(title, subtitle)` accepts configurable text — used for both recording finalization ("Processing…") and project loading ("Loading project…")

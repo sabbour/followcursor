@@ -63,6 +63,21 @@ QWidget:focus { outline: none; }
 #ExportBtn:hover {
     background-color: #9d74f7;
 }
+#NewRecordingBtn {
+    height: 32px;
+    padding: 0 16px;
+    border-radius: 6px;
+    background-color: transparent;
+    border: 1px solid #3d3b55;
+    color: #a78bfa;
+    font-size: 13px;
+    font-weight: 500;
+}
+#NewRecordingBtn:hover {
+    background-color: #28263e;
+    border-color: #5b5880;
+    color: #c4b5fd;
+}
 
 /* ── Sidebar ────────────────────────────────────────── */
 #Sidebar {

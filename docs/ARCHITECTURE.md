@@ -352,6 +352,7 @@ The app uses `Qt.WindowType.FramelessWindowHint` with a custom `TitleBar` widget
 - Drag-to-move
 - Double-click to maximize/restore
 - Minimize / maximize / close buttons
+- **↩ New Recording** button — visible only in edit view; calls `_discard_recording()` in `MainWindow`, which resets all session state and returns to the record view
 - Export button
 
 ### Theme

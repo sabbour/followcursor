@@ -536,10 +536,13 @@ A custom frameless title bar displaying:
 
 - Application name, current project filename (if saved), and unsaved-changes indicator (●)
 - Version number
+- **↩ New Recording** button — discard the current recording and return to the record view (only visible in edit view)
 - **Export** button — export the video (shows progress during export)
 - Window controls (minimize, maximize, close)
 
 When closing the app with unsaved changes, a confirmation dialog asks whether to **Save**, **Don’t Save**, or **Cancel**.
+
+When clicking **↩ New Recording** with unsaved changes, a confirmation dialog asks whether to **Discard** or **Cancel**.
 
 ### Editor Panel
 

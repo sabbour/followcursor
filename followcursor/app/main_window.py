@@ -335,6 +335,7 @@ class MainWindow(QMainWindow):
         # title bar
         self._title_bar = TitleBar(self)
         self._title_bar.export_clicked.connect(self._save_recording)
+        self._title_bar.discard_recording_clicked.connect(self._discard_recording)
         root.addWidget(self._title_bar)
 
         # main content row
@@ -904,6 +905,10 @@ class MainWindow(QMainWindow):
             self._timeline.setVisible(False)
             self._editor.setVisible(False)
             self._title_bar.set_export_enabled(False)
+            self._title_bar.set_discard_visible(False)
+            self._btn_clipchamp.setVisible(False)
+            self._status_text.setOpenExternalLinks(False)
+            self._status_text.setText("Ready")
             if self._selected_monitor:
                 self._btn_record.setVisible(True)
                 self._btn_change_source.setVisible(True)
@@ -922,6 +927,7 @@ class MainWindow(QMainWindow):
         elif view == "edit":
             self._btn_record.setVisible(False)
             self._btn_change_source.setVisible(False)
+            self._title_bar.set_discard_visible(True)
             self._preview_stack.setCurrentWidget(self._preview)
             self._title_bar.set_export_enabled(bool(self._video_path))
             if self._video_path and os.path.isfile(self._video_path):
@@ -1470,6 +1476,48 @@ class MainWindow(QMainWindow):
             self._timeline.set_playing(False)
 
     # ── save / load ─────────────────────────────────────────────────
+
+    def _discard_recording(self) -> None:
+        """Discard the current recording and return to the record view.
+
+        If there are unsaved changes the user is prompted to confirm.
+        All session data (video path, mouse/click/key tracks, zoom keyframes,
+        trim points, project path) is cleared and the UI returns to the
+        record view so a new recording can be started immediately.
+        """
+        if self._unsaved_changes and self._video_path:
+            dlg = QMessageBox(self)
+            dlg.setWindowTitle("New Recording")
+            dlg.setText("Discard this recording and start a new one?")
+            dlg.setInformativeText("Unsaved changes will be lost.")
+            dlg.setIcon(QMessageBox.Icon.Warning)
+            btn_discard = dlg.addButton("Discard", QMessageBox.ButtonRole.DestructiveRole)
+            btn_cancel = dlg.addButton("Cancel", QMessageBox.ButtonRole.RejectRole)
+            dlg.setDefaultButton(btn_cancel)
+            dlg.exec()
+            if dlg.clickedButton() != btn_discard:
+                return
+
+        # Stop any ongoing playback / sync
+        self._zoom_sync_timer.stop()
+        self._preview.pause()
+
+        # Reset all session state
+        self._zoom_engine.clear()
+        self._mouse_track = []
+        self._key_events = []
+        self._click_events = []
+        self._frame_timestamps = []
+        self._rec_duration_ms = 0
+        self._playback_time = 0
+        self._actual_fps_override = 0.0
+        self._trim_start_ms = 0.0
+        self._trim_end_ms = 0.0
+        self._video_path = ""
+        self._project_path = ""
+        self._unsaved_changes = False
+        self._update_title()
+        self._set_view("record")
 
     def _save_recording(self) -> None:
         """Export the recording as an H.264 MP4 or GIF via the video exporter."""

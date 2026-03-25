@@ -14,6 +14,7 @@ class TitleBar(QWidget):
     """
 
     export_clicked = Signal()
+    discard_recording_clicked = Signal()
 
     def __init__(self, window: QWidget) -> None:
         super().__init__(window)
@@ -46,7 +47,15 @@ class TitleBar(QWidget):
 
         layout.addStretch()
 
-        # ── right: export + window controls ─────────────────────
+        # ── right: new-recording + export + window controls ─────────
+        self._btn_discard = QPushButton("↩  New Recording")
+        self._btn_discard.setObjectName("NewRecordingBtn")
+        self._btn_discard.clicked.connect(self.discard_recording_clicked.emit)
+        self._btn_discard.setVisible(False)
+        layout.addWidget(self._btn_discard)
+
+        layout.addSpacing(8)
+
         self._btn_export = QPushButton("⬆  Export")
         self._btn_export.setObjectName("ExportBtn")
         self._btn_export.clicked.connect(self.export_clicked.emit)
@@ -75,6 +84,10 @@ class TitleBar(QWidget):
     def set_export_text(self, text: str) -> None:
         """Update the export button label (e.g. during export progress)."""
         self._btn_export.setText(text)
+
+    def set_discard_visible(self, visible: bool) -> None:
+        """Show or hide the 'New Recording' discard button."""
+        self._btn_discard.setVisible(visible)
 
     def set_title(self, project_name: str = "", unsaved: bool = False) -> None:
         """Update the title bar text to show the current project name."""
