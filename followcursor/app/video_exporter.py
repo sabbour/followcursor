@@ -497,6 +497,8 @@ class VideoExporter(QObject):
         - Catch pipe errors from ffmpeg stdin writes.
         - Emit user-facing signal messages instead of raising to UI thread.
         """
+        proc: subprocess.Popen | None = None
+        _merged_audio_path: str = ""
         try:
             self.status.emit("Preparing video…")
             cap = cv2.VideoCapture(input_path)
@@ -690,7 +692,7 @@ class VideoExporter(QObject):
             original_encoder_id = encoder_id
 
             # Build merged audio from voiceover segments (if any)
-            _merged_audio_path: str = ""
+            _merged_audio_path = ""
             _has_audio = False
             if voiceover_segments and not _is_gif:
                 ready = [s for s in voiceover_segments if s.audio_path and os.path.isfile(s.audio_path)]
@@ -828,7 +830,7 @@ class VideoExporter(QObject):
                             break
                         try:
                             proc.stdin.write(data)
-                        except (BrokenPipeError, OSError):
+                        except Exception:
                             pipe_err.set()
                             break
 
@@ -1067,6 +1069,14 @@ class VideoExporter(QObject):
                     self.status.emit(f"{encoder_display_name(encoder_id)} failed, trying {fb_name}\u2026")
                     logger.info("Trying fallback encoder: %s", fallback_id)
                     encoder_id = fallback_id
+                    # Kill the previous (already-exited) process to release handles
+                    try:
+                        proc.kill()
+                    except OSError:
+                        pass
+                    proc.wait()
+                    if proc.stderr:
+                        proc.stderr.close()
                     proc = _launch_ffmpeg(encoder_id)
                     _time.sleep(0.1)
                     if proc.poll() is None:
@@ -1107,6 +1117,16 @@ class VideoExporter(QObject):
                     fb_name = encoder_display_name(fallback_id)
                     self.status.emit(f"{encoder_display_name(failed_id)} failed mid-export, trying {fb_name}\u2026")
                     encoder_id = fallback_id
+                    # Kill the previous failed process before launching a replacement
+                    try:
+                        proc.kill()
+                    except OSError:
+                        pass
+                    proc.wait()
+                    if proc.stdin and not proc.stdin.closed:
+                        proc.stdin.close()
+                    if proc.stderr and not proc.stderr.closed:
+                        proc.stderr.close()
                     proc = _launch_ffmpeg(encoder_id)
                     cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
                     pipe_ok = _encode_frames(proc)
@@ -1139,6 +1159,18 @@ class VideoExporter(QObject):
         except Exception as exc:
             self.error.emit(str(exc))
         finally:
+            # Terminate any live ffmpeg process to avoid zombie processes
+            try:
+                if proc is not None:
+                    if proc.stdin and not proc.stdin.closed:
+                        proc.stdin.close()
+                    if proc.poll() is None:
+                        proc.kill()
+                    proc.wait()
+                    if proc.stderr and not proc.stderr.closed:
+                        proc.stderr.close()
+            except Exception:
+                pass
             # Clean up merged voiceover temp file
             if _merged_audio_path and os.path.isfile(_merged_audio_path):
                 try:
