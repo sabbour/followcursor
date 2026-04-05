@@ -30,7 +30,7 @@ if sys.platform == "win32":
             ("mouseData", wintypes.DWORD),
             ("flags", wintypes.DWORD),
             ("time", wintypes.DWORD),
-            ("dwExtraInfo", ctypes.POINTER(ctypes.c_ulong)),
+            ("dwExtraInfo", ctypes.c_void_p),
         ]
 
     # Use WINFUNCTYPE with proper pointer-sized types for 64-bit compat
