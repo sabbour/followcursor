@@ -1076,7 +1076,10 @@ class VideoExporter(QObject):
                         pass
                     if proc.stdin and not proc.stdin.closed:
                         proc.stdin.close()
-                    proc.wait()
+                    try:
+                        proc.wait(timeout=5)
+                    except subprocess.TimeoutExpired:
+                        pass
                     if proc.stderr:
                         proc.stderr.close()
                     proc = _launch_ffmpeg(encoder_id)
@@ -1124,7 +1127,10 @@ class VideoExporter(QObject):
                         proc.kill()
                     except OSError:
                         pass
-                    proc.wait()
+                    try:
+                        proc.wait(timeout=5)
+                    except subprocess.TimeoutExpired:
+                        pass
                     if proc.stdin and not proc.stdin.closed:
                         proc.stdin.close()
                     if proc.stderr and not proc.stderr.closed:
@@ -1168,7 +1174,10 @@ class VideoExporter(QObject):
                         proc.stdin.close()
                     if proc.poll() is None:
                         proc.kill()
-                    proc.wait()
+                    try:
+                        proc.wait(timeout=5)
+                    except subprocess.TimeoutExpired:
+                        pass
                     if proc.stderr and not proc.stderr.closed:
                         proc.stderr.close()
             except Exception:
