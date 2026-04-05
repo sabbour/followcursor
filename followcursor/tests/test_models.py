@@ -437,7 +437,7 @@ class TestVideoSegment:
         """Speed ≤ 0 or non-numeric → clamped to 0.1; > 10 → clamped to 10."""
         base = {"id": "abc", "startMs": 0, "endMs": 5000}
         cases = [
-            (0, 0.1),        # zero → minimum (prevents division-by-zero)
+            (0.0, 0.1),      # zero → minimum (prevents division-by-zero)
             (-1.0, 0.1),     # negative → minimum
             (-100.0, 0.1),   # far below valid range → minimum
             ("fast", 1.0),   # non-numeric string → default 1.0
@@ -453,7 +453,7 @@ class TestVideoSegment:
             )
 
     def test_speed_preserved_for_valid_values(self) -> None:
-        """Valid speeds in (0, 10] must survive from_dict roundtrip."""
+        """Valid speeds in [0.1, 10.0] must survive from_dict roundtrip."""
         base = {"id": "abc", "startMs": 0, "endMs": 5000}
         for speed_in in [0.1, 0.5, 1.0, 2.0, 5.0, 9.99, 10.0]:
             d = {**base, "speed": speed_in}
