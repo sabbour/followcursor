@@ -134,6 +134,11 @@ def capture_window_thumbnail(
     if w < 10 or h < 10:
         return None
 
+    # Cap dimensions to prevent multi-GB allocation from oversized windows.
+    _MAX_DIM = 8192
+    w = min(w, _MAX_DIM)
+    h = min(h, _MAX_DIM)
+
     try:
         gdi32 = ctypes.windll.gdi32
 
@@ -145,44 +150,47 @@ def capture_window_thumbnail(
         bitmap = gdi32.CreateCompatibleBitmap(hwnd_dc, w, h)
         old_bmp = gdi32.SelectObject(mem_dc, bitmap)
 
-        # PW_RENDERFULLCONTENT = 2 (works for DWM-composed windows)
-        result = user32.PrintWindow(hwnd, mem_dc, 2)
-        if not result:
-            result = user32.PrintWindow(hwnd, mem_dc, 0)
+        try:
+            # PW_RENDERFULLCONTENT = 2 (works for DWM-composed windows)
+            result = user32.PrintWindow(hwnd, mem_dc, 2)
+            if not result:
+                result = user32.PrintWindow(hwnd, mem_dc, 0)
 
-        class BITMAPINFOHEADER(ctypes.Structure):
-            _fields_ = [
-                ("biSize", ctypes.c_uint32),
-                ("biWidth", ctypes.c_int32),
-                ("biHeight", ctypes.c_int32),
-                ("biPlanes", ctypes.c_uint16),
-                ("biBitCount", ctypes.c_uint16),
-                ("biCompression", ctypes.c_uint32),
-                ("biSizeImage", ctypes.c_uint32),
-                ("biXPelsPerMeter", ctypes.c_int32),
-                ("biYPelsPerMeter", ctypes.c_int32),
-                ("biClrUsed", ctypes.c_uint32),
-                ("biClrImportant", ctypes.c_uint32),
-            ]
+            class BITMAPINFOHEADER(ctypes.Structure):
+                _fields_ = [
+                    ("biSize", ctypes.c_uint32),
+                    ("biWidth", ctypes.c_int32),
+                    ("biHeight", ctypes.c_int32),
+                    ("biPlanes", ctypes.c_uint16),
+                    ("biBitCount", ctypes.c_uint16),
+                    ("biCompression", ctypes.c_uint32),
+                    ("biSizeImage", ctypes.c_uint32),
+                    ("biXPelsPerMeter", ctypes.c_int32),
+                    ("biYPelsPerMeter", ctypes.c_int32),
+                    ("biClrUsed", ctypes.c_uint32),
+                    ("biClrImportant", ctypes.c_uint32),
+                ]
 
-        bmi = BITMAPINFOHEADER()
-        bmi.biSize = ctypes.sizeof(BITMAPINFOHEADER)
-        bmi.biWidth = w
-        bmi.biHeight = -h  # top-down
-        bmi.biPlanes = 1
-        bmi.biBitCount = 32
-        bmi.biCompression = 0  # BI_RGB
+            bmi = BITMAPINFOHEADER()
+            bmi.biSize = ctypes.sizeof(BITMAPINFOHEADER)
+            bmi.biWidth = w
+            bmi.biHeight = -h  # top-down
+            bmi.biPlanes = 1
+            bmi.biBitCount = 32
+            bmi.biCompression = 0  # BI_RGB
 
-        buf = (ctypes.c_char * (w * h * 4))()
-        gdi32.GetDIBits(mem_dc, bitmap, 0, h, buf, ctypes.byref(bmi), 0)
+            buf = (ctypes.c_char * (w * h * 4))()
+            gdi32.GetDIBits(mem_dc, bitmap, 0, h, buf, ctypes.byref(bmi), 0)
 
-        gdi32.SelectObject(mem_dc, old_bmp)
-        gdi32.DeleteObject(bitmap)
-        gdi32.DeleteDC(mem_dc)
-        user32.ReleaseDC(hwnd, hwnd_dc)
+            frame = np.frombuffer(buf, dtype=np.uint8).reshape(h, w, 4)
+            blank = frame.max() == 0
+        finally:
+            gdi32.SelectObject(mem_dc, old_bmp)
+            gdi32.DeleteObject(bitmap)
+            gdi32.DeleteDC(mem_dc)
+            user32.ReleaseDC(hwnd, hwnd_dc)
 
-        frame = np.frombuffer(buf, dtype=np.uint8).reshape(h, w, 4)
-        if frame.max() == 0:
+        if blank:
             return _capture_window_mss_fallback(hwnd, rect["width"], rect["height"], max_w, max_h)
 
         frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGRA2RGB)
