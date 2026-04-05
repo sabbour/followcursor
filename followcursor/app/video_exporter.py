@@ -1074,6 +1074,8 @@ class VideoExporter(QObject):
                         proc.kill()
                     except OSError:
                         pass
+                    if proc.stdin and not proc.stdin.closed:
+                        proc.stdin.close()
                     proc.wait()
                     if proc.stderr:
                         proc.stderr.close()
