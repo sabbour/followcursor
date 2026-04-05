@@ -15,7 +15,7 @@ if not hasattr(ctypes, "windll"):
     ctypes.windll = MagicMock()  # type: ignore[attr-defined]
     ctypes.windll.user32 = MagicMock()
 if not hasattr(ctypes, "WINFUNCTYPE"):
-    ctypes.WINFUNCTYPE = ctypes.CFUNCTYPE  # type: ignore[attr-defined]
+    ctypes.WINFUNCTYPE = MagicMock()  # type: ignore[attr-defined]
 
 
 # ── Dimension capping ────────────────────────────────────────────────
