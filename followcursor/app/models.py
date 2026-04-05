@@ -193,11 +193,20 @@ class VideoSegment:
 
     @staticmethod
     def from_dict(d: dict) -> "VideoSegment":
+        raw_speed = d.get("speed", 1.0)
+        try:
+            speed = float(raw_speed)
+        except (TypeError, ValueError):
+            speed = 1.0
+        if speed <= 0.0:
+            speed = 0.1
+        elif speed > 10.0:
+            speed = 10.0
         return VideoSegment(
             id=d["id"],
             start_ms=d["startMs"],
             end_ms=d["endMs"],
-            speed=d.get("speed", 1.0),
+            speed=speed,
         )
 
 
@@ -333,14 +342,28 @@ class VoiceoverSegment:
 
     @staticmethod
     def from_dict(d: dict) -> "VoiceoverSegment":
+        raw_rate = d.get("rate", 1.0)
+        try:
+            rate = float(raw_rate)
+        except (TypeError, ValueError):
+            rate = 1.0
+        rate = max(0.0, min(3.0, rate))
+
+        raw_volume = d.get("volume", 1.0)
+        try:
+            volume = float(raw_volume)
+        except (TypeError, ValueError):
+            volume = 1.0
+        volume = max(0.0, min(3.0, volume))
+
         return VoiceoverSegment(
             id=d["id"],
             timestamp=d["timestamp"],
             text=d["text"],
             voice=d.get("voice", "en-US-Ava:DragonHDLatestNeural"),
             duration_ms=d.get("durationMs", 0.0),
-            rate=d.get("rate", 1.0),
-            volume=d.get("volume", 1.0),
+            rate=rate,
+            volume=volume,
         )
 
 

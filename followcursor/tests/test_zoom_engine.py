@@ -502,3 +502,40 @@ class TestVoiceoverSegmentUndoRedo:
         assert len(engine.video_segments) == 1
         assert len(engine.voiceover_segments) == 1
         assert len(engine.keyframes) == 1
+
+
+# ── compute_output_duration — speed guard ────────────────────────────
+
+
+class TestComputeOutputDurationSpeedGuard:
+    """compute_output_duration must not raise ZeroDivisionError for any speed."""
+
+    def test_normal_speed_2x(self) -> None:
+        """2× speed on a 1000ms zoom segment → 500ms output."""
+        engine = ZoomEngine()
+        engine.add_keyframe(ZoomKeyframe.create(timestamp=0, zoom=2.0, duration=200, speed=2.0))
+        engine.add_keyframe(ZoomKeyframe.create(timestamp=1000, zoom=1.0, duration=400))
+        result = engine.compute_output_duration(2000.0)
+        assert result > 0.0
+
+    def test_zero_speed_falls_back_to_1x(self) -> None:
+        """A speed=0 segment must not raise ZeroDivisionError; falls back to 1×."""
+        engine = ZoomEngine()
+        # Manually inject a keyframe with speed=0 to simulate corrupted data
+        kf = ZoomKeyframe.create(timestamp=0, zoom=2.0, duration=200)
+        object.__setattr__(kf, "speed", 0.0)
+        engine.add_keyframe(kf)
+        engine.add_keyframe(ZoomKeyframe.create(timestamp=1000, zoom=1.0, duration=400))
+        # Must not raise; output duration should equal input (1× fallback)
+        result = engine.compute_output_duration(2000.0)
+        assert result == pytest.approx(2000.0)
+
+    def test_negative_speed_falls_back_to_1x(self) -> None:
+        """A speed=-1 segment must not raise ZeroDivisionError; falls back to 1×."""
+        engine = ZoomEngine()
+        kf = ZoomKeyframe.create(timestamp=0, zoom=2.0, duration=200)
+        object.__setattr__(kf, "speed", -1.0)
+        engine.add_keyframe(kf)
+        engine.add_keyframe(ZoomKeyframe.create(timestamp=1000, zoom=1.0, duration=400))
+        result = engine.compute_output_duration(2000.0)
+        assert result == pytest.approx(2000.0)

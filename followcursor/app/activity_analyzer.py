@@ -133,6 +133,9 @@ def analyze_activity(
     if len(mouse_track) < 10:
         return []
 
+    if zoom_level <= 0.0:
+        zoom_level = 1.0
+
     mon_left = monitor_rect.get("left", 0)
     mon_top = monitor_rect.get("top", 0)
     mon_w = max(monitor_rect.get("width", 1), 1)

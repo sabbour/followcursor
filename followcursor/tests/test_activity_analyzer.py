@@ -399,3 +399,35 @@ class TestChaining:
         pan_kfs = [k for k in kfs if "pan" in k.reason.lower()]
         # May or may not chain depending on gap — just ensure no crash
         assert isinstance(kfs, list)
+
+
+# ── analyze_activity — zoom_level guard ─────────────────────────────
+
+
+class TestAnalyzeActivityZoomLevelGuard:
+    """analyze_activity must not raise ZeroDivisionError for zoom_level <= 0."""
+
+    def _make_active_track(self) -> list:
+        """Track long enough with clicks to produce keyframes."""
+        from app.models import MousePosition
+        return [
+            MousePosition(x=500.0 + i * 0.5, y=500.0, timestamp=float(i * 16))
+            for i in range(700)
+        ]
+
+    def test_zoom_level_zero_does_not_raise(self) -> None:
+        """zoom_level=0 must not raise ZeroDivisionError."""
+        from app.models import ClickEvent
+        track = self._make_active_track()
+        clicks = [ClickEvent(x=500, y=500, timestamp=3000)]
+        # Should not raise; falls back to zoom_level=1.0
+        result = analyze_activity(track, MONITOR, click_events=clicks, zoom_level=0.0)
+        assert isinstance(result, list)
+
+    def test_zoom_level_negative_does_not_raise(self) -> None:
+        """zoom_level=-1 must not raise ZeroDivisionError."""
+        from app.models import ClickEvent
+        track = self._make_active_track()
+        clicks = [ClickEvent(x=500, y=500, timestamp=3000)]
+        result = analyze_activity(track, MONITOR, click_events=clicks, zoom_level=-1.0)
+        assert isinstance(result, list)
