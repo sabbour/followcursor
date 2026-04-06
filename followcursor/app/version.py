@@ -4,4 +4,4 @@ This file is the single source of truth for the app version.
 CI and build scripts read / inject it automatically.
 """
 
-__version__ = "0.7.2"
+__version__ = "0.8.0"

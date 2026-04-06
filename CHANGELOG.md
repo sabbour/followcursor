@@ -4,6 +4,29 @@ All notable changes to FollowCursor are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.8.0] — 2026-04-06
+
+### Added
+
+- **Keystroke visualization** — floating key badges show keyboard shortcuts during playback and export; configurable position, style, and filter mode; defaults to shortcuts-only for privacy safety
+- **Click effect customization** — 8 built-in click effect presets (colors, styles) with configurable ripple/burst/highlight appearance; persists in project files and settings
+- **Interactive annotations** — add text labels, arrows, and highlight boxes to recordings; timeline-aware rendering with normalized coordinates; dual QPainter/OpenCV pipeline
+- **AI-powered scene chapters** — heuristic auto-detection of scene boundaries from activity gaps and position jumps; chapter markers on timeline; MP4 metadata export for YouTube chapters
+- **Credentials test suite** — 22 tests for DPAPI encryption module covering roundtrips, edge cases, legacy compatibility, and platform fallbacks
+
+### Changed
+
+- **Video exporter refactored** — decomposed 300+ line export thread into composable phases with `GeometryComputer` class and typed result dataclasses; 12 new geometry unit tests
+
+### Fixed
+
+- **Resource leaks** — cv2.VideoCapture now releases in try/finally blocks; ffmpeg subprocess cleanup uses deterministic stdin→wait→kill sequence; voiceover playback uses defensive copies to prevent thread races
+- **Keystroke security** — implemented filter_mode (all/modifiers-only/shortcuts-only) that was previously defined but ignored in the renderer; changed default from "all" to "shortcuts-only" to prevent password exposure; added security warning for "All Keys" mode
+
+### Documentation
+
+- **v0.7.1/v0.7.2 docs updated** — USER_GUIDE, ARCHITECTURE, CONTRIBUTING, and README updated with recording compression, DPAPI encryption, AI response caps, and dev signing changes
+
 ## [0.7.2] — 2026-03-28
 
 ### Changed
