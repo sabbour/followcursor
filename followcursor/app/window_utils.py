@@ -143,7 +143,7 @@ def capture_window_thumbnail(
     try:
         gdi32 = ctypes.windll.gdi32
 
-        # Initialise to 0 so the finally block can safely skip handles that
+        # Initialize to 0 so the finally block can safely skip handles that
         # were never acquired (0 is an invalid GDI handle on Windows).
         hwnd_dc = 0
         mem_dc = 0

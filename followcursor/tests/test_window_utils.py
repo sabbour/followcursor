@@ -167,7 +167,6 @@ class TestGdiHandleCleanup:
         mock_gdi32, mock_user32, cleanup_calls = self._make_cleanup_mocks(W, H)
         mock_gdi32.CreateCompatibleBitmap.side_effect = RuntimeError("allocation failed")
         # bitmap and old_bmp were never acquired, so only mem_dc and hwnd_dc need cleanup.
-        mock_gdi32.CreateCompatibleBitmap.return_value = None  # won't be reached
 
         with (
             patch.object(wu, "user32", mock_user32),
