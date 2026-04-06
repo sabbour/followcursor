@@ -4,8 +4,9 @@ Encrypts secrets so they are not stored in plaintext in the Windows
 registry (QSettings).  The encrypted blob is user-scoped — only the
 same Windows user account can decrypt it.
 
-Falls back to plaintext storage on non-Windows platforms or when
-DPAPI calls fail (e.g. in tests).
+On non-Windows platforms, ``protect()`` logs a warning that credentials
+are stored unencrypted.  ``unprotect()`` raises on decryption failures
+instead of silently returning an empty string.
 """
 
 import base64
@@ -34,9 +35,17 @@ if _HAS_DPAPI:
 def protect(plaintext: str) -> str:
     """Encrypt a string with DPAPI and return a base64-encoded blob.
 
-    Returns the plaintext unchanged if DPAPI is unavailable.
+    On non-Windows platforms, returns the plaintext with a warning logged.
     """
-    if not _HAS_DPAPI or not plaintext:
+    if not plaintext:
+        return plaintext
+
+    if not _HAS_DPAPI:
+        logger.warning(
+            "DPAPI not available (non-Windows platform) — "
+            "API key will be stored unencrypted. Consider using "
+            "environment variables instead."
+        )
         return plaintext
 
     try:
@@ -70,7 +79,12 @@ def protect(plaintext: str) -> str:
 
 
 def unprotect(stored: str) -> str:
-    """Decrypt a DPAPI-protected string.  Handles both protected and legacy plaintext values."""
+    """Decrypt a DPAPI-protected string.
+
+    Handles both protected and legacy plaintext values.
+    Raises ``RuntimeError`` on decryption failures so callers can
+    surface a clear message to the user.
+    """
     if not stored:
         return ""
 
@@ -79,8 +93,10 @@ def unprotect(stored: str) -> str:
         return stored
 
     if not _HAS_DPAPI:
-        logger.warning("DPAPI not available, cannot decrypt stored credential")
-        return ""
+        raise RuntimeError(
+            "Cannot decrypt stored credential — DPAPI is only available "
+            "on Windows. Please re-enter your API key."
+        )
 
     try:
         encrypted = base64.b64decode(stored[6:])  # strip "dpapi:" prefix
@@ -101,12 +117,18 @@ def unprotect(stored: str) -> str:
             ctypes.byref(blob_out),
         )
         if not ok:
-            logger.warning("CryptUnprotectData failed")
-            return ""
+            raise RuntimeError(
+                "Failed to decrypt stored credential. The key may have been "
+                "encrypted by a different Windows user. Please re-enter your API key."
+            )
 
         plaintext = ctypes.string_at(blob_out.pbData, blob_out.cbData).decode("utf-8")
         _kernel32.LocalFree(blob_out.pbData)
         return plaintext
-    except Exception:
-        logger.warning("DPAPI unprotect failed", exc_info=True)
-        return ""
+    except RuntimeError:
+        raise
+    except Exception as exc:
+        raise RuntimeError(
+            f"Failed to decrypt stored credential: {exc}. "
+            "Please re-enter your API key."
+        ) from exc

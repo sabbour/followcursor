@@ -2185,7 +2185,7 @@ class MainWindow(QMainWindow):
         moved_kf = kfs[moved_idx]
         if abs(moved_kf.timestamp - new_time_ms) > 0.5:
             # Debounce: only push if we haven't already pushed for this drag
-            if not hasattr(self, '_drag_undo_pushed') or not self._drag_undo_pushed:
+            if not self._drag_undo_pushed:
                 self._zoom_engine.push_undo()
                 self._drag_undo_pushed = True
             self._mark_dirty()
@@ -2461,11 +2461,37 @@ class MainWindow(QMainWindow):
             self._refresh_editor()
 
     def _delete_pan_point(self, kf_id: str) -> None:
-        """Delete a pan point keyframe."""
+        """Delete a pan point keyframe and offer to re-place it."""
+        # Find the keyframe before deleting, so we can create a replacement
+        deleted_kf = None
+        for kf in self._zoom_engine.keyframes:
+            if kf.id == kf_id:
+                deleted_kf = kf
+                break
+        if deleted_kf is None:
+            return
+
         self._zoom_engine.push_undo()
+
+        # Create a replacement keyframe with a new ID at the same position
+        from .models import ZoomKeyframe
+        new_kf = ZoomKeyframe.create(
+            timestamp=deleted_kf.timestamp,
+            zoom=deleted_kf.zoom,
+            x=deleted_kf.x,
+            y=deleted_kf.y,
+            duration=deleted_kf.duration,
+            reason=deleted_kf.reason,
+            speed=deleted_kf.speed,
+        )
+
+        # Remove old, insert new
         self._zoom_engine.keyframes = [
             kf for kf in self._zoom_engine.keyframes if kf.id != kf_id
         ]
+        self._zoom_engine.keyframes.append(new_kf)
+        self._zoom_engine.keyframes.sort(key=lambda k: k.timestamp)
+
         self._mark_dirty()
         self._zoom_engine.update(self._playback_time)
         self._preview.set_zoom(
@@ -2474,7 +2500,7 @@ class MainWindow(QMainWindow):
             self._zoom_engine.current_pan_y,
         )
         self._refresh_editor()
-        self._centroid_target_kf_id = kf_id
+        self._centroid_target_kf_id = new_kf.id
         self._preview.enter_centroid_pick_mode()
         self._status_text.setText(
             "Click on the preview to set the zoom center. "

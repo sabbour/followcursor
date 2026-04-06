@@ -277,6 +277,13 @@ def _call_chat(settings: AISettings, system_prompt: str, user_prompt: str) -> st
     """
     import time as _time
 
+    # Validate endpoint uses HTTPS to prevent sending API key over plaintext
+    if not settings.endpoint.lower().startswith("https://"):
+        raise RuntimeError(
+            "AI endpoint must use HTTPS to protect your API key. "
+            f"Got: {settings.endpoint[:50]}"
+        )
+
     url = _build_chat_url(settings.endpoint, settings.chat_model)
     logger.info("Chat API URL: %s", url)
 

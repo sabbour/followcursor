@@ -176,7 +176,10 @@ class KeyboardTracker(QObject):
         """Stop tracking and return collected events."""
         if self._thread is not None:
             self._thread.request_stop()
-            self._thread.wait(2000)
+            if not self._thread.wait(2000):
+                logger.warning("Keyboard hook thread did not stop within timeout")
+                self._thread.terminate()
+                self._thread.wait(1000)
             self._thread = None
         result = list(self._events)
         self._events.clear()

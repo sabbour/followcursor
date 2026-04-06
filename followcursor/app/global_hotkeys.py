@@ -1,11 +1,14 @@
 """Windows global hotkeys via RegisterHotKey / GetMessage loop."""
 
+import logging
 import sys
 import ctypes
 import ctypes.wintypes as wintypes
 from typing import Optional
 
 from PySide6.QtCore import QThread, Signal, QObject
+
+logger = logging.getLogger(__name__)
 
 WM_HOTKEY = 0x0312
 WM_QUIT = 0x0012
@@ -78,7 +81,10 @@ class GlobalHotkeys(QObject):
         """Stop listening for the record-toggle hotkey and clean up the thread."""
         if self._record_thread is not None:
             self._record_thread.request_stop()
-            self._record_thread.wait(2000)
+            if not self._record_thread.wait(2000):
+                logger.warning("Hotkey hook thread did not stop within timeout")
+                self._record_thread.terminate()
+                self._record_thread.wait(1000)
             self._record_thread = None
 
     # ── dispatch ────────────────────────────────────────────────────
