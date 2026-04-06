@@ -206,7 +206,7 @@ class VideoSegment:
             except (TypeError, ValueError):
                 speed = 1.0
             if speed <= 0.0:
-                speed = 1.0
+                speed = 0.1
             elif speed > 10.0:
                 speed = 10.0
             return VideoSegment(
@@ -376,11 +376,11 @@ class VoiceoverSegment:
                 rate = float(raw_rate)
             except (TypeError, ValueError):
                 rate = 1.0
-            rate = max(0.1, min(3.0, rate))
+            rate = max(0.0, min(3.0, rate))
 
-            raw_vol = d.get("volume", 1.0)
+            raw_volume = d.get("volume", 1.0)
             try:
-                volume = float(raw_vol)
+                volume = float(raw_volume)
             except (TypeError, ValueError):
                 volume = 1.0
             volume = max(0.0, min(3.0, volume))

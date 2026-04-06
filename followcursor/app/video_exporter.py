@@ -510,6 +510,8 @@ class VideoExporter(QObject):
         - Catch pipe errors from ffmpeg stdin writes.
         - Emit user-facing signal messages instead of raising to UI thread.
         """
+        proc: subprocess.Popen | None = None
+        _merged_audio_path: str = ""
         try:
             self.status.emit("Preparing video…")
             cap = cv2.VideoCapture(input_path)
@@ -703,7 +705,7 @@ class VideoExporter(QObject):
             original_encoder_id = encoder_id
 
             # Build merged audio from voiceover segments (if any)
-            _merged_audio_path: str = ""
+            _merged_audio_path = ""
             _has_audio = False
             proc: subprocess.Popen | None = None
             if voiceover_segments and not _is_gif:

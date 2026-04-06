@@ -352,11 +352,42 @@ class TestVoiceoverSegment:
         assert seg.rate == 1.0
         assert seg.volume == 1.0
 
-    def test_from_dict_clamps_rate_bounds(self) -> None:
-        d = {"id": "a", "timestamp": 0, "text": "t", "rate": 99.0, "volume": -1.0}
-        seg = VoiceoverSegment.from_dict(d)
-        assert seg.rate == 3.0
-        assert seg.volume == 0.0
+    def test_rate_clamped_for_invalid_values(self) -> None:
+        """Rate must be clamped to [0.0, 3.0]; non-numeric falls back to 1.0."""
+        base = {"id": "abc", "timestamp": 100, "text": "Hi"}
+        cases = [
+            (-1.0, 0.0),     # negative → 0.0
+            (0.0, 0.0),      # zero is valid lower bound
+            (3.0, 3.0),      # max valid value
+            (3.1, 3.0),      # just above max → clamped
+            (10.0, 3.0),     # far above max → clamped
+            ("fast", 1.0),   # non-numeric → default
+            (None, 1.0),     # None → default
+        ]
+        for rate_in, expected in cases:
+            d = {**base, "rate": rate_in}
+            seg = VoiceoverSegment.from_dict(d)
+            assert seg.rate == expected, (
+                f"rate={rate_in!r} should become {expected}, got {seg.rate}"
+            )
+
+    def test_volume_clamped_for_invalid_values(self) -> None:
+        """Volume must be clamped to [0.0, 3.0]; non-numeric falls back to 1.0."""
+        base = {"id": "abc", "timestamp": 100, "text": "Hi"}
+        cases = [
+            (-0.5, 0.0),     # negative → 0.0
+            (0.0, 0.0),      # zero is valid (mute)
+            (3.0, 3.0),      # max valid value
+            (5.0, 3.0),      # above max → clamped
+            ("loud", 1.0),   # non-numeric → default
+            (None, 1.0),     # None → default
+        ]
+        for vol_in, expected in cases:
+            d = {**base, "volume": vol_in}
+            seg = VoiceoverSegment.from_dict(d)
+            assert seg.volume == expected, (
+                f"volume={vol_in!r} should become {expected}, got {seg.volume}"
+            )
 
 
 # ── VideoSegment ────────────────────────────────────────────────────
@@ -402,20 +433,34 @@ class TestVideoSegment:
         seg = VideoSegment.from_dict(d)
         assert seg.speed == 1.0
 
-    def test_from_dict_clamps_zero_speed(self) -> None:
-        d = {"id": "abc", "startMs": 0, "endMs": 5000, "speed": 0}
-        seg = VideoSegment.from_dict(d)
-        assert seg.speed == 1.0
+    def test_speed_clamped_for_invalid_values(self) -> None:
+        """Speed ≤ 0 → clamped to 0.1; non-numeric → default 1.0; > 10 → clamped to 10."""
+        base = {"id": "abc", "startMs": 0, "endMs": 5000}
+        cases = [
+            (0.0, 0.1),      # zero → minimum (prevents division-by-zero)
+            (-1.0, 0.1),     # negative → minimum
+            (-100.0, 0.1),   # far below valid range → minimum
+            ("fast", 1.0),   # non-numeric string → default 1.0
+            (None, 1.0),     # None → default 1.0
+            (99.0, 10.0),    # above max → clamped to 10
+            (10.1, 10.0),    # just above max → clamped to 10
+        ]
+        for speed_in, expected in cases:
+            d = {**base, "speed": speed_in}
+            seg = VideoSegment.from_dict(d)
+            assert seg.speed == expected, (
+                f"speed={speed_in!r} should become {expected}, got {seg.speed}"
+            )
 
-    def test_from_dict_clamps_negative_speed(self) -> None:
-        d = {"id": "abc", "startMs": 0, "endMs": 5000, "speed": -2.0}
-        seg = VideoSegment.from_dict(d)
-        assert seg.speed == 1.0
-
-    def test_from_dict_clamps_excessive_speed(self) -> None:
-        d = {"id": "abc", "startMs": 0, "endMs": 5000, "speed": 99.0}
-        seg = VideoSegment.from_dict(d)
-        assert seg.speed == 10.0
+    def test_speed_preserved_for_valid_values(self) -> None:
+        """Valid speeds in [0.1, 10.0] must survive from_dict roundtrip."""
+        base = {"id": "abc", "startMs": 0, "endMs": 5000}
+        for speed_in in [0.1, 0.5, 1.0, 2.0, 5.0, 9.99, 10.0]:
+            d = {**base, "speed": speed_in}
+            seg = VideoSegment.from_dict(d)
+            assert seg.speed == speed_in, (
+                f"valid speed={speed_in} should be preserved, got {seg.speed}"
+            )
 
 
 # ── RecordingSession + VideoSegments ─────────────────────────────────
