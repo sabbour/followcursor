@@ -586,6 +586,7 @@ class VideoExporter(QObject):
         key_events: Optional[List] = None,
         keystroke_config: Optional = None,
         annotations = None,
+        chapters: Optional[List] = None,
     ) -> None:
         """Start export in a background thread.
 
@@ -608,6 +609,7 @@ class VideoExporter(QObject):
         *key_events* — optional list of ``KeyEvent`` objects for keystroke rendering.
         *keystroke_config* — optional ``KeystrokeOverlayConfig`` for keystroke overlay settings.
         *annotations* — optional ``AnnotationCollection`` for text, arrow, and highlight annotations.
+        *chapters* — optional list of ``Chapter`` objects for MP4 chapter metadata.
         """
         self._thread = threading.Thread(
             target=self._run,
@@ -627,7 +629,8 @@ class VideoExporter(QObject):
                   video_segments or [],
                   key_events or [],
                   keystroke_config,
-                  annotations),
+                  annotations,
+                  chapters or []),
             daemon=True,
         )
         self._thread.start()
@@ -836,6 +839,7 @@ class VideoExporter(QObject):
         key_events: Optional[List] = None,
         keystroke_config = None,
         annotations = None,
+        chapters: Optional[List] = None,
     ) -> None:
         """Execute the full export algorithm on a worker thread.
 
@@ -911,6 +915,46 @@ class VideoExporter(QObject):
                     else:
                         logger.warning("Voiceover merge produced no output, exporting without audio")
 
+            # Build chapter metadata file (if chapters exist and not GIF)
+            _chapters_metadata_path = ""
+            if chapters and not _is_gif:
+                import tempfile
+                # Create metadata file in the same directory as the output
+                output_dir = os.path.dirname(output_path) or "."
+                fd, _chapters_metadata_path = tempfile.mkstemp(
+                    suffix=".txt", prefix="chapters_", dir=output_dir
+                )
+                try:
+                    with os.fdopen(fd, "w", encoding="utf-8") as f:
+                        f.write(";FFMETADATA1\n")
+                        for chapter in sorted(chapters, key=lambda c: c.timestamp_ms):
+                            # Adjust chapter times for trim offset
+                            chap_ms = chapter.timestamp_ms - trim_start_ms
+                            if chap_ms < 0:
+                                continue  # Chapter is before trim start
+                            if trim_end_ms > 0 and chapter.timestamp_ms > trim_end_ms:
+                                continue  # Chapter is after trim end
+                            # Convert to ffmpeg timebase (milliseconds)
+                            start_ms = int(chap_ms)
+                            # Chapter ends at the next chapter or end of video
+                            # For simplicity, set a nominal 1-second duration
+                            # (ffmpeg will extend to next chapter automatically)
+                            end_ms = start_ms + 1000
+                            f.write("[CHAPTER]\n")
+                            f.write(f"TIMEBASE=1/1000\n")
+                            f.write(f"START={start_ms}\n")
+                            f.write(f"END={end_ms}\n")
+                            f.write(f"title={chapter.name}\n")
+                    logger.info("Chapter metadata file created: %s", _chapters_metadata_path)
+                except Exception as exc:
+                    logger.warning("Failed to create chapter metadata: %s", exc)
+                    if _chapters_metadata_path and os.path.exists(_chapters_metadata_path):
+                        try:
+                            os.remove(_chapters_metadata_path)
+                        except Exception:
+                            pass
+                    _chapters_metadata_path = ""
+
             def _launch_ffmpeg(enc_id: str) -> subprocess.Popen:
                 """Start ffmpeg process configured for current export mode.
 
@@ -951,6 +995,11 @@ class VideoExporter(QObject):
                     # Add merged audio input if available
                     if _has_audio:
                         cmd += ["-i", _merged_audio_path]
+                    # Add chapter metadata if available
+                    if _chapters_metadata_path:
+                        cmd += ["-i", _chapters_metadata_path]
+                        # Map metadata to output
+                        cmd += ["-map_metadata", "2" if _has_audio else "1"]
                     cmd += enc_args
                     if _has_audio:
                         cmd += ["-c:a", "aac", "-b:a", "192k"]
@@ -1417,5 +1466,11 @@ class VideoExporter(QObject):
             if _merged_audio_path and os.path.isfile(_merged_audio_path):
                 try:
                     os.remove(_merged_audio_path)
+                except OSError:
+                    pass
+            # Clean up chapter metadata temp file
+            if _chapters_metadata_path and os.path.isfile(_chapters_metadata_path):
+                try:
+                    os.remove(_chapters_metadata_path)
                 except OSError:
                     pass

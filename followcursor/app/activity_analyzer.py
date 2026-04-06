@@ -627,3 +627,99 @@ def analyze_activity(
             )
 
     return keyframes
+
+
+def detect_chapters(
+    mouse_events: List[MousePosition],
+    key_events: List[KeyEvent] | None,
+    click_events: List[ClickEvent] | None,
+    duration_ms: float,
+) -> List["Chapter"]:
+    """Auto-detect chapter boundaries based on activity patterns.
+
+    Uses heuristic analysis (no AI API calls) to identify scene boundaries:
+    - Extended inactivity (>3s idle between mouse/keyboard/click events)
+    - Major mouse position jumps (cursor moves >30% of screen distance)
+    - Significant time gaps between activity bursts
+
+    Returns a sorted list of Chapter objects with auto-generated names.
+    """
+    from .models import Chapter
+
+    # Thresholds
+    IDLE_GAP_MS = 3000  # 3s idle = scene boundary
+    JUMP_THRESHOLD = 0.3  # 30% of screen distance
+    MIN_CHAPTER_LENGTH_MS = 5000  # Don't create chapters shorter than 5s
+
+    # Collect all event timestamps
+    event_times = []
+
+    # Add mouse activity timestamps (sample every 500ms to reduce noise)
+    if mouse_events:
+        last_added = -1000
+        for m in mouse_events:
+            if m.timestamp - last_added >= 500:
+                event_times.append(m.timestamp)
+                last_added = m.timestamp
+
+    # Add keystroke timestamps
+    if key_events:
+        event_times.extend(k.timestamp for k in key_events)
+
+    # Add click timestamps
+    if click_events:
+        event_times.extend(c.timestamp for c in click_events)
+
+    if not event_times:
+        # No activity — single chapter for entire recording
+        return [Chapter(timestamp_ms=0, name="Chapter 1", auto_detected=True)]
+
+    event_times.sort()
+
+    # Detect large gaps in activity
+    boundaries = [0]  # Always start with timestamp 0
+    for i in range(1, len(event_times)):
+        gap = event_times[i] - event_times[i - 1]
+        if gap >= IDLE_GAP_MS:
+            boundaries.append(int(event_times[i]))
+
+    # Detect major mouse position jumps
+    if mouse_events and len(mouse_events) > 1:
+        # Estimate screen bounds
+        xs = [m.x for m in mouse_events]
+        ys = [m.y for m in mouse_events]
+        screen_w = max(xs) - min(xs) if xs else 1920
+        screen_h = max(ys) - min(ys) if ys else 1080
+        diag = math.sqrt(screen_w**2 + screen_h**2)
+        jump_threshold_px = diag * JUMP_THRESHOLD
+
+        for i in range(1, len(mouse_events)):
+            prev = mouse_events[i - 1]
+            curr = mouse_events[i]
+            dist = math.sqrt((curr.x - prev.x)**2 + (curr.y - prev.y)**2)
+            if dist >= jump_threshold_px:
+                # Big jump — potential scene boundary
+                boundaries.append(int(curr.timestamp))
+
+    # Deduplicate and sort boundaries
+    boundaries = sorted(set(boundaries))
+
+    # Filter out boundaries that create too-short chapters
+    filtered = [boundaries[0]]
+    for b in boundaries[1:]:
+        if b - filtered[-1] >= MIN_CHAPTER_LENGTH_MS:
+            filtered.append(b)
+
+    # Generate Chapter objects with auto-generated names
+    chapters = []
+    for i, ts in enumerate(filtered):
+        chapters.append(
+            Chapter(
+                timestamp_ms=ts,
+                name=f"Chapter {i + 1}",
+                auto_detected=True,
+            )
+        )
+
+    return chapters
+

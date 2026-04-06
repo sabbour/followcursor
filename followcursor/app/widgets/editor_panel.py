@@ -202,6 +202,9 @@ class EditorPanel(QWidget):
     annotation_added = Signal(str, object)       # type ("text"|"arrow"|"highlight"), annotation object
     annotation_removed = Signal(str, str)        # type, annotation id
     annotation_updated = Signal(str, object)     # type, annotation object
+    chapters_changed = Signal(list)              # list of Chapter objects
+    chapter_added = Signal(object)               # Chapter object
+    chapter_removed = Signal(int)                # chapter timestamp_ms
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -312,6 +315,39 @@ class EditorPanel(QWidget):
         zoom_lay.addWidget(self._ai_zoom_status)
 
         self._container.addWidget(_CollapsibleSection("SMART ZOOM", zoom_body))
+
+        # ── Chapters (collapsible) ───────────────────────────────────
+        chapters_body = QWidget()
+        chapters_lay = QVBoxLayout(chapters_body)
+        chapters_lay.setContentsMargins(16, 6, 16, 8)
+        chapters_lay.setSpacing(6)
+
+        chapters_desc = QLabel("Add chapter markers for navigation\nin long recordings.")
+        chapters_desc.setObjectName("Secondary")
+        chapters_desc.setWordWrap(True)
+        chapters_lay.addWidget(chapters_desc)
+
+        self._btn_auto_detect_chapters = QPushButton("🎬 Auto-detect chapters")
+        self._btn_auto_detect_chapters.setObjectName("CtrlBtn")
+        self._btn_auto_detect_chapters.setFixedHeight(32)
+        self._btn_auto_detect_chapters.setToolTip("Automatically detect scene boundaries based on activity patterns.")
+        self._btn_auto_detect_chapters.clicked.connect(self._on_auto_detect_chapters)
+        chapters_lay.addWidget(self._btn_auto_detect_chapters)
+
+        self._btn_add_chapter = QPushButton("+ Add chapter manually")
+        self._btn_add_chapter.setObjectName("CtrlBtn")
+        self._btn_add_chapter.setFixedHeight(32)
+        self._btn_add_chapter.setToolTip("Add a chapter marker at the current playback position.")
+        self._btn_add_chapter.clicked.connect(self._on_add_chapter)
+        chapters_lay.addWidget(self._btn_add_chapter)
+
+        self._chapters_status = QLabel("")
+        self._chapters_status.setObjectName("Secondary")
+        self._chapters_status.setWordWrap(True)
+        self._chapters_status.setVisible(False)
+        chapters_lay.addWidget(self._chapters_status)
+
+        self._container.addWidget(_CollapsibleSection("CHAPTERS", chapters_body, collapsed=True))
 
         # ── Voiceover (collapsible) ──────────────────────────────────
         vo_body = QWidget()
@@ -1117,6 +1153,26 @@ class EditorPanel(QWidget):
                 logger.warning("Failed to load TTS voices: %s", exc)
 
         threading.Thread(target=_fetch, daemon=True).start()
+
+    def _on_auto_detect_chapters(self) -> None:
+        """Request auto-detection of chapter boundaries."""
+        # This will be handled by main_window.py which has access to mouse/key/click events
+        self.chapters_changed.emit([])  # Signal request for auto-detection
+
+    def _on_add_chapter(self) -> None:
+        """Add a chapter marker at the current playback position."""
+        from ..models import Chapter
+        chapter = Chapter(
+            timestamp_ms=int(self._current_time_ms),
+            name=f"Chapter",  # Will be auto-numbered by main_window
+            auto_detected=False,
+        )
+        self.chapter_added.emit(chapter)
+
+    def set_chapters_status(self, text: str) -> None:
+        """Update the chapters status label from outside."""
+        self._chapters_status.setText(text)
+        self._chapters_status.setVisible(bool(text))
 
     def _show_about(self) -> None:
         """Show the About dialog with links to GitHub."""

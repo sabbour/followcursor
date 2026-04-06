@@ -740,6 +740,7 @@ class MainWindow(QMainWindow):
         self._unsaved_changes: bool = False  # True when edits exist since last save
         self._keystroke_config = None  # KeystrokeOverlayConfig or None
         self._annotations = None  # AnnotationCollection or None
+        self._chapters: list = []  # List[Chapter]
 
         # Restore persisted background & frame presets
         saved_bg = self._settings.value("bgPreset", "")
@@ -876,6 +877,9 @@ class MainWindow(QMainWindow):
         self._editor.annotation_added.connect(self._on_annotation_added)
         self._editor.annotation_removed.connect(self._on_annotation_removed)
         self._editor.annotation_updated.connect(self._on_annotation_updated)
+        self._editor.chapters_changed.connect(self._on_auto_detect_chapters)
+        self._editor.chapter_added.connect(self._on_chapter_added)
+        self._editor.chapter_removed.connect(self._on_chapter_removed)
         self._editor.debug_overlay_changed.connect(self._on_debug_overlay_changed)
         self._editor.output_dimensions_changed.connect(self._on_output_dim_changed)
         self._editor.undo_requested.connect(self._undo)
@@ -1220,6 +1224,7 @@ class MainWindow(QMainWindow):
         # Voiceover / trim / project / video segments
         self._voiceover_segments = []
         self._video_segments = []
+        self._chapters = []
         # Keep zoom engine segments in sync with session segments
         self._zoom_engine.video_segments = []
         self._vo_played_ids = set()
@@ -1731,6 +1736,52 @@ class MainWindow(QMainWindow):
         self._preview.set_annotations(self._annotations)
         self._mark_dirty()
         logger.info("Annotation updated: %s", annot_type)
+
+    def _on_auto_detect_chapters(self, _: list) -> None:
+        """Handle auto-detect chapters request from editor panel."""
+        from .activity_analyzer import detect_chapters
+        chapters = detect_chapters(
+            self._mouse_track,
+            self._key_events,
+            self._click_events,
+            self._rec_duration_ms
+        )
+        self._chapters = chapters
+        self._timeline.chapters = chapters
+        self._timeline.update()
+        self._mark_dirty()
+        self._editor.set_chapters_status(f"{len(chapters)} chapter(s) detected")
+        logger.info("Auto-detected %d chapters", len(chapters))
+
+    def _on_chapter_added(self, chapter) -> None:
+        """Handle manual chapter addition from editor panel."""
+        # Auto-number if name is just "Chapter"
+        if chapter.name == "Chapter":
+            existing_nums = []
+            for c in self._chapters:
+                if c.name.startswith("Chapter "):
+                    try:
+                        num = int(c.name.split()[-1])
+                        existing_nums.append(num)
+                    except ValueError:
+                        pass
+            next_num = max(existing_nums, default=0) + 1
+            chapter.name = f"Chapter {next_num}"
+        
+        self._chapters.append(chapter)
+        self._chapters.sort(key=lambda c: c.timestamp_ms)
+        self._timeline.chapters = self._chapters
+        self._timeline.update()
+        self._mark_dirty()
+        logger.info("Chapter added: %s at %.2fs", chapter.name, chapter.timestamp_ms / 1000)
+
+    def _on_chapter_removed(self, timestamp_ms: int) -> None:
+        """Handle chapter removal."""
+        self._chapters = [c for c in self._chapters if c.timestamp_ms != timestamp_ms]
+        self._timeline.chapters = self._chapters
+        self._timeline.update()
+        self._mark_dirty()
+        logger.info("Chapter removed at %.2fs", timestamp_ms / 1000)
 
     def _on_debug_overlay_changed(self, enabled: bool) -> None:
         """Toggle zoom debug overlay on the preview."""
@@ -2864,6 +2915,7 @@ class MainWindow(QMainWindow):
                     key_events=self._key_events or None,
                     keystroke_config=self._keystroke_config,
                     annotations=self._annotations,
+                    chapters=self._chapters or None,
                 )
             except Exception:
                 logger.exception("Failed to start export")
@@ -3280,6 +3332,7 @@ class MainWindow(QMainWindow):
             trim_end_ms=self._trim_end_ms,
             voiceover_segments=list(self._voiceover_segments) if self._voiceover_segments else None,
             video_segments=list(self._video_segments) if self._video_segments else None,
+            chapters=list(self._chapters) if self._chapters else None,
         )
         path = self._project_path if self._project_path and not save_as else ""
         if not path:
@@ -3441,6 +3494,12 @@ class MainWindow(QMainWindow):
                 self._annotations = loaded_annotations
                 self._preview.set_annotations(loaded_annotations)
                 self._editor.refresh_annotations_list(loaded_annotations)
+
+            # Restore chapters if saved
+            if session.chapters:
+                self._chapters = list(session.chapters)
+                self._timeline.chapters = self._chapters
+                self._timeline.update()
 
             self._set_view("edit")
             self._project_path = path

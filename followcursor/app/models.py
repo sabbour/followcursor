@@ -164,6 +164,39 @@ class ZoomKeyframe:
 
 
 @dataclass
+class Chapter:
+    """A chapter marker for navigation within a recording.
+
+    Chapters help users navigate long recordings by marking scene boundaries.
+    They can be auto-detected based on activity patterns or manually created.
+    """
+
+    timestamp_ms: int  # start time of this chapter
+    name: str  # display name (e.g., "Chapter 1", "Scene 2", or custom name)
+    auto_detected: bool = True  # True if heuristic-generated, False if manual
+
+    def to_dict(self) -> dict:
+        """Serialize to a plain dict for JSON storage."""
+        return {
+            "timestampMs": self.timestamp_ms,
+            "name": self.name,
+            "autoDetected": self.auto_detected,
+        }
+
+    @staticmethod
+    def from_dict(d: dict) -> "Chapter":
+        """Reconstruct from a dict produced by ``to_dict()``."""
+        try:
+            return Chapter(
+                timestamp_ms=int(d["timestampMs"]),
+                name=d["name"],
+                auto_detected=d.get("autoDetected", True),
+            )
+        except KeyError as exc:
+            raise ValueError(f"Chapter missing required field: {exc}") from exc
+
+
+@dataclass
 class VideoSegment:
     """A contiguous section of the recording timeline.
 
@@ -244,6 +277,7 @@ class RecordingSession:
     trim_end_ms: float = 0.0  # 0 = no trim (use full duration)
     voiceover_segments: List["VoiceoverSegment"] | None = None
     video_segments: List["VideoSegment"] | None = None
+    chapters: List["Chapter"] | None = None
 
     def to_json(self) -> str:
         """Serialize the entire session to a JSON string."""
@@ -268,6 +302,8 @@ class RecordingSession:
             data["voiceoverSegments"] = [v.to_dict() for v in self.voiceover_segments]
         if self.video_segments:
             data["videoSegments"] = [vs.to_dict() for vs in self.video_segments]
+        if self.chapters:
+            data["chapters"] = [c.to_dict() for c in self.chapters]
         return json.dumps(data, indent=2)
 
     @staticmethod
@@ -305,6 +341,9 @@ class RecordingSession:
         video_segments = None
         if "videoSegments" in d:
             video_segments = [VideoSegment.from_dict(vs) for vs in d["videoSegments"]]
+        chapters = None
+        if "chapters" in d:
+            chapters = [Chapter.from_dict(c) for c in d["chapters"]]
         return RecordingSession(
             id=session_id,
             start_time=start_time,
@@ -318,6 +357,7 @@ class RecordingSession:
             trim_end_ms=d.get("trimEndMs", 0.0),
             voiceover_segments=voiceover_segments,
             video_segments=video_segments,
+            chapters=chapters,
         )
 
 

@@ -84,6 +84,7 @@ class _TimelineTrack(QWidget):
         self.video_segments: List[VideoSegment] = []
         self.trim_start_ms: float = 0.0
         self.trim_end_ms: float = 0.0  # 0 = no trim
+        self.chapters: List = []  # List[Chapter]
 
         # Trim handle drag state (relative drag using frozen anchor)
         self._drag_trim_start_x: float = 0.0
@@ -396,6 +397,10 @@ class _TimelineTrack(QWidget):
             self._draw_video_segments(painter, w, self._video_seg_top, self._video_seg_h)
         else:
             self._video_seg_rects = []
+
+        # chapter markers (small flags along the bottom)
+        if self.chapters:
+            self._draw_chapter_markers(painter, w, h)
 
         # playhead
         px = self._ms_to_x(self.current_time, w)
@@ -885,6 +890,40 @@ class _TimelineTrack(QWidget):
             if sx <= mx <= sx + sw:
                 return seg_id
         return ""
+
+    def _draw_chapter_markers(self, painter: QPainter, w: int, h: int) -> None:
+        """Draw chapter markers as small flag icons along the bottom edge."""
+        if self.duration <= 0 or not self.chapters:
+            return
+
+        marker_h = 16
+        marker_y = h - marker_h - 2
+
+        font = QFont()
+        font.setFamily("Segoe UI Variable")
+        font.setPixelSize(9)
+        painter.setFont(font)
+
+        for chapter in self.chapters:
+            x = self._ms_to_x(chapter.timestamp_ms, w)
+            if x < 0 or x > w:
+                continue
+
+            # Draw flag pole (vertical line)
+            painter.setPen(QPen(QColor("#facc15"), 2))
+            painter.drawLine(int(x), marker_y, int(x), marker_y + marker_h)
+
+            # Draw flag (small triangle)
+            painter.setPen(Qt.PenStyle.NoPen)
+            painter.setBrush(QBrush(QColor("#facc15")))
+            flag_w = 8
+            flag_h = 6
+            flag = QPolygonF([
+                QPointF(x, marker_y),
+                QPointF(x + flag_w, marker_y + flag_h / 2),
+                QPointF(x, marker_y + flag_h),
+            ])
+            painter.drawPolygon(flag)
 
     # ── trim handles ──────────────────────────────────────────────
 

@@ -60,3 +60,58 @@ Bezel geometry uses floating-point math with `np.float32` arrays. Critical to:
 - **Test edge cases** — portrait video, small canvas (640×480), ultra-wide monitors
 
 The geometry computer validates these constraints in pure logic before OpenCV touches any pixels.
+
+### 2025-01-06 — Issue #62: Keystroke viz exposes passwords — filter modes not implemented
+**Branch:** `squad/62-keystroke-security`  
+**PR:** https://github.com/sabbour/followcursor/pull/63
+
+Critical security fix: keystroke overlay showed ALL typed characters (including passwords) by default. Filter modes were defined but never implemented in the renderer.
+
+**Changes:**
+- **Implemented filter_mode logic in `keystroke_renderer.py`:**
+  - Modified `_group_keystrokes()` to accept `filter_mode` parameter
+  - Created `_should_show_group()` helper to filter keystroke groups based on mode
+  - "all" mode shows everything (user explicitly chose this)
+  - "modifiers-only" shows only keystrokes with Ctrl, Alt, or Win modifiers
+  - "shortcuts-only" shows only keyboard shortcuts (Ctrl+X, Alt+Tab, etc.), filters single character presses
+- **Changed default from "all" to "shortcuts-only":**
+  - Updated `KeystrokeOverlayConfig` dataclass default
+  - Updated `from_dict()` for backward compatibility
+  - Updated UI combo box default selection
+- **Added security warnings in `editor_panel.py`:**
+  - Dynamic tooltip updates when filter mode changes
+  - ⚠️ Warning when "All Keys" selected about passwords/sensitive input
+  - Helpful descriptions for safer modes
+
+**Testing:** All 347 tests passed.
+
+## Learnings
+
+### Security by Default: Safe Defaults Trump Convenience
+The original "show all keystrokes" default was convenient for demos but dangerous for real-world use. Key lessons:
+
+1. **Default to the safest option** — "shortcuts-only" hides passwords by default. Users who want full keystroke capture must explicitly opt in.
+2. **Progressive disclosure of risk** — The "All Keys" mode now shows a warning tooltip (⚠️) so users understand the security implications before choosing it.
+3. **Filter at the source** — The filter happens in `_group_keystrokes()` BEFORE grouping/rendering, not after. This ensures filtered keystrokes never make it into the rendering pipeline, even in edge cases.
+
+### Filtering Before Grouping vs. After
+Initially considered filtering after keystroke groups were formed, but realized this creates a gap:
+- **After-grouping filter:** A password like "MyPass123" might form a group, then get filtered as a whole, but intermediate state could leak in logs or intermediate data structures.
+- **Before-grouping filter (chosen approach):** Individual keystrokes are filtered immediately, so they never participate in grouping. This prevents even partial passwords from being grouped together.
+
+Trade-off: Slightly more complex filtering logic (track VK codes through grouping), but eliminates entire classes of security bugs.
+
+### Modifier Key Detection: Win32 VK Code Ranges
+Windows virtual key codes for modifiers are not contiguous:
+- **Ctrl/Alt/Win modifiers:** 0x11, 0x12, 0x5B, 0x5C, 0xA2-0xA5 (used for "shortcuts-only" filter)
+- **Shift keys:** 0x10, 0xA0, 0xA1 (NOT considered a modifier for "shortcuts-only" — Shift+A is still just typing)
+
+The filter uses a frozenset for O(1) lookup. Critical to exclude Shift from the modifier set, otherwise typing capital letters would be shown as "shortcuts" when they're really just normal text entry.
+
+### Dynamic Tooltip Updates: User Feedback Loop
+The keystroke filter dropdown initially had a static tooltip listing all three modes. Changed to dynamic tooltips that update when the selection changes:
+- **"All Keys":** Shows prominent ⚠️ warning about passwords
+- **"Modifiers Only":** Explains what will be shown
+- **"Shortcuts Only":** Explains safer behavior
+
+This creates a feedback loop: users see the security implication RIGHT as they change the setting, not buried in documentation. This reduces accidental password leaks during tutorial recordings.
