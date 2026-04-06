@@ -28,6 +28,7 @@ import subprocess
 import threading
 import time
 import bisect
+from dataclasses import dataclass
 
 logger = logging.getLogger(__name__)
 from typing import List, Optional
@@ -45,6 +46,34 @@ from .frames import FramePreset, DEFAULT_FRAME
 
 
 from .utils import ffmpeg_exe as _ffmpeg_exe, subprocess_kwargs as _subprocess_kwargs, build_encoder_args as _build_encoder_args, build_gif_args as _build_gif_args
+
+
+# ── Phase result dataclasses ───────────────────────────────────────
+
+@dataclass
+class VideoProbeResult:
+    """Results from probing source video metadata."""
+    src_fps: float
+    total_frames: int
+    src_w: int
+    src_h: int
+    out_w: int
+    out_h: int
+    fps: float
+    is_gif: bool
+
+
+@dataclass
+class GeometryResult:
+    """Results from computing device/frame layout geometry."""
+    scr_x: int
+    scr_y: int
+    scr_w: int
+    scr_h: int
+    base_canvas: np.ndarray
+    screen_mask: np.ndarray
+    device_mask_u8: Optional[np.ndarray]
+    bg: np.ndarray
 
 
 # ── Numpy-based compositor for export (fast) ────────────────────────
@@ -401,6 +430,123 @@ def _merge_voiceover_segments(
     return ""
 
 
+class GeometryComputer:
+    """Computes device/frame layout geometry for video export.
+    
+    Pure-logic class with no Qt or OpenCV dependencies in the constructor,
+    making it easily testable. All geometry calculations are deterministic
+    given the input parameters.
+    """
+    
+    def __init__(
+        self,
+        canvas_w: int,
+        canvas_h: int,
+        src_w: int,
+        src_h: int,
+        frame_preset: FramePreset,
+    ):
+        """Initialize geometry computer with canvas and source dimensions.
+        
+        Args:
+            canvas_w: Output canvas width in pixels
+            canvas_h: Output canvas height in pixels
+            src_w: Source video width in pixels
+            src_h: Source video height in pixels
+            frame_preset: Frame preset defining bezel/padding parameters
+        """
+        self.canvas_w = canvas_w
+        self.canvas_h = canvas_h
+        self.src_w = src_w
+        self.src_h = src_h
+        self.frame_preset = frame_preset
+        self.video_aspect = src_w / max(src_h, 1)
+    
+    def compute(self) -> dict:
+        """Compute all geometry parameters for the given configuration.
+        
+        Returns:
+            Dictionary with keys:
+                - scr_x, scr_y: screen position in canvas
+                - scr_w, scr_h: screen dimensions
+                - dev_x, dev_y: device position (if frame present)
+                - dev_w, dev_h: device dimensions (if frame present)
+                - outer_r, inner_r: corner radii (if frame present)
+                - edge_thickness: edge line thickness (if frame present)
+                - bw: bezel width (if frame present)
+        """
+        fp = self.frame_preset
+        W, H = float(self.canvas_w), float(self.canvas_h)
+        
+        if fp.is_none:
+            # No frame — video fills full canvas
+            if W / H > self.video_aspect:
+                scr_h = self.canvas_h
+                scr_w = int(H * self.video_aspect)
+            else:
+                scr_w = self.canvas_w
+                scr_h = int(W / self.video_aspect)
+            scr_x = (self.canvas_w - scr_w) // 2
+            scr_y = (self.canvas_h - scr_h) // 2
+            
+            return {
+                "scr_x": scr_x,
+                "scr_y": scr_y,
+                "scr_w": scr_w,
+                "scr_h": scr_h,
+            }
+        
+        # Device frame present — compute bezel geometry
+        pad_x = W * fp.padding
+        pad_y = H * fp.padding
+        avail_w = W - 2 * pad_x
+        avail_h = H - 2 * pad_y
+        
+        preliminary_scale = avail_w / _BEZEL_REF_W
+        bw_est = fp.bezel_width * preliminary_scale
+        
+        dev_h = avail_h
+        scr_h_try = dev_h - 2 * bw_est
+        scr_w_try = scr_h_try * self.video_aspect
+        dev_w = scr_w_try + 2 * bw_est
+        if dev_w > avail_w:
+            dev_w = avail_w
+            scr_w_try = dev_w - 2 * bw_est
+            scr_h_try = scr_w_try / self.video_aspect
+            dev_h = scr_h_try + 2 * bw_est
+        
+        dev_x_i = int((W - dev_w) / 2)
+        dev_y_i = int((H - dev_h) / 2)
+        dev_w_i = int(dev_w)
+        dev_h_i = int(dev_h)
+        
+        scale = dev_w / _BEZEL_REF_W
+        bw = int(fp.bezel_width * scale)
+        outer_r = int(fp.outer_radius * scale)
+        inner_r = max(int(fp.inner_radius * scale), 2) if fp.inner_radius > 0 else 0
+        edge_thickness = max(1, int(fp.edge_width * scale))
+        
+        scr_x = dev_x_i + bw
+        scr_y = dev_y_i + bw
+        scr_w = dev_w_i - 2 * bw
+        scr_h = dev_h_i - 2 * bw
+        
+        return {
+            "scr_x": scr_x,
+            "scr_y": scr_y,
+            "scr_w": scr_w,
+            "scr_h": scr_h,
+            "dev_x": dev_x_i,
+            "dev_y": dev_y_i,
+            "dev_w": dev_w_i,
+            "dev_h": dev_h_i,
+            "outer_r": outer_r,
+            "inner_r": inner_r,
+            "edge_thickness": edge_thickness,
+            "bw": bw,
+        }
+
+
 class VideoExporter(QObject):
     """Reads the raw recording, applies zoom/pan per-frame, writes H.264 MP4 or GIF."""
 
@@ -475,6 +621,185 @@ class VideoExporter(QObject):
 
     # ── internal ────────────────────────────────────────────────────
 
+    def _probe_video(
+        self,
+        cap: cv2.VideoCapture,
+        actual_fps: float,
+        duration_ms: float,
+        frame_timestamps: Optional[List[float]],
+        output_dim,
+        output_path: str,
+    ) -> Optional[VideoProbeResult]:
+        """Phase 1: Probe source video metadata and determine output parameters.
+        
+        Returns:
+            VideoProbeResult on success, None on error (emits self.error signal).
+        """
+        src_fps = cap.get(cv2.CAP_PROP_FPS)
+        if src_fps <= 0 or src_fps > 120:
+            src_fps = 30.0
+        if actual_fps > 0:
+            src_fps = actual_fps
+        cap_frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+
+        # After the post-recording remux the metadata is correct.
+        # For legacy videos, detect metadata/duration mismatch and
+        # recount frames if needed.
+        meta_dur = (cap_frame_count / src_fps * 1000) if src_fps > 0 else 0
+        need_recount = False
+        if duration_ms > 0 and meta_dur > 0:
+            ratio = meta_dur / duration_ms
+            if ratio < 0.90 or ratio > 1.10:
+                need_recount = True
+
+        if need_recount:
+            real_frame_count = 0
+            while cap.grab():
+                real_frame_count += 1
+            cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
+            if duration_ms > 0 and real_frame_count > 0:
+                src_fps = real_frame_count / (duration_ms / 1000.0)
+            total_frames = real_frame_count if real_frame_count > 0 else cap_frame_count
+        else:
+            total_frames = cap_frame_count
+        if total_frames <= 0 and frame_timestamps:
+            total_frames = len(frame_timestamps)
+        src_w = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+        src_h = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+
+        if src_w == 0 or src_h == 0:
+            self.error.emit("Invalid video dimensions")
+            return None
+
+        # Determine output canvas size
+        if output_dim and output_dim != "auto" and isinstance(output_dim, (tuple, list)):
+            out_w, out_h = int(output_dim[0]), int(output_dim[1])
+            # Ensure even dimensions (required by H.264)
+            out_w = out_w + (out_w % 2)
+            out_h = out_h + (out_h % 2)
+        else:
+            out_w, out_h = src_w, src_h
+
+        # Ensure even dimensions (H.264 requires even dimensions)
+        out_w = out_w + (out_w % 2)
+        out_h = out_h + (out_h % 2)
+
+        # Normalise extension: allow .gif; everything else becomes .mp4
+        is_gif = output_path.lower().endswith(".gif")
+
+        # Export on a stable CFR timeline.  WGC recordings can have sparse,
+        # irregular source frames (only when the image changes).  Keeping
+        # a very low averaged FPS here makes output choppy and drifts
+        # overlays/audio relative to visual content.  Use at least 24 fps
+        # for MP4 (cinematic standard — smooth enough without inflating
+        # frame count as much as 30 fps would).
+        fps = src_fps
+        if not is_gif and fps < 24.0:
+            fps = 24.0
+        logger.info(
+            "Export timing | source_fps=%.2f output_fps=%.2f total_frames=%d frame_timestamps=%d",
+            src_fps,
+            fps,
+            total_frames,
+            len(frame_timestamps or []),
+        )
+
+        return VideoProbeResult(
+            src_fps=src_fps,
+            total_frames=total_frames,
+            src_w=src_w,
+            src_h=src_h,
+            out_w=out_w,
+            out_h=out_h,
+            fps=fps,
+            is_gif=is_gif,
+        )
+
+    def _compute_geometry(
+        self,
+        probe: VideoProbeResult,
+        bg_preset: BackgroundPreset,
+        frame_preset: FramePreset,
+    ) -> GeometryResult:
+        """Phase 2: Compute device/frame layout and build static layers.
+        
+        Returns:
+            GeometryResult containing screen coordinates, canvas, and masks.
+        """
+        w, h = probe.out_w, probe.out_h
+        
+        # Pre-build the gradient background
+        self.status.emit("Building background & frame…")
+        bg_top_bgr, bg_bottom_bgr = _preset_to_bgr(bg_preset)
+        bg = _build_background(w, h, bg_top_bgr, bg_bottom_bgr,
+                               kind=bg_preset.kind)
+
+        # Compute device geometry using GeometryComputer
+        geom_comp = GeometryComputer(w, h, probe.src_w, probe.src_h, frame_preset)
+        geom = geom_comp.compute()
+        
+        scr_x = geom["scr_x"]
+        scr_y = geom["scr_y"]
+        scr_w = geom["scr_w"]
+        scr_h = geom["scr_h"]
+        
+        # Build canvas and masks based on frame preset
+        if frame_preset.is_none:
+            # No frame — simple bg canvas
+            base_canvas = bg.copy()
+            screen_mask = np.zeros((h, w), dtype=np.uint8)
+            screen_mask[scr_y:scr_y + scr_h, scr_x:scr_x + scr_w] = 255
+            device_mask_u8 = None
+        else:
+            bw = geom["bw"]
+            if bw > 0:
+                # Pre-render the bezel (bg + shadow + bezel + edge)
+                base_canvas, screen_mask, _ = _build_bezel_layer(
+                    h, w, bg,
+                    geom["dev_x"], geom["dev_y"], geom["dev_w"], geom["dev_h"],
+                    scr_x, scr_y, scr_w, scr_h,
+                    geom["outer_r"], geom["inner_r"], geom["edge_thickness"],
+                )
+            else:
+                # Shadow-only or zero-bezel: just shadow + rounded screen
+                base_canvas = bg.copy()
+                if frame_preset.shadow_layers > 0 and geom["outer_r"] > 0:
+                    for i in range(frame_preset.shadow_layers):
+                        off = 2 + i * 2
+                        shadow_mask = np.zeros((h, w), dtype=np.uint8)
+                        s_pts = _rounded_rect_contour(
+                            geom["dev_x"] + int(off * 0.3), geom["dev_y"] + off,
+                            geom["dev_w"], geom["dev_h"], geom["outer_r"] + 2
+                        )
+                        cv2.fillPoly(shadow_mask, [s_pts], 255)
+                        alpha = max(40 - i * 10, 5) / 255.0
+                        shadow_region = shadow_mask > 0
+                        base_canvas[shadow_region] = (
+                            base_canvas[shadow_region].astype(np.float32) * (1 - alpha)
+                        ).astype(np.uint8)
+                screen_mask = np.zeros((h, w), dtype=np.uint8)
+                if geom["inner_r"] > 0:
+                    inner_pts = _rounded_rect_contour(scr_x, scr_y, scr_w, scr_h, geom["inner_r"])
+                    cv2.fillPoly(screen_mask, [inner_pts], 255)
+                else:
+                    screen_mask[scr_y:scr_y + scr_h, scr_x:scr_x + scr_w] = 255
+                base_canvas[screen_mask > 0] = 0
+            
+            # Pre-compute device region mask for zoom compositing
+            device_mask_u8 = (np.any(base_canvas != bg, axis=2)
+                              .astype(np.uint8) * 255)
+        
+        return GeometryResult(
+            scr_x=scr_x,
+            scr_y=scr_y,
+            scr_w=scr_w,
+            scr_h=scr_h,
+            base_canvas=base_canvas,
+            screen_mask=screen_mask,
+            device_mask_u8=device_mask_u8,
+            bg=bg,
+        )
+
     def _run(
         self,
         input_path: str,
@@ -520,181 +845,31 @@ class VideoExporter(QObject):
                 self.error.emit(f"Cannot open {input_path}")
                 return
 
-            src_fps = cap.get(cv2.CAP_PROP_FPS)
-            if src_fps <= 0 or src_fps > 120:
-                src_fps = 30.0
-            if actual_fps > 0:
-                src_fps = actual_fps
-            cap_frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+            # Phase 1: Probe video metadata
+            probe = self._probe_video(
+                cap, actual_fps, duration_ms, frame_timestamps,
+                output_dim, output_path
+            )
+            if probe is None:
+                return  # Error already emitted
 
-            # After the post-recording remux the metadata is correct.
-            # For legacy videos, detect metadata/duration mismatch and
-            # recount frames if needed.
-            meta_dur = (cap_frame_count / src_fps * 1000) if src_fps > 0 else 0
-            need_recount = False
-            if duration_ms > 0 and meta_dur > 0:
-                ratio = meta_dur / duration_ms
-                if ratio < 0.90 or ratio > 1.10:
-                    need_recount = True
-
-            if need_recount:
-                real_frame_count = 0
-                while cap.grab():
-                    real_frame_count += 1
-                cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
-                if duration_ms > 0 and real_frame_count > 0:
-                    src_fps = real_frame_count / (duration_ms / 1000.0)
-                total_frames = real_frame_count if real_frame_count > 0 else cap_frame_count
-            else:
-                total_frames = cap_frame_count
-            if total_frames <= 0 and frame_timestamps:
-                total_frames = len(frame_timestamps)
-            src_w = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-            src_h = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-
-            if src_w == 0 or src_h == 0:
-                self.error.emit("Invalid video dimensions")
-                return
-
-            # Determine output canvas size
-            if output_dim and output_dim != "auto" and isinstance(output_dim, (tuple, list)):
-                out_w, out_h = int(output_dim[0]), int(output_dim[1])
-                # Ensure even dimensions (required by H.264)
-                out_w = out_w + (out_w % 2)
-                out_h = out_h + (out_h % 2)
-            else:
-                out_w, out_h = src_w, src_h
-
-            w, h = out_w, out_h
-
-            # Ensure even dimensions BEFORE building background/bezel
-            # (H.264 requires even dimensions; canvas must match ffmpeg -s)
-            w = w + (w % 2)
-            h = h + (h % 2)
-
-            # Normalise extension: allow .gif; everything else becomes .mp4
-            _is_gif = output_path.lower().endswith(".gif")
+            w, h = probe.out_w, probe.out_h
+            src_fps = probe.src_fps
+            total_frames = probe.total_frames
+            fps = probe.fps
+            _is_gif = probe.is_gif
+            
+            # Update output_path extension if needed
             if not _is_gif and not output_path.lower().endswith(".mp4"):
                 output_path = output_path.rsplit(".", 1)[0] + ".mp4"
 
-            # Export on a stable CFR timeline.  WGC recordings can have sparse,
-            # irregular source frames (only when the image changes).  Keeping
-            # a very low averaged FPS here makes output choppy and drifts
-            # overlays/audio relative to visual content.  Use at least 24 fps
-            # for MP4 (cinematic standard — smooth enough without inflating
-            # frame count as much as 30 fps would).
-            fps = src_fps
-            if not _is_gif and fps < 24.0:
-                fps = 24.0
-            logger.info(
-                "Export timing | source_fps=%.2f output_fps=%.2f total_frames=%d frame_timestamps=%d",
-                src_fps,
-                fps,
-                total_frames,
-                len(frame_timestamps or []),
-            )
-
-            # Pre-build the gradient background and bezel layer (once)
-            self.status.emit("Building background & frame…")
-            bg_top_bgr, bg_bottom_bgr = _preset_to_bgr(bg_preset)
-            bg = _build_background(w, h, bg_top_bgr, bg_bottom_bgr,
-                                   kind=bg_preset.kind)
-
-            fp = frame_preset
-
-            # Compute device geometry from frame preset
-            W, H = float(w), float(h)
-            video_aspect = src_w / max(src_h, 1)
-
-            if fp.is_none:
-                # No frame — video fills full canvas
-                if W / H > video_aspect:
-                    scr_h = h
-                    scr_w = int(H * video_aspect)
-                else:
-                    scr_w = w
-                    scr_h = int(W / video_aspect)
-                scr_x = (w - scr_w) // 2
-                scr_y = (h - scr_h) // 2
-                # Build simple bg canvas (no bezel)
-                base_canvas = bg.copy()
-                screen_mask = np.zeros((h, w), dtype=np.uint8)
-                screen_mask[scr_y:scr_y + scr_h, scr_x:scr_x + scr_w] = 255
-            else:
-                pad_x = W * fp.padding
-                pad_y = H * fp.padding
-                avail_w = W - 2 * pad_x
-                avail_h = H - 2 * pad_y
-
-                preliminary_scale = avail_w / _BEZEL_REF_W
-                bw_est = fp.bezel_width * preliminary_scale
-
-                dev_h = avail_h
-                scr_h_try = dev_h - 2 * bw_est
-                scr_w_try = scr_h_try * video_aspect
-                dev_w = scr_w_try + 2 * bw_est
-                if dev_w > avail_w:
-                    dev_w = avail_w
-                    scr_w_try = dev_w - 2 * bw_est
-                    scr_h_try = scr_w_try / video_aspect
-                    dev_h = scr_h_try + 2 * bw_est
-
-                dev_x_i = int((W - dev_w) / 2)
-                dev_y_i = int((H - dev_h) / 2)
-                dev_w_i = int(dev_w)
-                dev_h_i = int(dev_h)
-
-                scale = dev_w / _BEZEL_REF_W
-                bw = int(fp.bezel_width * scale)
-                outer_r = int(fp.outer_radius * scale)
-                inner_r = max(int(fp.inner_radius * scale), 2) if fp.inner_radius > 0 else 0
-                edge_thickness = max(1, int(fp.edge_width * scale))
-
-                scr_x = dev_x_i + bw
-                scr_y = dev_y_i + bw
-                scr_w = dev_w_i - 2 * bw
-                scr_h = dev_h_i - 2 * bw
-
-                if bw > 0:
-                    # Pre-render the bezel (bg + shadow + bezel + edge) — done once
-                    base_canvas, screen_mask, _ = _build_bezel_layer(
-                        h, w, bg,
-                        dev_x_i, dev_y_i, dev_w_i, dev_h_i,
-                        scr_x, scr_y, scr_w, scr_h,
-                        outer_r, inner_r, edge_thickness,
-                    )
-                else:
-                    # Shadow-only or zero-bezel: just shadow + rounded screen
-                    base_canvas = bg.copy()
-                    if fp.shadow_layers > 0 and outer_r > 0:
-                        for i in range(fp.shadow_layers):
-                            off = 2 + i * 2
-                            shadow_mask = np.zeros((h, w), dtype=np.uint8)
-                            s_pts = _rounded_rect_contour(
-                                dev_x_i + int(off * 0.3), dev_y_i + off,
-                                dev_w_i, dev_h_i, outer_r + 2
-                            )
-                            cv2.fillPoly(shadow_mask, [s_pts], 255)
-                            alpha = max(40 - i * 10, 5) / 255.0
-                            shadow_region = shadow_mask > 0
-                            base_canvas[shadow_region] = (
-                                base_canvas[shadow_region].astype(np.float32) * (1 - alpha)
-                            ).astype(np.uint8)
-                    screen_mask = np.zeros((h, w), dtype=np.uint8)
-                    if inner_r > 0:
-                        inner_pts = _rounded_rect_contour(scr_x, scr_y, scr_w, scr_h, inner_r)
-                        cv2.fillPoly(screen_mask, [inner_pts], 255)
-                    else:
-                        screen_mask[scr_y:scr_y + scr_h, scr_x:scr_x + scr_w] = 255
-                    base_canvas[screen_mask > 0] = 0
-
-            # Pre-compute device region mask for zoom compositing.
-            # Avoids an expensive per-frame np.any(base_canvas != bg)
-            # comparison inside _compose_cv.
-            _device_mask_u8: np.ndarray | None = None
-            if not fp.is_none:
-                _device_mask_u8 = (np.any(base_canvas != bg, axis=2)
-                                   .astype(np.uint8) * 255)
+            # Phase 2: Compute geometry and build static layers
+            geom = self._compute_geometry(probe, bg_preset, frame_preset)
+            scr_x, scr_y, scr_w, scr_h = geom.scr_x, geom.scr_y, geom.scr_w, geom.scr_h
+            base_canvas = geom.base_canvas
+            screen_mask = geom.screen_mask
+            _device_mask_u8 = geom.device_mask_u8
+            bg = geom.bg
 
             if w < 2 or h < 2:
                 self.error.emit("Output dimensions too small for encoding")
@@ -968,7 +1143,7 @@ class VideoExporter(QObject):
                         frame, zoom, px, py, w, h,
                         base_canvas, screen_mask,
                         scr_x, scr_y, scr_w, scr_h,
-                        zoom_video_only=fp.is_none,
+                        zoom_video_only=frame_preset.is_none,
                         bg_canvas=bg,
                         device_mask_u8=_device_mask_u8,
                         _buf_canvas=_buf_canvas,
@@ -1012,7 +1187,7 @@ class VideoExporter(QObject):
                                 fc, zoom, px, py, w, h,
                                 base_canvas, screen_mask,
                                 scr_x, scr_y, scr_w, scr_h,
-                                zoom_video_only=fp.is_none,
+                                zoom_video_only=frame_preset.is_none,
                                 bg_canvas=bg,
                                 device_mask_u8=_device_mask_u8,
                                 _buf_canvas=_buf_canvas,
