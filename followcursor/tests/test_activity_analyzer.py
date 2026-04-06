@@ -4,6 +4,7 @@ import pytest
 
 from app.activity_analyzer import (
     analyze_activity,
+    detect_chapters,
     _dampen_pan,
     PEAK_TOP_N,
     MAX_CLUSTER_DURATION_MS,
@@ -439,3 +440,39 @@ class TestAnalyzeActivityZoomLevelGuard:
         clicks = [ClickEvent(x=500, y=500, timestamp=3000)]
         result = analyze_activity(track, MONITOR, click_events=clicks, zoom_level=-1.0)
         assert isinstance(result, list)
+
+
+# ── detect_chapters ──────────────────────────────────────────────────
+
+
+class TestDetectChapters:
+    def test_single_point_track_no_excessive_chapters(self) -> None:
+        """Mouse track covering a single point must not generate excessive
+        chapter boundaries due to a zero diag / zero jump_threshold_px."""
+        # All mouse events at exactly the same position
+        track = [
+            MousePosition(x=960.0, y=540.0, timestamp=float(t))
+            for t in range(0, 30_000, 100)
+        ]
+        chapters = detect_chapters(track, key_events=None, click_events=None,
+                                   duration_ms=30_000)
+        # Should produce at most a handful of chapters, not one per sample
+        assert len(chapters) <= 10
+
+    def test_zero_area_track_returns_chapters(self) -> None:
+        """detect_chapters must return a non-empty list even when the mouse
+        never moves (diag would otherwise be 0)."""
+        track = [
+            MousePosition(x=100.0, y=200.0, timestamp=float(t))
+            for t in range(0, 10_000, 100)
+        ]
+        chapters = detect_chapters(track, key_events=None, click_events=None,
+                                   duration_ms=10_000)
+        assert len(chapters) >= 1
+
+    def test_empty_track_returns_single_chapter(self) -> None:
+        """No events → single chapter for the entire recording."""
+        chapters = detect_chapters([], key_events=None, click_events=None,
+                                   duration_ms=5_000)
+        assert len(chapters) == 1
+        assert chapters[0].timestamp_ms == 0
