@@ -434,7 +434,7 @@ class TestVideoSegment:
         assert seg.speed == 1.0
 
     def test_speed_clamped_for_invalid_values(self) -> None:
-        """Speed ≤ 0 or non-numeric → clamped to 0.1; > 10 → clamped to 10."""
+        """Speed ≤ 0 → clamped to 0.1; non-numeric → default 1.0; > 10 → clamped to 10."""
         base = {"id": "abc", "startMs": 0, "endMs": 5000}
         cases = [
             (0.0, 0.1),      # zero → minimum (prevents division-by-zero)

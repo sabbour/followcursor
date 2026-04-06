@@ -511,12 +511,14 @@ class TestComputeOutputDurationSpeedGuard:
     """compute_output_duration must not raise ZeroDivisionError for any speed."""
 
     def test_normal_speed_2x(self) -> None:
-        """2× speed on a 1000ms zoom segment → 500ms output."""
+        """2× speed on a 1000ms zoom segment should reduce 2000ms input to 1500ms output."""
         engine = ZoomEngine()
         engine.add_keyframe(ZoomKeyframe.create(timestamp=0, zoom=2.0, duration=200, speed=2.0))
-        engine.add_keyframe(ZoomKeyframe.create(timestamp=1000, zoom=1.0, duration=400))
+        # The sped-up region lasts until the zoom-out keyframe's timestamp + duration.
+        # Set that endpoint to 1000ms so this test matches the documented scenario.
+        engine.add_keyframe(ZoomKeyframe.create(timestamp=600, zoom=1.0, duration=400))
         result = engine.compute_output_duration(2000.0)
-        assert result > 0.0
+        assert result == pytest.approx(1500.0)
 
     def test_zero_speed_falls_back_to_1x(self) -> None:
         """A speed=0 segment must not raise ZeroDivisionError; falls back to 1×."""
