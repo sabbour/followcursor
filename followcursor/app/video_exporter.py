@@ -511,6 +511,7 @@ class VideoExporter(QObject):
         - Emit user-facing signal messages instead of raising to UI thread.
         """
         proc: subprocess.Popen | None = None
+        cap: cv2.VideoCapture | None = None
         _merged_audio_path: str = ""
         try:
             self.status.emit("Preparing video…")
@@ -553,7 +554,6 @@ class VideoExporter(QObject):
 
             if src_w == 0 or src_h == 0:
                 self.error.emit("Invalid video dimensions")
-                cap.release()
                 return
 
             # Determine output canvas size
@@ -1120,7 +1120,6 @@ class VideoExporter(QObject):
                 if not launched:
                     _kill_proc(proc)
                     self.error.emit("All encoders failed to launch")
-                    cap.release()
                     return
 
             pipe_ok = _encode_frames(proc)
@@ -1167,8 +1166,6 @@ class VideoExporter(QObject):
                     failed_id = encoder_id
                     logger.warning("Fallback encoder %s also failed (rc=%s)", encoder_id, proc.returncode)
 
-            cap.release()
-
             if proc.returncode != 0:
                 err_msg = stderr_text.strip()[-800:] if stderr_text else "Unknown ffmpeg error"
                 logger.error("Export failed (encoder=%s, rc=%s): %s", encoder_id, proc.returncode, err_msg)
@@ -1184,6 +1181,13 @@ class VideoExporter(QObject):
         except Exception as exc:
             self.error.emit(str(exc))
         finally:
+            # Ensure cv2.VideoCapture is released
+            if cap is not None:
+                try:
+                    cap.release()
+                    logger.debug("cv2.VideoCapture released")
+                except Exception as e:
+                    logger.warning("Failed to release cv2.VideoCapture: %s", e)
             # Ensure ffmpeg process is not leaked on any error path
             if proc is not None and proc.poll() is None:
                 logger.warning("Cleaning up orphaned ffmpeg process (pid=%s)", proc.pid)

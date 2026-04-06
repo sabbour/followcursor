@@ -114,24 +114,49 @@ def _start_ffmpeg_writer(
 
 
 def _stop_ffmpeg_writer(proc: Optional[subprocess.Popen]) -> None:
-    """Cleanly close an ffmpeg writer subprocess."""
+    """Cleanly close an ffmpeg writer subprocess.
+    
+    Proper cleanup sequence:
+    1. Close stdin to signal EOF
+    2. Wait with timeout for clean exit
+    3. Kill if timeout expires
+    4. Log all cleanup stages
+    """
     if proc is None:
         return
-    try:
-        if proc.stdin and not proc.stdin.closed:
-            try:
-                proc.stdin.flush()
-            except OSError:
-                pass
+    
+    # Step 1: Close stdin to signal end of stream
+    if proc.stdin and not proc.stdin.closed:
+        try:
+            proc.stdin.flush()
+            logger.debug("Flushed ffmpeg stdin (pid=%s)", proc.pid)
+        except OSError as e:
+            logger.debug("Failed to flush ffmpeg stdin (pid=%s): %s", proc.pid, e)
+        try:
             proc.stdin.close()
+            logger.debug("Closed ffmpeg stdin (pid=%s)", proc.pid)
+        except OSError as e:
+            logger.warning("Failed to close ffmpeg stdin (pid=%s): %s", proc.pid, e)
+    
+    # Step 2: Wait for clean exit
+    try:
         proc.wait(timeout=30)
-    except Exception:
+        logger.debug("ffmpeg exited cleanly (pid=%s, rc=%s)", proc.pid, proc.returncode)
+    except subprocess.TimeoutExpired:
+        logger.warning("ffmpeg wait timeout (pid=%s), forcing termination", proc.pid)
+        # Step 3: Kill if timeout expires
         try:
             proc.kill()
-        except Exception:
-            pass
+            proc.wait(timeout=5)
+            logger.info("ffmpeg killed after timeout (pid=%s)", proc.pid)
+        except Exception as e:
+            logger.error("Failed to kill ffmpeg (pid=%s): %s", proc.pid, e)
+    except Exception as e:
+        logger.error("Error waiting for ffmpeg (pid=%s): %s", proc.pid, e)
+    
+    # Log non-zero exit codes
     if proc.returncode and proc.returncode != 0:
-        logger.warning("ffmpeg exited with rc=%s", proc.returncode)
+        logger.warning("ffmpeg exited with rc=%s (pid=%s)", proc.returncode, proc.pid)
 
 
 class ScreenRecorder(QObject):

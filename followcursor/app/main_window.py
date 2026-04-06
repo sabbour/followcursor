@@ -2877,9 +2877,14 @@ class MainWindow(QMainWindow):
 
         Also handles mid-segment playback: if the playhead lands inside
         a segment (e.g. after seek or resume), plays from the offset.
+        
+        Thread-safe: Creates a defensive copy of voiceover segments to avoid
+        race conditions during concurrent access.
         """
         import winsound
-        for seg in self._voiceover_segments:
+        # Defensive copy to avoid race conditions with segment updates
+        segments_snapshot = list(self._voiceover_segments)
+        for seg in segments_snapshot:
             with self._vo_lock:
                 if seg.id in self._vo_played_ids:
                     continue
