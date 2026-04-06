@@ -23,14 +23,13 @@ WM_KEYDOWN = 0x0100
 WM_SYSKEYDOWN = 0x0104
 WM_QUIT = 0x0012
 
-# Virtual key codes to ignore — modifier keys and app hotkey combos
-# don't represent actual "typing" and would inflate activity signals.
+# Virtual key codes to ignore — Shift, lock keys, and app-specific hotkey keys.
+# Ctrl (0x11/0xA2/0xA3), Alt (0x12/0xA4/0xA5), and Win (0x5B/0x5C) modifier VKs
+# are intentionally NOT filtered so the keystroke overlay's "Modifiers Only" and
+# "Shortcuts Only" filter modes can detect modifier state in recorded key_events.
 _IGNORE_VKS = frozenset((
-    0x10, 0x11, 0x12,          # Shift, Ctrl, Alt (generic)
+    0x10,                      # Shift (generic)
     0xA0, 0xA1,                # LShift, RShift
-    0xA2, 0xA3,                # LCtrl, RCtrl
-    0xA4, 0xA5,                # LAlt, RAlt
-    0x5B, 0x5C,                # LWin, RWin
     0x14, 0x90, 0x91,          # CapsLock, NumLock, ScrollLock
     0x52,                      # R  — part of Ctrl+Shift+R record toggle
     0xBB,                      # OEM_PLUS (= key) — part of zoom-in hotkey
@@ -106,7 +105,7 @@ class _KeyboardHookThread(QThread):
         def low_level_handler(n_code, w_param, l_param):
             try:
                 if n_code >= 0 and w_param in (WM_KEYDOWN, WM_SYSKEYDOWN):
-                    # Skip modifier keys and app-hotkey keys
+                    # Skip Shift, lock keys, and app-specific hotkey keys
                     kb = ctypes.cast(l_param, ctypes.POINTER(KBDLLHOOKSTRUCT)).contents
                     if kb.vkCode in _IGNORE_VKS:
                         return user32.CallNextHookEx(

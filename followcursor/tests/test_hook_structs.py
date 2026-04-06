@@ -3,6 +3,9 @@
 Verifies that dwExtraInfo is declared as a pointer-sized type (c_void_p) so
 that KBDLLHOOKSTRUCT and MSLLHOOKSTRUCT match the Win32 ABI on both 32-bit and
 64-bit platforms.
+
+Also verifies that modifier VK codes (Ctrl, Alt, Win) are NOT in _IGNORE_VKS
+so the keystroke overlay's "Modifiers Only" and "Shortcuts Only" modes work.
 """
 
 import ctypes
@@ -30,6 +33,35 @@ class TestKBDLLHOOKSTRUCT:
         assert ctypes.sizeof(KBDLLHOOKSTRUCT) == expected, (
             f"KBDLLHOOKSTRUCT size {ctypes.sizeof(KBDLLHOOKSTRUCT)} != {expected}"
         )
+
+
+class TestIgnoreVKs:
+    """Verify _IGNORE_VKS does not contain modifier VK codes.
+
+    Ctrl, Alt, and Win modifier VKs must be recorded so that the keystroke
+    overlay's "Modifiers Only" and "Shortcuts Only" filter modes can detect
+    modifier state.  (Shift is still filtered because it is not a shortcut
+    modifier in the renderer's MODIFIER_VKS definition.)
+    """
+
+    # All Ctrl/Alt/Win VK codes that must NOT be filtered
+    REQUIRED_MODIFIER_VKS = (
+        0x11,        # Ctrl (generic)
+        0x12,        # Alt (generic)
+        0xA2, 0xA3,  # LCtrl, RCtrl
+        0xA4, 0xA5,  # LAlt, RAlt
+        0x5B, 0x5C,  # LWin, RWin
+    )
+
+    def test_ctrl_alt_win_not_in_ignore_vks(self) -> None:
+        pytest.importorskip("PySide6")
+        from app.keyboard_tracker import _IGNORE_VKS
+
+        for vk in self.REQUIRED_MODIFIER_VKS:
+            assert vk not in _IGNORE_VKS, (
+                f"Modifier VK 0x{vk:02X} must not be in _IGNORE_VKS — "
+                "it is needed by the keystroke overlay filter modes"
+            )
 
 
 @pytest.mark.skipif(sys.platform != "win32", reason="Win32-only structs")
