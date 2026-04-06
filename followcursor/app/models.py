@@ -272,8 +272,9 @@ class RecordingSession:
 
         Tolerates missing optional fields for backward compatibility with
         older .fcproj versions.  Required fields (``id``, ``startTime``,
-        ``duration``, ``mouseTrack``, ``keyframes``) raise ``ValueError``
-        with a clear message instead of raw ``KeyError``.
+        ``duration``, ``mouseTrack``) raise ``ValueError`` with a clear
+        message instead of raw ``KeyError``.  ``keyframes`` is optional and
+        defaults to an empty list when absent for backward compatibility.
         """
         d = json.loads(s)
         try:

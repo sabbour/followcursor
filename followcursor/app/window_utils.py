@@ -131,7 +131,9 @@ def capture_window_thumbnail(
     user32.GetWindowRect(hwnd, ctypes.byref(raw_rect))
     w = raw_rect.right - raw_rect.left
     h = raw_rect.bottom - raw_rect.top
-    if w < 10 or h < 10:
+    # Cap bitmap size to prevent excessive memory allocation before any GDI objects are created
+    _MAX_DIM = 8192
+    if w < 10 or h < 10 or w > _MAX_DIM or h > _MAX_DIM:
         return None
 
     try:
@@ -165,11 +167,6 @@ def capture_window_thumbnail(
                     ("biClrUsed", ctypes.c_uint32),
                     ("biClrImportant", ctypes.c_uint32),
                 ]
-
-            # Cap bitmap size to prevent excessive memory allocation
-            _MAX_DIM = 8192
-            if w > _MAX_DIM or h > _MAX_DIM:
-                return None
 
             bmi = BITMAPINFOHEADER()
             bmi.biSize = ctypes.sizeof(BITMAPINFOHEADER)

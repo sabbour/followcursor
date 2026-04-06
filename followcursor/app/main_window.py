@@ -715,6 +715,7 @@ class MainWindow(QMainWindow):
         self._view: str = "record"  # "record" | "edit"
         self._rec_duration_ms: float = 0
         self._mouse_track: List[MousePosition] = []
+        self._mouse_track_timestamps: List[float] = []
         self._key_events: List[KeyEvent] = []
         self._click_events: List[ClickEvent] = []
         self._video_path: str = ""
@@ -1188,11 +1189,7 @@ class MainWindow(QMainWindow):
 
         # Session data
         self._mouse_track = []
-        self._key_events = []
-        self._click_events = []
-        self._frame_timestamps = []
-        self._rec_duration_ms = 0
-        self._playback_time = 0
+        self._mouse_track_timestamps = []
         self._actual_fps_override = 0.0
 
         # Voiceover / trim / project / video segments
@@ -1325,6 +1322,7 @@ class MainWindow(QMainWindow):
         """Called on the GUI thread when the finalize worker finishes."""
         try:
             self._mouse_track = mouse_track
+            self._mouse_track_timestamps = [mp.timestamp for mp in self._mouse_track]
             self._key_events = key_events
             self._click_events = click_events
             self._zoom_engine.click_events = self._click_events
@@ -2067,8 +2065,8 @@ class MainWindow(QMainWindow):
         if not self._mouse_track or not self._monitor_rect:
             return 0.5, 0.5
         import bisect
-        # Binary search for the closest sample to time_ms
-        timestamps = [mp.timestamp for mp in self._mouse_track]
+        # Use pre-built timestamp cache for O(log n) lookup without per-call allocation
+        timestamps = self._mouse_track_timestamps
         idx = bisect.bisect_left(timestamps, time_ms)
         # Pick the closer of the two surrounding samples
         if idx == 0:
@@ -3274,6 +3272,7 @@ class MainWindow(QMainWindow):
         try:
             session = proj["session"]
             self._mouse_track = session.mouse_track
+            self._mouse_track_timestamps = [mp.timestamp for mp in self._mouse_track]
             self._key_events = session.key_events or []
             self._click_events = session.click_events or []
             self._zoom_engine.click_events = self._click_events
