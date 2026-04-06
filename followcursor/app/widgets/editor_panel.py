@@ -412,11 +412,10 @@ class EditorPanel(QWidget):
         self._keystroke_filter_combo.addItem("All Keys", "all")
         self._keystroke_filter_combo.addItem("Modifiers Only", "modifiers-only")
         self._keystroke_filter_combo.addItem("Shortcuts Only", "shortcuts-only")
-        self._keystroke_filter_combo.setCurrentIndex(0)
+        self._keystroke_filter_combo.setCurrentIndex(2)  # Default to "Shortcuts Only"
         self._keystroke_filter_combo.setToolTip(
-            "All Keys = show every keystroke\n"
-            "Modifiers Only = only Ctrl, Alt, Shift combos\n"
-            "Shortcuts Only = only key combinations (Ctrl+X, Alt+Tab, etc.)"
+            "Only shows keyboard shortcuts (Ctrl+X, Alt+Tab, etc.)\n"
+            "Safer for tutorials with password entry"
         )
         self._keystroke_filter_combo.currentIndexChanged.connect(self._on_keystroke_config_changed)
         filter_row.addWidget(self._keystroke_filter_combo, 1)
@@ -1208,6 +1207,22 @@ class EditorPanel(QWidget):
     def _on_keystroke_config_changed(self) -> None:
         """Handle keystroke overlay configuration changes."""
         config = self.get_keystroke_config()
+        
+        # Update tooltip to warn about "All Keys" mode
+        if config.filter_mode == "all":
+            self._keystroke_filter_combo.setToolTip(
+                "⚠️ All keystrokes will be visible, including passwords and sensitive input"
+            )
+        elif config.filter_mode == "modifiers-only":
+            self._keystroke_filter_combo.setToolTip(
+                "Only shows keys with Ctrl, Alt, or Win modifiers"
+            )
+        else:  # shortcuts-only
+            self._keystroke_filter_combo.setToolTip(
+                "Only shows keyboard shortcuts (Ctrl+X, Alt+Tab, etc.)\n"
+                "Safer for tutorials with password entry"
+            )
+        
         self.keystroke_config_changed.emit(config)
         logger.info(
             "Keystroke config changed: position=%s, style=%s, filter=%s",

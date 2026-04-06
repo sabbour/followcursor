@@ -107,6 +107,7 @@ def _group_keystrokes(
     key_events: List[KeyEvent],
     timestamp_ms: float,
     display_duration_ms: int,
+    filter_mode: str = "shortcuts-only",
 ) -> List[Tuple[str, float, float]]:
     """Group recent keystrokes into display strings.
     
@@ -117,12 +118,24 @@ def _group_keystrokes(
         key_events: All recorded key events
         timestamp_ms: Current playback time
         display_duration_ms: How long keystrokes remain visible
+        filter_mode: "all", "modifiers-only", or "shortcuts-only"
         
     Returns:
         List of (display_text, timestamp, age) tuples for visible keystrokes
     """
     if not key_events:
         return []
+    
+    # Modifier key VK codes: Ctrl, Alt, Win (but not Shift alone)
+    MODIFIER_VKS = frozenset((
+        0x11,         # Ctrl
+        0x12,         # Alt
+        0xA2, 0xA3,   # LCtrl, RCtrl
+        0xA4, 0xA5,   # LAlt, RAlt
+        0x5B, 0x5C,   # LWin, RWin
+    ))
+    
+    SHIFT_VKS = frozenset((0x10, 0xA0, 0xA1))  # Shift, LShift, RShift
     
     visible = []
     for event in key_events:
@@ -133,9 +146,23 @@ def _group_keystrokes(
         # Skip events without vk_code
         if not hasattr(event, 'vk_code') or event.vk_code is None:
             continue
-            
-        key_name = _format_key_event(event.vk_code)
-        visible.append((key_name, event.timestamp, age))
+        
+        vk_code = event.vk_code
+        key_name = _format_key_event(vk_code)
+        
+        # Apply filter based on mode
+        if filter_mode == "modifiers-only":
+            # Only show keystrokes that include Ctrl, Alt, or Win modifiers
+            # Single character presses are skipped
+            if vk_code not in MODIFIER_VKS:
+                continue
+        elif filter_mode == "shortcuts-only":
+            # Only show modifier keys (Ctrl/Alt/Win) - character keys will be
+            # filtered out later when we check if group has a modifier
+            pass  # Will be filtered in grouping logic
+        # else: "all" mode - show everything
+        
+        visible.append((key_name, event.timestamp, age, vk_code))
     
     # Group keystrokes that are close together (within 100ms)
     if not visible:
@@ -143,25 +170,65 @@ def _group_keystrokes(
     
     grouped = []
     current_group = [visible[0][0]]
+    current_vks = [visible[0][3]]
     group_start = visible[0][1]
     
     for i in range(1, len(visible)):
-        key_name, ts, _ = visible[i]
+        key_name, ts, _, vk_code = visible[i]
         if ts - visible[i-1][1] < 100:  # 100ms window for grouping
             current_group.append(key_name)
+            current_vks.append(vk_code)
         else:
-            # Finalize current group
-            group_age = timestamp_ms - group_start
-            grouped.append(("+".join(current_group), group_start, group_age))
+            # Finalize current group - apply filter
+            if _should_show_group(current_vks, filter_mode, MODIFIER_VKS, SHIFT_VKS):
+                group_age = timestamp_ms - group_start
+                grouped.append(("+".join(current_group), group_start, group_age))
             current_group = [key_name]
+            current_vks = [vk_code]
             group_start = ts
     
     # Don't forget the last group
-    if current_group:
+    if current_group and _should_show_group(current_vks, filter_mode, MODIFIER_VKS, SHIFT_VKS):
         group_age = timestamp_ms - group_start
         grouped.append(("+".join(current_group), group_start, group_age))
     
     return grouped
+
+
+def _should_show_group(
+    vk_codes: List[int],
+    filter_mode: str,
+    modifier_vks: frozenset,
+    shift_vks: frozenset,
+) -> bool:
+    """Determine if a keystroke group should be shown based on filter mode.
+    
+    Args:
+        vk_codes: List of VK codes in this group
+        filter_mode: "all", "modifiers-only", or "shortcuts-only"
+        modifier_vks: Set of modifier VK codes (Ctrl, Alt, Win)
+        shift_vks: Set of Shift VK codes
+        
+    Returns:
+        True if the group should be displayed
+    """
+    if filter_mode == "all":
+        return True
+    
+    # For modifiers-only and shortcuts-only modes:
+    # Only show if group contains at least one Ctrl/Alt/Win modifier
+    has_modifier = any(vk in modifier_vks for vk in vk_codes)
+    
+    if filter_mode == "modifiers-only":
+        # Only show if it has a Ctrl/Alt/Win modifier
+        return has_modifier
+    
+    if filter_mode == "shortcuts-only":
+        # Only show if it has a Ctrl/Alt/Win modifier
+        # Single Shift+letter is NOT considered a shortcut
+        return has_modifier
+    
+    return True
 
 
 def _compute_fade_alpha(age_ms: float, display_duration_ms: int) -> float:
@@ -215,7 +282,9 @@ def draw_keystrokes_qpainter(
     if not config.enabled or not key_events:
         return
     
-    grouped = _group_keystrokes(key_events, timestamp_ms, config.display_duration_ms)
+    grouped = _group_keystrokes(
+        key_events, timestamp_ms, config.display_duration_ms, config.filter_mode
+    )
     if not grouped:
         return
     
@@ -322,7 +391,9 @@ def draw_keystrokes_cv(
     if not config.enabled or not key_events:
         return
     
-    grouped = _group_keystrokes(key_events, timestamp_ms, config.display_duration_ms)
+    grouped = _group_keystrokes(
+        key_events, timestamp_ms, config.display_duration_ms, config.filter_mode
+    )
     if not grouped:
         return
     

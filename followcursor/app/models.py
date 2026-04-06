@@ -464,7 +464,7 @@ class KeystrokeOverlayConfig:
     position: str = "bottom-center"  # "bottom-center", "bottom-left", "near-cursor"
     style: str = "floating-badge"    # "floating-badge", "minimal-text", "key-cap"
     display_duration_ms: int = 1500  # how long keystrokes remain visible
-    filter_mode: str = "all"         # "all", "modifiers-only", "shortcuts-only"
+    filter_mode: str = "shortcuts-only"  # "all", "modifiers-only", "shortcuts-only"
     font_size: int = 18
     opacity: float = 0.85            # 0.0 - 1.0
 
@@ -488,7 +488,7 @@ class KeystrokeOverlayConfig:
             position=d.get("position", "bottom-center"),
             style=d.get("style", "floating-badge"),
             display_duration_ms=d.get("displayDurationMs", 1500),
-            filter_mode=d.get("filterMode", "all"),
+            filter_mode=d.get("filterMode", "shortcuts-only"),
             font_size=d.get("fontSize", 18),
             opacity=d.get("opacity", 0.85),
         )
