@@ -46,8 +46,9 @@ class TestMSLLHOOKSTRUCT:
     def test_struct_size_matches_win32(self) -> None:
         from app.click_tracker import MSLLHOOKSTRUCT
 
-        # MSLLHOOKSTRUCT: pt(8) + mouseData(4) + flags(4) + time(4) + dwExtraInfo(ptr)
-        expected = 8 + 3 * 4 + ctypes.sizeof(ctypes.c_void_p)
+        # Use the actual field offset to account for any alignment padding inserted
+        # by ctypes between the last DWORD field and the pointer-sized dwExtraInfo.
+        expected = MSLLHOOKSTRUCT.dwExtraInfo.offset + ctypes.sizeof(ctypes.c_void_p)
         assert ctypes.sizeof(MSLLHOOKSTRUCT) == expected, (
             f"MSLLHOOKSTRUCT size {ctypes.sizeof(MSLLHOOKSTRUCT)} != {expected}"
         )
