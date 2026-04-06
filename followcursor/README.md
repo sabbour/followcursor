@@ -51,7 +51,7 @@ Record your screen or any individual window, then export a polished MP4 video wh
 | UI Framework | PySide6 (Qt 6) | Widgets, layout, painting, signals/slots |
 | Screen Capture | Windows Graphics Capture (WGC) | Hardware-accelerated monitor/window capture |
 | Window Capture | Win32 PrintWindow (ctypes) | Per-window capture without bleed-through |
-| Recording Pipe | ffmpeg via imageio-ffmpeg | Lossless intermediate AVI (huffyuv) piped via stdin |
+| Recording Pipe | ffmpeg via imageio-ffmpeg | H.264 intermediate codec (CRF 18, ultrafast) piped via stdin; reduces temp file size from ~50 GB/min to under 1 GB/min for 4K recordings |
 | Video Export | ffmpeg (libx264 / HW accel) | H.264 MP4 encoding (CRF 18 equivalent) with zoom/cursor baked in; auto-detects NVENC, QuickSync, AMF |
 | Image Processing | OpenCV + NumPy | Frame manipulation, thumbnails, cursor rendering |
 | Input Tracking | Win32 Hooks (ctypes) | Low-level mouse, keyboard, and click tracking |
@@ -200,7 +200,25 @@ You can also trigger a build manually from the Actions tab.
 
 To build locally before tagging, use the **Build** task (`Ctrl+Shift+B`) or the **Build MSIX** tasks from the VS Code task list.
 
-## Shortcuts
+## Security
+
+### Encrypted Credentials
+
+FollowCursor protects your Azure AI Foundry API keys using Windows DPAPI (Data Protection API):
+
+- **At rest:** API keys stored in the Windows Registry are encrypted with your machine account credentials via DPAPI. No plaintext credentials are written to disk.
+- **In memory:** API keys are decrypted on-demand when connecting to AI services and cleared from memory once the connection completes.
+
+### Temporary Files
+
+Recording and export operations create temporary files in your system's temp directory (`%TEMP%`). FollowCursor implements safe cleanup:
+
+- **Recording temp files** — intermediate video frames are deleted automatically when starting a new recording or exiting the app
+- **Unique filenames** — voiceover merge operations use randomized temp filenames to prevent collisions in concurrent operations
+- **Project extraction** — extracted project directories are tracked and removed on exit, even if an error occurs
+- **No leaks** — all temp directories are cleaned up during normal shutdown; unclean exits are handled via temporary cleanup on app launch
+
+
 
 | Shortcut | Action |
 | -------- | ------ |

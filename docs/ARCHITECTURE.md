@@ -142,11 +142,14 @@ The active backend is shown in the status bar (`⚡ WGC` or `🖥 GDI`).
 ```mermaid
 flowchart LR
     WGC["WGC / GDI<br/><i>BGRA frames</i>"] -->|raw bytes| PIPE["ffmpeg stdin pipe"]
-    PIPE --> AVI["Lossless AVI<br/><i>huffyuv codec</i>"]
+    PIPE --> AVI["H.264 intermediate AVI<br/><i>CRF 18, ultrafast preset</i>"]
 ```
 
 - Frames are piped as raw BGRA bytes directly to ffmpeg's stdin
-- Intermediate format is **huffyuv** (lossless) inside AVI — fast to write, preserves quality
+- Intermediate format is **H.264** (CRF 18, ultrafast) inside AVI — balances speed and disk usage
+  - Lossless huffyuv approach: ~50 GB/min for 4K recordings
+  - H.264 intermediate: under 1 GB/min for 4K recordings
+  - The intermediate video is not your final export — the full pipeline (zoom, pan, cursor, effects) is applied during export with your chosen quality settings
 - No temporary image files are created
 - A hybrid sleep function (`_precise_sleep`) uses coarse sleep + spin-wait for sub-millisecond frame timing accuracy
 
@@ -362,7 +365,7 @@ AI settings are persisted via `QSettings` under the `ai/` prefix:
 ```mermaid
 flowchart TD
     subgraph Phase 1 — Probe
-        SRC["Source AVI<br/><i>lossless huffyuv</i>"] --> PROBE["OpenCV VideoCapture<br/><i>probe FPS, frame count,<br/>recount if metadata/duration mismatch > 10%</i>"]
+        SRC["Source AVI<br/><i>H.264 intermediate</i>"] --> PROBE["OpenCV VideoCapture<br/><i>probe FPS, frame count,<br/>recount if metadata/duration mismatch > 10%</i>"]
     end
 
     subgraph Phase 2 — Precompute
@@ -612,7 +615,7 @@ block-beta
     columns 2
     block:zip["project.fcproj (ZIP)"]:2
         JSON["project.json\nsession metadata"]
-        AVI["recording.avi\nlossless intermediate"]
+        AVI["recording.avi\nH.264 intermediate"]
     end
 ```
 
