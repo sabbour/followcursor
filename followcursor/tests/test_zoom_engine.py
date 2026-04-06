@@ -502,3 +502,18 @@ class TestVoiceoverSegmentUndoRedo:
         assert len(engine.video_segments) == 1
         assert len(engine.voiceover_segments) == 1
         assert len(engine.keyframes) == 1
+
+
+# ── compute_output_duration edge cases ──────────────────────────────
+
+
+class TestComputeOutputDurationEdgeCases:
+    def test_zero_speed_segment_treated_as_1x(self) -> None:
+        """A segment with speed=0 should not cause ZeroDivisionError."""
+        engine = ZoomEngine()
+        kf_in = ZoomKeyframe.create(timestamp=100, zoom=2.0, speed=0.0)
+        kf_out = ZoomKeyframe.create(timestamp=2000, zoom=1.0)
+        engine.keyframes = [kf_in, kf_out]
+        # Should not raise ZeroDivisionError
+        result = engine.compute_output_duration(5000.0)
+        assert result > 0

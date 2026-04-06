@@ -352,6 +352,12 @@ class TestVoiceoverSegment:
         assert seg.rate == 1.0
         assert seg.volume == 1.0
 
+    def test_from_dict_clamps_rate_bounds(self) -> None:
+        d = {"id": "a", "timestamp": 0, "text": "t", "rate": 99.0, "volume": -1.0}
+        seg = VoiceoverSegment.from_dict(d)
+        assert seg.rate == 3.0
+        assert seg.volume == 0.0
+
 
 # ── VideoSegment ────────────────────────────────────────────────────
 
@@ -395,6 +401,21 @@ class TestVideoSegment:
         d = {"id": "abc", "startMs": 0, "endMs": 5000}
         seg = VideoSegment.from_dict(d)
         assert seg.speed == 1.0
+
+    def test_from_dict_clamps_zero_speed(self) -> None:
+        d = {"id": "abc", "startMs": 0, "endMs": 5000, "speed": 0}
+        seg = VideoSegment.from_dict(d)
+        assert seg.speed == 1.0
+
+    def test_from_dict_clamps_negative_speed(self) -> None:
+        d = {"id": "abc", "startMs": 0, "endMs": 5000, "speed": -2.0}
+        seg = VideoSegment.from_dict(d)
+        assert seg.speed == 1.0
+
+    def test_from_dict_clamps_excessive_speed(self) -> None:
+        d = {"id": "abc", "startMs": 0, "endMs": 5000, "speed": 99.0}
+        seg = VideoSegment.from_dict(d)
+        assert seg.speed == 10.0
 
 
 # ── RecordingSession + VideoSegments ─────────────────────────────────

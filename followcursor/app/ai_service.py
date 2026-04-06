@@ -270,7 +270,13 @@ def _build_chat_url(endpoint: str, model: str) -> str:
 
 
 def _call_chat(settings: AISettings, system_prompt: str, user_prompt: str) -> str:
-    """Call chat completions via REST (works with Azure OpenAI and generic endpoints)."""
+    """Call chat completions via REST with retry for transient errors.
+
+    Validates the response structure before accessing nested keys.
+    Retries up to 3 times with exponential backoff for 429/500/503.
+    """
+    import time as _time
+
     url = _build_chat_url(settings.endpoint, settings.chat_model)
     logger.info("Chat API URL: %s", url)
 
@@ -282,27 +288,62 @@ def _call_chat(settings: AISettings, system_prompt: str, user_prompt: str) -> st
         ],
     }).encode("utf-8")
 
-    req = urllib.request.Request(
-        url,
-        data=body,
-        headers={
-            "Content-Type": "application/json",
-            "api-key": settings.api_key,
-        },
-        method="POST",
-    )
+    req_headers = {
+        "Content-Type": "application/json",
+        "api-key": settings.api_key,
+    }
 
-    try:
-        with urllib.request.urlopen(req, timeout=120) as resp:
-            data = json.loads(resp.read().decode("utf-8"))
-    except urllib.error.HTTPError as exc:
-        error_body = exc.read().decode(errors="replace")[:500]
-        logger.error("Chat API error %s: %s", exc.code, error_body)
-        raise RuntimeError(f"Chat API error ({exc.code}): {error_body}") from exc
-    except urllib.error.URLError as exc:
-        raise RuntimeError(f"Chat API connection error: {exc.reason}") from exc
+    _MAX_RETRIES = 3
+    _RETRY_CODES = {429, 500, 503}
 
-    return data["choices"][0]["message"]["content"]
+    last_exc: Exception | None = None
+    for attempt in range(_MAX_RETRIES):
+        req = urllib.request.Request(
+            url, data=body, headers=req_headers, method="POST",
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=120) as resp:
+                data = json.loads(resp.read().decode("utf-8"))
+        except urllib.error.HTTPError as exc:
+            error_body = exc.read().decode(errors="replace")[:500]
+            if exc.code in _RETRY_CODES and attempt < _MAX_RETRIES - 1:
+                wait = 2 ** attempt
+                logger.warning(
+                    "Chat API %s (attempt %d/%d), retrying in %ds: %s",
+                    exc.code, attempt + 1, _MAX_RETRIES, wait, error_body[:200],
+                )
+                _time.sleep(wait)
+                last_exc = exc
+                continue
+            logger.error("Chat API error %s: %s", exc.code, error_body)
+            raise RuntimeError(f"Chat API error ({exc.code}): {error_body}") from exc
+        except urllib.error.URLError as exc:
+            if attempt < _MAX_RETRIES - 1:
+                wait = 2 ** attempt
+                logger.warning(
+                    "Chat API connection error (attempt %d/%d), retrying in %ds: %s",
+                    attempt + 1, _MAX_RETRIES, wait, exc.reason,
+                )
+                _time.sleep(wait)
+                last_exc = exc
+                continue
+            raise RuntimeError(f"Chat API connection error: {exc.reason}") from exc
+        else:
+            # Validate response structure
+            if not isinstance(data, dict):
+                raise RuntimeError("Chat API returned unexpected response format")
+            choices = data.get("choices")
+            if not choices or not isinstance(choices, list):
+                raise RuntimeError("Chat API returned no choices")
+            message = choices[0].get("message") if isinstance(choices[0], dict) else None
+            if not message or not isinstance(message, dict):
+                raise RuntimeError("Chat API response missing message")
+            content = message.get("content", "")
+            if not content:
+                raise RuntimeError("Chat API returned empty content")
+            return content
+
+    raise RuntimeError(f"Chat API failed after {_MAX_RETRIES} retries") from last_exc
 
 
 # ── Zoom analysis ──────────────────────────────────────────────────
@@ -350,6 +391,15 @@ def _parse_zoom_response(
         hold_ms = float(section.get("hold_ms", 2000))
         reason = str(section.get("reason", "AI-detected activity"))
         pan_points = section.get("pan_points", [])
+
+        # Cap pan points per section to prevent memory exhaustion
+        _MAX_PAN_POINTS = 20
+        if isinstance(pan_points, list) and len(pan_points) > _MAX_PAN_POINTS:
+            logger.warning(
+                "Section has %d pan points, capping to %d",
+                len(pan_points), _MAX_PAN_POINTS,
+            )
+            pan_points = pan_points[:_MAX_PAN_POINTS]
 
         # Clamp viewport to stay within source bounds
         half_vw = 0.5 / zoom

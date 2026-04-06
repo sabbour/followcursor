@@ -294,7 +294,8 @@ class ZoomEngine:
             overlap_start = max(cursor, seg_start)
             overlap_end = min(seg_end, eff_end)
             if overlap_end > overlap_start:
-                output_ms += (overlap_end - overlap_start) / speed
+                safe_speed = speed if speed > 0.0 else 1.0
+                output_ms += (overlap_end - overlap_start) / safe_speed
                 cursor = overlap_end
 
         # Remaining gap after last segment

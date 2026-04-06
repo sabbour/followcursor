@@ -398,8 +398,9 @@ def analyze_activity(
 
         # Center viewport on the target position, clamped so the
         # viewport stays within source bounds.
-        half_vw = 0.5 / zoom_level
-        half_vh = 0.5 / zoom_level
+        safe_zoom = zoom_level if zoom_level > 0.0 else 1.0
+        half_vw = 0.5 / safe_zoom
+        half_vh = 0.5 / safe_zoom
         pan_x = max(half_vw, min(1.0 - half_vw, raw_x))
         pan_y = max(half_vh, min(1.0 - half_vh, raw_y))
         # Anticipation: arrive ANTICIPATION_MS *before* the action starts,

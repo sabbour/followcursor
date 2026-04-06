@@ -105,6 +105,14 @@ class TestAnalyzeEdgeCases:
         kfs = analyze_activity(track, MONITOR)
         assert kfs == []
 
+    def test_zoom_level_zero_no_crash(self) -> None:
+        """zoom_level=0 should not cause ZeroDivisionError."""
+        track = _make_track(10000, x=960, y=540)
+        keys = [KeyEvent(timestamp=3000 + i * 50) for i in range(30)]
+        # Should not raise ZeroDivisionError
+        kfs = analyze_activity(track, MONITOR, key_events=keys, zoom_level=0.0)
+        assert isinstance(kfs, list)
+
 
 # ── analyze_activity — typing detection ─────────────────────────────
 
