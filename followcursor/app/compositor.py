@@ -257,8 +257,10 @@ def compose_scene(
         screen_path.addRoundedRect(screen_rect, inner_r, inner_r)
         painter.save()
         painter.setClipPath(screen_path)
-        painter.drawImage(screen_rect, frame, source_rect)
-        painter.restore()
+        try:
+            painter.drawImage(screen_rect, frame, source_rect)
+        finally:
+            painter.restore()
         painter.setPen(QPen(QColor(0, 0, 0, 120), max(0.5 * scale, 0.5)))
         painter.setBrush(Qt.BrushStyle.NoBrush)
         painter.drawRoundedRect(screen_rect, inner_r, inner_r)
@@ -289,11 +291,13 @@ def compose_scene(
             vscr_y = scr_y - (src.y() / ih) * vscr_h
             painter.save()
             painter.setClipRect(QRectF(scr_x, scr_y, scr_w, scr_h))
-            draw_cursor_qpainter(
-                painter, mouse_track, time_ms, monitor_rect,
-                vscr_x, vscr_y, vscr_w, vscr_h,
-            )
-            painter.restore()
+            try:
+                draw_cursor_qpainter(
+                    painter, mouse_track, time_ms, monitor_rect,
+                    vscr_x, vscr_y, vscr_w, vscr_h,
+                )
+            finally:
+                painter.restore()
         else:
             # Device frame (zoomed via painter transform) or no zoom
             draw_cursor_qpainter(
@@ -312,11 +316,13 @@ def compose_scene(
             vscr_y = scr_y - (src.y() / ih) * vscr_h
             painter.save()
             painter.setClipRect(QRectF(scr_x, scr_y, scr_w, scr_h))
-            draw_clicks_qpainter(
-                painter, click_events, time_ms, monitor_rect,
-                vscr_x, vscr_y, vscr_w, vscr_h,
-            )
-            painter.restore()
+            try:
+                draw_clicks_qpainter(
+                    painter, click_events, time_ms, monitor_rect,
+                    vscr_x, vscr_y, vscr_w, vscr_h,
+                )
+            finally:
+                painter.restore()
         else:
             draw_clicks_qpainter(
                 painter, click_events, time_ms, monitor_rect,

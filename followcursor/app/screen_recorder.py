@@ -150,6 +150,7 @@ class ScreenRecorder(QObject):
         self._thread: Optional[threading.Thread] = None
         self._fps: int = 30
         self._start_time: float = 0.0
+        self._perf_start: float = 0.0
         self._actual_fps: float = 30.0
         self._frame_count: int = 0
         self._frame_timestamps: List[float] = []  # ms offset per frame
@@ -303,6 +304,7 @@ class ScreenRecorder(QObject):
         with self._lock:
             self._output_path = temp_path
             self._start_time = start_time if start_time > 0 else time.time()
+            self._perf_start = time.perf_counter()
             self._frame_count = 0
             self._frame_timestamps = []
             self._recording = True
@@ -312,7 +314,7 @@ class ScreenRecorder(QObject):
         """Stop recording and return the path to the raw AVI file."""
         with self._lock:
             self._recording = False
-            elapsed = time.time() - self._start_time
+            elapsed = time.perf_counter() - self._perf_start
             if elapsed > 0 and self._frame_count > 0:
                 self._actual_fps = self._frame_count / elapsed
             else:

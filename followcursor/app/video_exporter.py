@@ -212,7 +212,9 @@ def _compose_cv(frame_bgr: np.ndarray, zoom: float, pan_x: float,
                 scr_x: int, scr_y: int, scr_w: int, scr_h: int,
                 zoom_video_only: bool = False,
                 bg_canvas: np.ndarray | None = None,
-                device_mask_u8: np.ndarray | None = None) -> np.ndarray:
+                device_mask_u8: np.ndarray | None = None,
+                _buf_canvas: np.ndarray | None = None,
+                _buf_result: np.ndarray | None = None) -> np.ndarray:
     """Fast compositor — copies pre-rendered bezel, places video in screen,
     then applies zoom.
 
@@ -223,8 +225,15 @@ def _compose_cv(frame_bgr: np.ndarray, zoom: float, pan_x: float,
     (the background-only layer without bezel).
     *device_mask_u8* — pre-computed mask (255 where bezel differs from
     background).  When ``None``, computed on the fly (slower).
+    *_buf_canvas* / *_buf_result* — optional pre-allocated buffers
+    (same shape as base_canvas / bg_canvas) to avoid per-frame copies.
     """
-    canvas = base_canvas.copy()
+    # Reuse pre-allocated buffer instead of copying per-frame
+    if _buf_canvas is not None and _buf_canvas.shape == base_canvas.shape:
+        np.copyto(_buf_canvas, base_canvas)
+        canvas = _buf_canvas
+    else:
+        canvas = base_canvas.copy()
     fh, fw = frame_bgr.shape[:2]
 
     if scr_w <= 0 or scr_h <= 0:
@@ -293,7 +302,11 @@ def _compose_cv(frame_bgr: np.ndarray, zoom: float, pan_x: float,
         )
 
         # Composite: static background + zoomed device on top
-        result = bg_canvas.copy()
+        if _buf_result is not None and bg_canvas is not None and _buf_result.shape == bg_canvas.shape:
+            np.copyto(_buf_result, bg_canvas)
+            result = _buf_result
+        else:
+            result = bg_canvas.copy()
         if device_mask_u8 is None:
             device_mask_u8 = (np.any(base_canvas != bg_canvas, axis=2)
                               .astype(np.uint8) * 255)
@@ -893,6 +906,10 @@ class VideoExporter(QObject):
                 out_idx = 0
                 t_ms = eff_ts  # recording-time cursor (advances by speed-adjusted intervals)
 
+                # Pre-allocate reusable frame buffers to avoid per-frame copies
+                _buf_canvas = base_canvas.copy()
+                _buf_result = bg.copy() if bg is not None else None
+
                 while True:
                     if t_ms > eff_te + 0.0001:
                         break
@@ -954,6 +971,8 @@ class VideoExporter(QObject):
                         zoom_video_only=fp.is_none,
                         bg_canvas=bg,
                         device_mask_u8=_device_mask_u8,
+                        _buf_canvas=_buf_canvas,
+                        _buf_result=_buf_result,
                     )
                     if not _enqueue(composed.tobytes()):
                         break
@@ -996,6 +1015,8 @@ class VideoExporter(QObject):
                                 zoom_video_only=fp.is_none,
                                 bg_canvas=bg,
                                 device_mask_u8=_device_mask_u8,
+                                _buf_canvas=_buf_canvas,
+                                _buf_result=_buf_result,
                             )
                             if not _enqueue(composed.tobytes()):
                                 break

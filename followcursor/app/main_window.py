@@ -3,6 +3,7 @@
 import logging
 import os
 import subprocess
+import threading
 import uuid
 from typing import Optional, List
 
@@ -585,6 +586,7 @@ class _VoiceoverDialog(QDialog):
         )
         self._synth_worker.done.connect(self._on_preview_synth_done)
         self._synth_worker.error.connect(self._on_preview_synth_error)
+        self._synth_worker.finished.connect(self._synth_worker.deleteLater)
         self._synth_worker.start()
 
     def _on_preview_synth_done(self, output_path: str) -> None:
@@ -703,6 +705,7 @@ class MainWindow(QMainWindow):
         self._voiceover_segments: list = []  # List[VoiceoverSegment]
         self._video_segments: List[VideoSegment] = []  # timeline video segments
         self._vo_played_ids: set = set()  # track which voiceovers have played this playback
+        self._vo_lock = threading.Lock()  # protect _vo_played_ids access
 
         self._recording = False
         self._selected_monitor: int = 0  # 0 = none selected
@@ -2063,16 +2066,22 @@ class MainWindow(QMainWindow):
         normalized pan coordinates (0-1).  Falls back to (0.5, 0.5)."""
         if not self._mouse_track or not self._monitor_rect:
             return 0.5, 0.5
-        # Binary-ish search: find the sample closest to time_ms
-        best = self._mouse_track[0]
-        best_delta = abs(best.timestamp - time_ms)
-        for mp in self._mouse_track:
-            d = abs(mp.timestamp - time_ms)
-            if d < best_delta:
-                best = mp
-                best_delta = d
-            elif mp.timestamp > time_ms:
-                break
+        import bisect
+        # Binary search for the closest sample to time_ms
+        timestamps = [mp.timestamp for mp in self._mouse_track]
+        idx = bisect.bisect_left(timestamps, time_ms)
+        # Pick the closer of the two surrounding samples
+        if idx == 0:
+            best = self._mouse_track[0]
+        elif idx >= len(self._mouse_track):
+            best = self._mouse_track[-1]
+        else:
+            before = self._mouse_track[idx - 1]
+            after = self._mouse_track[idx]
+            if (time_ms - before.timestamp) <= (after.timestamp - time_ms):
+                best = before
+            else:
+                best = after
         mon = self._monitor_rect
         px = (best.x - mon.get("left", 0)) / max(mon.get("width", 1), 1)
         py = (best.y - mon.get("top", 0)) / max(mon.get("height", 1), 1)
@@ -2633,10 +2642,11 @@ class MainWindow(QMainWindow):
         # Mark voiceovers whose audio has fully passed as already played.
         # Segments the playhead is currently inside remain unplayed so
         # _check_voiceover_playback can start them from the offset.
-        self._vo_played_ids = {
-            seg.id for seg in self._voiceover_segments
-            if (seg.timestamp + (seg.duration_ms if seg.duration_ms > 0 else 5000)) < time_ms
-        }
+        with self._vo_lock:
+            self._vo_played_ids = {
+                seg.id for seg in self._voiceover_segments
+                if (seg.timestamp + (seg.duration_ms if seg.duration_ms > 0 else 5000)) < time_ms
+            }
         self._stop_voiceover_audio()
         self._preview.seek_to(time_ms)
         self._preview.set_current_time(time_ms)
@@ -2855,10 +2865,11 @@ class MainWindow(QMainWindow):
                 self._preview.seek_to(eff_start)
                 self._preview.set_current_time(eff_start)
             # Only mark voiceovers as played if their audio has fully passed
-            self._vo_played_ids = {
-                seg.id for seg in self._voiceover_segments
-                if (seg.timestamp + (seg.duration_ms if seg.duration_ms > 0 else 5000)) < self._playback_time
-            }
+            with self._vo_lock:
+                self._vo_played_ids = {
+                    seg.id for seg in self._voiceover_segments
+                    if (seg.timestamp + (seg.duration_ms if seg.duration_ms > 0 else 5000)) < self._playback_time
+                }
             self._preview.play()
             # Only update the button if play actually started
             self._timeline.set_playing(self._preview.is_playing)
@@ -2871,14 +2882,16 @@ class MainWindow(QMainWindow):
         """
         import winsound
         for seg in self._voiceover_segments:
-            if seg.id in self._vo_played_ids:
-                continue
+            with self._vo_lock:
+                if seg.id in self._vo_played_ids:
+                    continue
             if not seg.audio_path or not os.path.isfile(seg.audio_path):
                 continue
             if seg.timestamp > t_ms:
                 continue  # not reached yet
 
-            self._vo_played_ids.add(seg.id)
+            with self._vo_lock:
+                self._vo_played_ids.add(seg.id)
 
             # Calculate how far into the segment we are
             offset_ms = t_ms - seg.timestamp
