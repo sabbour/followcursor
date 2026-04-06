@@ -91,6 +91,57 @@ followcursor/              ← repo root (.git, .github, .vscode live here)
 
 ---
 
+## Security Conventions
+
+### Credential Storage
+
+When storing sensitive credentials (API keys, tokens):
+
+- **Use Windows DPAPI** — Encrypt credentials with `dpapi.CryptProtectData()` before storing in the Windows Registry via `QSettings`
+- **Decrypt on-demand** — Decrypt with `dpapi.CryptUnprotectData()` only when the credential is needed
+- **Clear from memory** — Use temporary variables that go out of scope immediately after use
+- **Never log credentials** — Sanitize any debug output to exclude secrets
+- **Example** (from `ai_service.py`):
+
+  ```python
+  from ctypes import windll
+  
+  def store_api_key(key: str):
+      """Encrypt and store API key using Windows DPAPI."""
+      data = windll.crypt32.CryptProtectData(...)
+      QSettings().setValue("ai/apiKey", data)
+  
+  def retrieve_api_key() -> str:
+      """Decrypt API key from Windows Registry."""
+      encrypted = QSettings().value("ai/apiKey")
+      decrypted = windll.crypt32.CryptUnprotectData(...)
+      return decrypted
+  ```
+
+### Temporary File Cleanup
+
+FollowCursor creates temporary files during recording and export. Always clean up:
+
+- **Immediate deletion** — delete temp files as soon as they're no longer needed, not at process exit
+- **Unique filenames** — use `tempfile.NamedTemporaryFile()` or randomized names to avoid collisions in concurrent operations
+- **Track extraction dirs** — maintain a set of extracted project directories and clean them up in `closeEvent()` or a cleanup routine
+- **Fallback cleanup** — on app launch, scan for orphaned temp directories from previous crashes and remove them
+- **Error-safe deletion** — wrap `os.remove()` and `shutil.rmtree()` in try/except to handle file-in-use and permission errors gracefully
+
+**Example** (cleanup in `closeEvent`):
+
+```python
+def closeEvent(self, event: QCloseEvent) -> None:
+    for temp_dir in self._temp_dirs:
+        try:
+            shutil.rmtree(temp_dir, ignore_errors=True)
+        except Exception as e:
+            logger.error(f"Failed to clean temp dir {temp_dir}: {e}")
+    os._exit(0)  # Force exit to avoid Qt cleanup hangs
+```
+
+---
+
 ## Common Pitfalls
 
 1. **Never** use `source` or `bash` commands for Windows Python — always use `.venv\Scripts\python.exe` directly

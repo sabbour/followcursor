@@ -356,6 +356,17 @@ The preview accurately reflects the export output:
 
 ## Video Export
 
+### Recording Pipeline
+
+FollowCursor uses a **H.264 intermediate codec** (CRF 18, ultrafast preset) for buffering recorded frames during capture. This significantly reduces temporary disk usage:
+
+- **Traditional lossless approach (huffyuv):** ~50 GB/min for 4K recordings
+- **FollowCursor H.264 intermediate:** Under 1 GB/min for 4K recordings
+
+The intermediate video is not your final export — it's just efficient buffering. During export, the entire pipeline (zoom, pan, cursor, effects) is applied and re-encoded with your chosen final quality settings. You control the final output quality via the Video Encoder settings (see [Video Encoder](#video-encoder) below).
+
+This approach frees up disk space during recording while maintaining full editing capability, and the re-encoding during export ensures professional output quality.
+
 ### Export Settings
 
 Click **⬆ Export** in the title bar to start an export. You'll be asked to choose a destination folder, filename, and format.
@@ -682,6 +693,8 @@ FollowCursor includes optional AI-powered features that use **Azure AI Foundry**
 6. Choose a **Voice** for TTS (alloy, echo, fable, onyx, nova, shimmer)
 7. Click **OK** — settings are saved automatically
 
+**Security Note:** Your API keys are encrypted using Windows DPAPI before being stored in the Windows Registry. They are decrypted on-demand when connecting to AI services and cleared from memory immediately after use. No plaintext credentials are written to disk.
+
 ### AI Smart Zoom
 
 Instead of (or in addition to) the local activity analyzer, you can use an AI model to analyze your recording and generate zoom keyframes:
@@ -693,6 +706,10 @@ Instead of (or in addition to) the local activity analyzer, you can use an AI mo
 5. Results are applied the same way as local auto-zoom (replaces existing keyframes after confirmation)
 
 The AI considers the narrative flow of your recording and creates well-paced zoom effects. Sensitivity and zoom depth settings apply the same as local auto-zoom.
+
+**AI Response Limits**
+
+To prevent excessive memory usage from malformed LLM responses, AI zoom analysis responses are capped at **50 zoom sections**. If the AI returns more than 50 sections, only the first 50 are applied. This limit ensures stable performance even with edge-case model outputs.
 
 ### Voiceover (Text-to-Speech)
 
