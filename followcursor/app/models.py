@@ -29,7 +29,10 @@ class MousePosition:
     @staticmethod
     def from_dict(d: dict) -> "MousePosition":
         """Reconstruct from a dict produced by ``to_dict()``."""
-        return MousePosition(x=d["x"], y=d["y"], timestamp=d["timestamp"])
+        try:
+            return MousePosition(x=d["x"], y=d["y"], timestamp=d["timestamp"])
+        except KeyError as exc:
+            raise ValueError(f"MousePosition missing required field: {exc}") from exc
 
 
 @dataclass
@@ -73,7 +76,10 @@ class ClickEvent:
 
     @staticmethod
     def from_dict(d: dict) -> "ClickEvent":
-        return ClickEvent(x=d["x"], y=d["y"], timestamp=d["timestamp"])
+        try:
+            return ClickEvent(x=d["x"], y=d["y"], timestamp=d["timestamp"])
+        except KeyError as exc:
+            raise ValueError(f"ClickEvent missing required field: {exc}") from exc
 
 
 @dataclass
@@ -193,12 +199,15 @@ class VideoSegment:
 
     @staticmethod
     def from_dict(d: dict) -> "VideoSegment":
-        return VideoSegment(
-            id=d["id"],
-            start_ms=d["startMs"],
-            end_ms=d["endMs"],
-            speed=d.get("speed", 1.0),
-        )
+        try:
+            return VideoSegment(
+                id=d["id"],
+                start_ms=d["startMs"],
+                end_ms=d["endMs"],
+                speed=d.get("speed", 1.0),
+            )
+        except KeyError as exc:
+            raise ValueError(f"VideoSegment missing required field: {exc}") from exc
 
 
 @dataclass
@@ -250,8 +259,25 @@ class RecordingSession:
 
     @staticmethod
     def from_json(s: str) -> "RecordingSession":
-        """Reconstruct a full session from its JSON representation."""
+        """Reconstruct a full session from its JSON representation.
+
+        Tolerates missing optional fields for backward compatibility with
+        older .fcproj versions.  Required fields (``id``, ``startTime``,
+        ``duration``, ``mouseTrack``, ``keyframes``) raise ``ValueError``
+        with a clear message instead of raw ``KeyError``.
+        """
         d = json.loads(s)
+        try:
+            session_id = d["id"]
+            start_time = d["startTime"]
+            duration = d["duration"]
+            mouse_track = [MousePosition.from_dict(m) for m in d["mouseTrack"]]
+            keyframes = [ZoomKeyframe.from_dict(k) for k in d.get("keyframes", [])]
+        except KeyError as exc:
+            raise ValueError(
+                f"Project file missing required field: {exc}"
+            ) from exc
+
         key_events = None
         if "keyEvents" in d:
             key_events = [KeyEvent.from_dict(k) for k in d["keyEvents"]]
@@ -266,11 +292,11 @@ class RecordingSession:
         if "videoSegments" in d:
             video_segments = [VideoSegment.from_dict(vs) for vs in d["videoSegments"]]
         return RecordingSession(
-            id=d["id"],
-            start_time=d["startTime"],
-            duration=d["duration"],
-            mouse_track=[MousePosition.from_dict(m) for m in d["mouseTrack"]],
-            keyframes=[ZoomKeyframe.from_dict(k) for k in d["keyframes"]],
+            id=session_id,
+            start_time=start_time,
+            duration=duration,
+            mouse_track=mouse_track,
+            keyframes=keyframes,
             key_events=key_events,
             click_events=click_events,
             frame_timestamps=frame_timestamps,
@@ -333,15 +359,18 @@ class VoiceoverSegment:
 
     @staticmethod
     def from_dict(d: dict) -> "VoiceoverSegment":
-        return VoiceoverSegment(
-            id=d["id"],
-            timestamp=d["timestamp"],
-            text=d["text"],
-            voice=d.get("voice", "en-US-Ava:DragonHDLatestNeural"),
-            duration_ms=d.get("durationMs", 0.0),
-            rate=d.get("rate", 1.0),
-            volume=d.get("volume", 1.0),
-        )
+        try:
+            return VoiceoverSegment(
+                id=d["id"],
+                timestamp=d["timestamp"],
+                text=d["text"],
+                voice=d.get("voice", "en-US-Ava:DragonHDLatestNeural"),
+                duration_ms=d.get("durationMs", 0.0),
+                rate=d.get("rate", 1.0),
+                volume=d.get("volume", 1.0),
+            )
+        except KeyError as exc:
+            raise ValueError(f"VoiceoverSegment missing required field: {exc}") from exc
 
 
 DEFAULT_FPS = 60

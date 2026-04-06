@@ -692,6 +692,7 @@ class VideoExporter(QObject):
             # Build merged audio from voiceover segments (if any)
             _merged_audio_path: str = ""
             _has_audio = False
+            proc: subprocess.Popen | None = None
             if voiceover_segments and not _is_gif:
                 ready = [s for s in voiceover_segments if s.audio_path and os.path.isfile(s.audio_path)]
                 if ready:
@@ -828,7 +829,7 @@ class VideoExporter(QObject):
                             break
                         try:
                             proc.stdin.write(data)
-                        except (BrokenPipeError, OSError):
+                        except (BrokenPipeError, OSError, ValueError):
                             pipe_err.set()
                             break
 
@@ -1051,6 +1052,26 @@ class VideoExporter(QObject):
 
             proc = _launch_ffmpeg(encoder_id)
 
+            def _kill_proc(p: subprocess.Popen) -> None:
+                """Safely terminate an ffmpeg process and close its pipes."""
+                if p is None:
+                    return
+                try:
+                    if p.stdin and not p.stdin.closed:
+                        p.stdin.close()
+                except OSError:
+                    pass
+                try:
+                    p.kill()
+                    p.wait(timeout=5)
+                except (OSError, subprocess.TimeoutExpired):
+                    pass
+                try:
+                    if p.stderr and not p.stderr.closed:
+                        p.stderr.close()
+                except OSError:
+                    pass
+
             # Check for immediate launch failure
             import time as _time
             _time.sleep(0.1)
@@ -1067,6 +1088,7 @@ class VideoExporter(QObject):
                     self.status.emit(f"{encoder_display_name(encoder_id)} failed, trying {fb_name}\u2026")
                     logger.info("Trying fallback encoder: %s", fallback_id)
                     encoder_id = fallback_id
+                    _kill_proc(proc)
                     proc = _launch_ffmpeg(encoder_id)
                     _time.sleep(0.1)
                     if proc.poll() is None:
@@ -1075,6 +1097,7 @@ class VideoExporter(QObject):
                     else:
                         logger.warning("Fallback encoder %s also failed immediately", encoder_id)
                 if not launched:
+                    _kill_proc(proc)
                     self.error.emit("All encoders failed to launch")
                     cap.release()
                     return
@@ -1107,6 +1130,7 @@ class VideoExporter(QObject):
                     fb_name = encoder_display_name(fallback_id)
                     self.status.emit(f"{encoder_display_name(failed_id)} failed mid-export, trying {fb_name}\u2026")
                     encoder_id = fallback_id
+                    _kill_proc(proc)
                     proc = _launch_ffmpeg(encoder_id)
                     cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
                     pipe_ok = _encode_frames(proc)
@@ -1139,6 +1163,10 @@ class VideoExporter(QObject):
         except Exception as exc:
             self.error.emit(str(exc))
         finally:
+            # Ensure ffmpeg process is not leaked on any error path
+            if proc is not None and proc.poll() is None:
+                logger.warning("Cleaning up orphaned ffmpeg process (pid=%s)", proc.pid)
+                _kill_proc(proc)
             # Clean up merged voiceover temp file
             if _merged_audio_path and os.path.isfile(_merged_audio_path):
                 try:

@@ -451,7 +451,54 @@ class TestRecordingSessionVideoSegments:
         assert s2.video_segments is None
 
 
-# ── Constants ───────────────────────────────────────────────────────
+# ── Backward compatibility — missing required fields ────────────────
+
+
+class TestFromDictErrorMessages:
+    """Verify that missing required fields produce ValueError, not KeyError."""
+
+    def test_mouse_position_missing_field(self) -> None:
+        with pytest.raises(ValueError, match="MousePosition missing required field"):
+            MousePosition.from_dict({"x": 1})
+
+    def test_click_event_missing_field(self) -> None:
+        with pytest.raises(ValueError, match="ClickEvent missing required field"):
+            ClickEvent.from_dict({"x": 1, "y": 2})
+
+    def test_video_segment_missing_field(self) -> None:
+        with pytest.raises(ValueError, match="VideoSegment missing required field"):
+            VideoSegment.from_dict({"id": "abc"})
+
+    def test_voiceover_segment_missing_field(self) -> None:
+        with pytest.raises(ValueError, match="VoiceoverSegment missing required field"):
+            VoiceoverSegment.from_dict({"id": "abc"})
+
+    def test_session_missing_required_field(self) -> None:
+        """Old project missing 'duration' should produce a clear error."""
+        minimal = json.dumps({"id": "old", "startTime": 0, "mouseTrack": []})
+        with pytest.raises(ValueError, match="missing required field"):
+            RecordingSession.from_json(minimal)
+
+
+class TestMinimalOldProjectLoad:
+    """Simulate loading a very old .fcproj with only essential fields."""
+
+    def test_minimal_session_loads(self) -> None:
+        minimal = json.dumps({
+            "id": "old-v1",
+            "startTime": 0,
+            "duration": 3000,
+            "mouseTrack": [{"x": 0, "y": 0, "timestamp": 0}],
+        })
+        s = RecordingSession.from_json(minimal)
+        assert s.id == "old-v1"
+        assert s.keyframes == []
+        assert s.key_events is None
+        assert s.click_events is None
+        assert s.voiceover_segments is None
+        assert s.video_segments is None
+        assert s.trim_start_ms == 0.0
+        assert s.trim_end_ms == 0.0
 
 
 class TestConstants:

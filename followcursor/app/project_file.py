@@ -289,7 +289,10 @@ def load_project(input_path: str) -> dict:
     with open(json_path, "r", encoding="utf-8") as f:
         data = json.loads(f.read())
 
-    session = RecordingSession.from_json(json.dumps(data))
+    try:
+        session = RecordingSession.from_json(json.dumps(data))
+    except (ValueError, TypeError, json.JSONDecodeError) as exc:
+        raise ValueError(f"Corrupted project file: {exc}") from exc
 
     # Restore voiceover audio paths from extracted files
     if session.voiceover_segments:
