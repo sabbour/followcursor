@@ -96,6 +96,7 @@ class _SaveProjectWorker(QThread):
     def __init__(self, path: str, video_path: str, session,
                  monitor_rect, actual_fps: float,
                  bg_preset, frame_preset, click_preset,
+                 keystroke_config,
                  metadata_only: bool = False,
                  parent=None) -> None:
         super().__init__(parent)
@@ -107,6 +108,7 @@ class _SaveProjectWorker(QThread):
         self._bg_preset = bg_preset
         self._frame_preset = frame_preset
         self._click_preset = click_preset
+        self._keystroke_config = keystroke_config
         self._metadata_only = metadata_only
 
     def run(self) -> None:  # noqa: D401
@@ -116,6 +118,7 @@ class _SaveProjectWorker(QThread):
                 self._path, self._video_path, self._session,
                 self._monitor_rect, self._actual_fps,
                 self._bg_preset, self._frame_preset,
+                self._click_preset, self._keystroke_config,
                 metadata_only=self._metadata_only,
             )
             self.done.emit(self._path)
@@ -732,6 +735,7 @@ class MainWindow(QMainWindow):
         self._trim_end_ms: float = 0.0    # trim end point (0 = full duration)
         self._project_path: str = ""      # path to current .fcproj file
         self._unsaved_changes: bool = False  # True when edits exist since last save
+        self._keystroke_config = None  # KeystrokeOverlayConfig or None
 
         # Restore persisted background & frame presets
         saved_bg = self._settings.value("bgPreset", "")
@@ -864,6 +868,7 @@ class MainWindow(QMainWindow):
         self._editor.background_changed.connect(self._on_bg_changed)
         self._editor.frame_changed.connect(self._on_frame_changed)
         self._editor.click_effect_changed.connect(self._on_click_changed)
+        self._editor.keystroke_config_changed.connect(self._on_keystroke_config_changed)
         self._editor.debug_overlay_changed.connect(self._on_debug_overlay_changed)
         self._editor.output_dimensions_changed.connect(self._on_output_dim_changed)
         self._editor.undo_requested.connect(self._undo)
@@ -1652,6 +1657,16 @@ class MainWindow(QMainWindow):
         self._preview.set_click_preset(preset)
         # Persist to QSettings
         self._settings.setValue("clickPreset", preset.name)
+
+    def _on_keystroke_config_changed(self, config) -> None:
+        """Handle keystroke overlay configuration changes."""
+        self._keystroke_config = config
+        # Persist to QSettings
+        self._settings.setValue("keystroke/enabled", config.enabled)
+        self._settings.setValue("keystroke/position", config.position)
+        self._settings.setValue("keystroke/style", config.style)
+        self._settings.setValue("keystroke/filterMode", config.filter_mode)
+        self._mark_dirty()
 
     def _on_debug_overlay_changed(self, enabled: bool) -> None:
         """Toggle zoom debug overlay on the preview."""
@@ -2781,6 +2796,8 @@ class MainWindow(QMainWindow):
                     encoder_id=self._editor.encoder_id,
                     voiceover_segments=self._voiceover_segments or None,
                     video_segments=self._video_segments or None,
+                    key_events=self._key_events or None,
+                    keystroke_config=self._keystroke_config,
                 )
             except Exception:
                 logger.exception("Failed to start export")
@@ -3226,6 +3243,7 @@ class MainWindow(QMainWindow):
                 path, self._video_path, session,
                 self._monitor_rect, self._recorder.actual_fps,
                 self._bg_preset, self._frame_preset, self._click_preset,
+                self._keystroke_config,
                 metadata_only=is_resave,
                 parent=self,
             )
@@ -3343,6 +3361,12 @@ class MainWindow(QMainWindow):
                 self._click_preset = loaded_click
                 self._preview.set_click_preset(loaded_click)
                 self._editor.set_click_preset(loaded_click)
+
+            # Restore keystroke config if saved
+            loaded_keystroke = proj.get("keystroke_config")
+            if loaded_keystroke:
+                self._keystroke_config = loaded_keystroke
+                self._editor.set_keystroke_config(loaded_keystroke)
 
             self._set_view("edit")
             self._project_path = path

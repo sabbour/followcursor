@@ -198,6 +198,7 @@ class EditorPanel(QWidget):
     ai_zoom_requested = Signal(int, float, int)  # max_clusters, zoom_level, min_gap_ms
     add_voiceover_requested = Signal(float, str)  # timestamp_ms, voice
     ai_settings_changed = Signal()               # settings were updated
+    keystroke_config_changed = Signal(object)    # KeystrokeOverlayConfig
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -333,6 +334,91 @@ class EditorPanel(QWidget):
         vo_lay.addWidget(self._vo_status)
 
         self._container.addWidget(_CollapsibleSection("VOICEOVER", vo_body))
+
+        # ── Keystroke Overlay (collapsible) ──────────────────────────
+        keystroke_body = QWidget()
+        keystroke_lay = QVBoxLayout(keystroke_body)
+        keystroke_lay.setContentsMargins(16, 6, 16, 8)
+        keystroke_lay.setSpacing(6)
+
+        keystroke_desc = QLabel("Show keystrokes as floating overlays\nfor tutorial and demo recordings.")
+        keystroke_desc.setObjectName("Secondary")
+        keystroke_desc.setWordWrap(True)
+        keystroke_lay.addWidget(keystroke_desc)
+
+        # Enable/disable toggle
+        self._keystroke_enabled = QCheckBox("Show keystrokes")
+        self._keystroke_enabled.setObjectName("CtrlBtn")
+        self._keystroke_enabled.setStyleSheet(
+            "QCheckBox { color: #e4e4ed; font-size: 13px; padding: 2px; }"
+            "QCheckBox::indicator { width: 18px; height: 18px; }"
+            "QCheckBox::indicator:unchecked { background: #28263e; border: 1px solid #3d3a58; border-radius: 3px; }"
+            "QCheckBox::indicator:checked { background: #8b5cf6; border: 1px solid #8b5cf6; border-radius: 3px; }"
+        )
+        self._keystroke_enabled.setChecked(False)
+        self._keystroke_enabled.toggled.connect(self._on_keystroke_enabled_changed)
+        keystroke_lay.addWidget(self._keystroke_enabled)
+
+        # Position dropdown
+        position_row = QHBoxLayout()
+        position_row.setSpacing(8)
+        position_label = QLabel("Position")
+        position_label.setObjectName("Secondary")
+        position_label.setFixedWidth(65)
+        position_row.addWidget(position_label)
+        self._keystroke_position_combo = QComboBox()
+        self._keystroke_position_combo.setObjectName("DepthCombo")
+        self._keystroke_position_combo.setFixedHeight(30)
+        self._keystroke_position_combo.addItem("Bottom Center", "bottom-center")
+        self._keystroke_position_combo.addItem("Bottom Left", "bottom-left")
+        self._keystroke_position_combo.addItem("Near Cursor", "near-cursor")
+        self._keystroke_position_combo.setCurrentIndex(0)
+        self._keystroke_position_combo.currentIndexChanged.connect(self._on_keystroke_config_changed)
+        position_row.addWidget(self._keystroke_position_combo, 1)
+        keystroke_lay.addLayout(position_row)
+
+        # Style dropdown
+        style_row = QHBoxLayout()
+        style_row.setSpacing(8)
+        style_label = QLabel("Style")
+        style_label.setObjectName("Secondary")
+        style_label.setFixedWidth(65)
+        style_row.addWidget(style_label)
+        self._keystroke_style_combo = QComboBox()
+        self._keystroke_style_combo.setObjectName("DepthCombo")
+        self._keystroke_style_combo.setFixedHeight(30)
+        self._keystroke_style_combo.addItem("Floating Badge", "floating-badge")
+        self._keystroke_style_combo.addItem("Minimal Text", "minimal-text")
+        self._keystroke_style_combo.addItem("Key Cap", "key-cap")
+        self._keystroke_style_combo.setCurrentIndex(0)
+        self._keystroke_style_combo.currentIndexChanged.connect(self._on_keystroke_config_changed)
+        style_row.addWidget(self._keystroke_style_combo, 1)
+        keystroke_lay.addLayout(style_row)
+
+        # Filter mode dropdown
+        filter_row = QHBoxLayout()
+        filter_row.setSpacing(8)
+        filter_label = QLabel("Filter")
+        filter_label.setObjectName("Secondary")
+        filter_label.setFixedWidth(65)
+        filter_row.addWidget(filter_label)
+        self._keystroke_filter_combo = QComboBox()
+        self._keystroke_filter_combo.setObjectName("DepthCombo")
+        self._keystroke_filter_combo.setFixedHeight(30)
+        self._keystroke_filter_combo.addItem("All Keys", "all")
+        self._keystroke_filter_combo.addItem("Modifiers Only", "modifiers-only")
+        self._keystroke_filter_combo.addItem("Shortcuts Only", "shortcuts-only")
+        self._keystroke_filter_combo.setCurrentIndex(0)
+        self._keystroke_filter_combo.setToolTip(
+            "All Keys = show every keystroke\n"
+            "Modifiers Only = only Ctrl, Alt, Shift combos\n"
+            "Shortcuts Only = only key combinations (Ctrl+X, Alt+Tab, etc.)"
+        )
+        self._keystroke_filter_combo.currentIndexChanged.connect(self._on_keystroke_config_changed)
+        filter_row.addWidget(self._keystroke_filter_combo, 1)
+        keystroke_lay.addLayout(filter_row)
+
+        self._container.addWidget(_CollapsibleSection("KEYSTROKES", keystroke_body, collapsed=True))
 
         # ── Background picker (collapsible) ──────────────────────────
         bg_body = QWidget()
@@ -1014,3 +1100,53 @@ class EditorPanel(QWidget):
         """Set the click effect preset from external code (e.g., project load)."""
         self._current_click_preset = preset
         self._click_combo.setCurrentText(preset.name)
+
+    def get_keystroke_config(self):
+        """Get the current keystroke overlay configuration."""
+        from ..models import KeystrokeOverlayConfig
+        return KeystrokeOverlayConfig(
+            enabled=self._keystroke_enabled.isChecked(),
+            position=self._keystroke_position_combo.currentData(),
+            style=self._keystroke_style_combo.currentData(),
+            display_duration_ms=1500,  # Default value
+            filter_mode=self._keystroke_filter_combo.currentData(),
+            font_size=18,  # Default value
+            opacity=0.85,  # Default value
+        )
+
+    def set_keystroke_config(self, config) -> None:
+        """Set the keystroke overlay configuration (e.g. from project load or QSettings)."""
+        self._keystroke_enabled.setChecked(config.enabled)
+
+        # Set position
+        for i in range(self._keystroke_position_combo.count()):
+            if self._keystroke_position_combo.itemData(i) == config.position:
+                self._keystroke_position_combo.setCurrentIndex(i)
+                break
+
+        # Set style
+        for i in range(self._keystroke_style_combo.count()):
+            if self._keystroke_style_combo.itemData(i) == config.style:
+                self._keystroke_style_combo.setCurrentIndex(i)
+                break
+
+        # Set filter
+        for i in range(self._keystroke_filter_combo.count()):
+            if self._keystroke_filter_combo.itemData(i) == config.filter_mode:
+                self._keystroke_filter_combo.setCurrentIndex(i)
+                break
+
+    def _on_keystroke_enabled_changed(self, checked: bool) -> None:
+        """Handle keystroke overlay enable/disable toggle."""
+        config = self.get_keystroke_config()
+        self.keystroke_config_changed.emit(config)
+        logger.info("Keystroke overlay %s", "enabled" if checked else "disabled")
+
+    def _on_keystroke_config_changed(self) -> None:
+        """Handle keystroke overlay configuration changes."""
+        config = self.get_keystroke_config()
+        self.keystroke_config_changed.emit(config)
+        logger.info(
+            "Keystroke config changed: position=%s, style=%s, filter=%s",
+            config.position, config.style, config.filter_mode
+        )

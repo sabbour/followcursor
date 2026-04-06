@@ -46,6 +46,7 @@ class KeyEvent:
     timestamp: float  # ms since recording start
     x: float | None = None  # cursor x at keystroke time (physical px)
     y: float | None = None  # cursor y at keystroke time (physical px)
+    vk_code: int | None = None  # Windows virtual key code
 
     def to_dict(self) -> dict:
         d: dict = {"timestamp": self.timestamp}
@@ -53,6 +54,8 @@ class KeyEvent:
             d["x"] = self.x
         if self.y is not None:
             d["y"] = self.y
+        if self.vk_code is not None:
+            d["vkCode"] = self.vk_code
         return d
 
     @staticmethod
@@ -61,6 +64,7 @@ class KeyEvent:
             timestamp=d["timestamp"],
             x=d.get("x"),
             y=d.get("y"),
+            vk_code=d.get("vkCode"),
         )
 
 
@@ -448,6 +452,46 @@ CLICK_EFFECT_PRESETS = [
 ]
 
 DEFAULT_CLICK_EFFECT = CLICK_EFFECT_PRESETS[0]  # Subtle Purple
+
+
+@dataclass
+class KeystrokeOverlayConfig:
+    """Configuration for keystroke visualization overlay.
+
+    Controls how keystrokes are rendered during video export and preview.
+    """
+    enabled: bool = False
+    position: str = "bottom-center"  # "bottom-center", "bottom-left", "near-cursor"
+    style: str = "floating-badge"    # "floating-badge", "minimal-text", "key-cap"
+    display_duration_ms: int = 1500  # how long keystrokes remain visible
+    filter_mode: str = "all"         # "all", "modifiers-only", "shortcuts-only"
+    font_size: int = 18
+    opacity: float = 0.85            # 0.0 - 1.0
+
+    def to_dict(self) -> dict:
+        """Serialize to a plain dict for JSON storage."""
+        return {
+            "enabled": self.enabled,
+            "position": self.position,
+            "style": self.style,
+            "displayDurationMs": self.display_duration_ms,
+            "filterMode": self.filter_mode,
+            "fontSize": self.font_size,
+            "opacity": self.opacity,
+        }
+
+    @staticmethod
+    def from_dict(d: dict) -> "KeystrokeOverlayConfig":
+        """Reconstruct from a dict produced by ``to_dict()``."""
+        return KeystrokeOverlayConfig(
+            enabled=d.get("enabled", False),
+            position=d.get("position", "bottom-center"),
+            style=d.get("style", "floating-badge"),
+            display_duration_ms=d.get("displayDurationMs", 1500),
+            filter_mode=d.get("filterMode", "all"),
+            font_size=d.get("fontSize", 18),
+            opacity=d.get("opacity", 0.85),
+        )
 
 
 DEFAULT_FPS = 60

@@ -119,7 +119,7 @@ class _KeyboardHookThread(QThread):
                     if user32.GetCursorPos(ctypes.byref(_cursor_pt)):
                         cx = float(_cursor_pt.x)
                         cy = float(_cursor_pt.y)
-                    events_list.append(KeyEvent(timestamp=ts, x=cx, y=cy))
+                    events_list.append(KeyEvent(timestamp=ts, x=cx, y=cy, vk_code=int(kb.vkCode)))
             except Exception:
                 logger.exception("Error in keyboard hook callback")
             return user32.CallNextHookEx(self._hook, n_code, w_param, l_param)

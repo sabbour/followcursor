@@ -37,10 +37,9 @@ def _cleanup_extract_dirs() -> None:
 
 atexit.register(_cleanup_extract_dirs)
 
-from .models import RecordingSession
+from .models import RecordingSession, ClickEffectPreset, KeystrokeOverlayConfig
 from .backgrounds import BackgroundPreset
 from .frames import FramePreset
-from .models import ClickEffectPreset
 
 logger = logging.getLogger(__name__)
 
@@ -58,6 +57,7 @@ def save_project(
     bg_preset: Optional[BackgroundPreset] = None,
     frame_preset: Optional[FramePreset] = None,
     click_preset: Optional[ClickEffectPreset] = None,
+    keystroke_config: Optional[KeystrokeOverlayConfig] = None,
     metadata_only: bool = False,
 ) -> str:
     """Bundle session + raw video into a .fcproj ZIP file.
@@ -91,6 +91,8 @@ def save_project(
         data["framePreset"] = frame_preset.to_dict()
     if click_preset:
         data["clickPreset"] = click_preset.to_dict()
+    if keystroke_config:
+        data["keystrokeConfig"] = keystroke_config.to_dict()
 
     json_str = json.dumps(data, indent=2)
 
@@ -332,6 +334,13 @@ def load_project(input_path: str) -> dict:
         except Exception:
             pass
 
+    keystroke_config = None
+    if "keystrokeConfig" in data:
+        try:
+            keystroke_config = KeystrokeOverlayConfig.from_dict(data["keystrokeConfig"])
+        except Exception:
+            pass
+
     return {
         "session": session,
         "video_path": video_path if os.path.isfile(video_path) else "",
@@ -340,4 +349,5 @@ def load_project(input_path: str) -> dict:
         "bg_preset": bg_preset,
         "frame_preset": frame_preset,
         "click_preset": click_preset,
+        "keystroke_config": keystroke_config,
     }
