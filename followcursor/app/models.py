@@ -206,7 +206,7 @@ class VideoSegment:
             except (TypeError, ValueError):
                 speed = 1.0
             if speed <= 0.0:
-                speed = 0.1
+                speed = 0.1  # minimum non-zero speed to prevent division-by-zero in duration calculations
             elif speed > 10.0:
                 speed = 10.0
             return VideoSegment(

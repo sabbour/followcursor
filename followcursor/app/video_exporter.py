@@ -705,9 +705,7 @@ class VideoExporter(QObject):
             original_encoder_id = encoder_id
 
             # Build merged audio from voiceover segments (if any)
-            _merged_audio_path = ""
             _has_audio = False
-            proc: subprocess.Popen | None = None
             if voiceover_segments and not _is_gif:
                 ready = [s for s in voiceover_segments if s.audio_path and os.path.isfile(s.audio_path)]
                 if ready:
