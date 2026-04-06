@@ -19,7 +19,7 @@ from PySide6.QtGui import (
     QBrush,
 )
 
-from .models import MousePosition, ClickEvent
+from .models import MousePosition, ClickEvent, ClickEffectPreset, DEFAULT_CLICK_EFFECT
 
 
 # ── Cursor appearance ───────────────────────────────────────────────
@@ -267,9 +267,17 @@ def draw_clicks_qpainter(
     screen_rect_y: float,
     screen_rect_w: float,
     screen_rect_h: float,
+    preset: Optional[ClickEffectPreset] = None,
 ) -> None:
     """Draw expanding ripple effects for recent clicks on the preview."""
     if not click_events:
+        return
+
+    if preset is None:
+        preset = DEFAULT_CLICK_EFFECT
+
+    # Invisible preset or zero alpha — skip drawing
+    if preset.color[3] == 0 or preset.duration_ms <= 0:
         return
 
     mon_w = max(monitor_rect.get("width", 1), 1)
@@ -278,14 +286,14 @@ def draw_clicks_qpainter(
     mon_top = monitor_rect.get("top", 0)
 
     # Scale ripple radius with preview size
-    max_r = max(CLICK_MAX_RADIUS, screen_rect_h * 0.025)
+    max_r = max(preset.radius, screen_rect_h * 0.025)
 
     for click in click_events:
         age = time_ms - click.timestamp
-        if age < 0 or age > CLICK_DURATION_MS:
+        if age < 0 or age > preset.duration_ms:
             continue
 
-        t = age / CLICK_DURATION_MS  # 0 → 1
+        t = age / preset.duration_ms  # 0 → 1
 
         # Map click position to screen rect
         nx = (click.x - mon_left) / mon_w
@@ -295,19 +303,19 @@ def draw_clicks_qpainter(
 
         # Expanding ring with fade
         radius = max_r * (0.3 + 0.7 * t)
-        ring_alpha = int(220 * (1.0 - t))
+        ring_alpha = int(preset.color[3] * (1.0 - t))
         if ring_alpha > 0:
-            color = QColor(*CLICK_COLOR, ring_alpha)
+            color = QColor(preset.color[0], preset.color[1], preset.color[2], ring_alpha)
             pen_w = max(2.0, 3.0 * (1.0 - t))
             painter.setPen(QPen(color, pen_w))
             painter.setBrush(Qt.BrushStyle.NoBrush)
             painter.drawEllipse(QPointF(px, py), radius, radius)
 
         # Inner solid dot (fades faster)
-        dot_alpha = int(200 * max(0.0, 1.0 - t * 1.8))
+        dot_alpha = int(preset.color[3] * 0.9 * max(0.0, 1.0 - t * 1.8))
         if dot_alpha > 0:
             painter.setPen(Qt.PenStyle.NoPen)
-            painter.setBrush(QColor(*CLICK_COLOR, dot_alpha))
+            painter.setBrush(QColor(preset.color[0], preset.color[1], preset.color[2], dot_alpha))
             dot_r = max(3.0, 5.0 * (1.0 - t * 0.5))
             painter.drawEllipse(QPointF(px, py), dot_r, dot_r)
 
@@ -323,20 +331,32 @@ def draw_clicks_cv(
     mon_top: int,
     mon_w: int,
     mon_h: int,
+    preset: Optional[ClickEffectPreset] = None,
 ) -> None:
     """Draw expanding ripple effects for recent clicks onto *frame_bgr* in-place."""
     if not click_events:
         return
 
+    if preset is None:
+        preset = DEFAULT_CLICK_EFFECT
+
+    # Invisible preset or zero alpha — skip drawing
+    if preset.color[3] == 0 or preset.duration_ms <= 0:
+        return
+
     fh, fw = frame_bgr.shape[:2]
-    max_r = max(20, int(fh * 0.025))
+    max_r = max(preset.radius, int(fh * 0.025))
+
+    # Convert RGB to BGR for OpenCV
+    color_bgr = (preset.color[2], preset.color[1], preset.color[0])
+    base_alpha = preset.color[3] / 255.0
 
     for click in click_events:
         age = time_ms - click.timestamp
-        if age < 0 or age > CLICK_DURATION_MS:
+        if age < 0 or age > preset.duration_ms:
             continue
 
-        t = age / CLICK_DURATION_MS
+        t = age / preset.duration_ms
 
         # Position in frame pixels
         px = int((click.x - mon_left) / max(mon_w, 1) * fw)
@@ -344,16 +364,16 @@ def draw_clicks_cv(
 
         # Expanding ring with fade
         radius = int(max_r * (0.3 + 0.7 * t))
-        ring_alpha = 1.0 - t
+        ring_alpha = base_alpha * (1.0 - t)
         if ring_alpha > 0.05:
             thickness = max(1, int(3.0 * (1.0 - t)))
             # Draw directly — small visual element, no need for alpha blending
-            color_scaled = tuple(int(c * ring_alpha * 0.85) for c in CLICK_COLOR_BGR)
+            color_scaled = tuple(int(c * ring_alpha * 0.85) for c in color_bgr)
             cv2.circle(frame_bgr, (px, py), radius, color_scaled, thickness, cv2.LINE_AA)
 
         # Inner solid dot
-        dot_alpha = max(0.0, 1.0 - t * 1.8)
+        dot_alpha = base_alpha * max(0.0, 1.0 - t * 1.8)
         if dot_alpha > 0.05:
             dot_r = max(2, int(5.0 * (1.0 - t * 0.5)))
-            color_dot = tuple(int(c * dot_alpha * 0.8) for c in CLICK_COLOR_BGR)
+            color_dot = tuple(int(c * dot_alpha * 0.8) for c in color_bgr)
             cv2.circle(frame_bgr, (px, py), dot_r, color_dot, -1, cv2.LINE_AA)

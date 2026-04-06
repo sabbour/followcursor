@@ -398,5 +398,57 @@ class VoiceoverSegment:
             raise ValueError(f"VoiceoverSegment missing required field: {exc}") from exc
 
 
+@dataclass
+class ClickEffectPreset:
+    """A click effect style preset with color, style, duration, and radius.
+
+    Defines the visual appearance of click ripple effects in preview and export.
+    """
+
+    name: str
+    color: tuple[int, int, int, int]  # RGBA (0-255)
+    style: str  # "ripple" | "burst" | "highlight"
+    duration_ms: int
+    radius: int
+
+    def to_dict(self) -> dict:
+        return {
+            "name": self.name,
+            "color": list(self.color),
+            "style": self.style,
+            "durationMs": self.duration_ms,
+            "radius": self.radius,
+        }
+
+    @staticmethod
+    def from_dict(d: dict) -> "ClickEffectPreset":
+        try:
+            return ClickEffectPreset(
+                name=d["name"],
+                color=tuple(d["color"]),
+                style=d.get("style", "ripple"),
+                duration_ms=d.get("durationMs", 400),
+                radius=d.get("radius", 24),
+            )
+        except KeyError as exc:
+            raise ValueError(f"ClickEffectPreset missing required field: {exc}") from exc
+
+
+# ── Built-in click effect presets ───────────────────────────────────
+
+CLICK_EFFECT_PRESETS = [
+    ClickEffectPreset("Subtle Purple", (138, 92, 246, 220), "ripple", 400, 24),
+    ClickEffectPreset("Bold Red", (239, 68, 68, 240), "ripple", 350, 28),
+    ClickEffectPreset("Neon Cyan", (34, 211, 238, 230), "ripple", 450, 26),
+    ClickEffectPreset("Minimal Gray", (156, 163, 175, 180), "ripple", 300, 20),
+    ClickEffectPreset("High Contrast Yellow", (250, 204, 21, 250), "ripple", 380, 30),
+    ClickEffectPreset("Clean White", (255, 255, 255, 200), "ripple", 350, 22),
+    ClickEffectPreset("Soft Green", (74, 222, 128, 210), "ripple", 400, 24),
+    ClickEffectPreset("Invisible", (0, 0, 0, 0), "ripple", 0, 0),
+]
+
+DEFAULT_CLICK_EFFECT = CLICK_EFFECT_PRESETS[0]  # Subtle Purple
+
+
 DEFAULT_FPS = 60
 DEFAULT_MOUSE_INTERVAL = 16

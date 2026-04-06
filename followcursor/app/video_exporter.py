@@ -37,7 +37,7 @@ import numpy as np
 
 from PySide6.QtCore import QObject, Signal
 
-from .models import ZoomKeyframe, MousePosition, ClickEvent, VideoSegment, VoiceoverSegment
+from .models import ZoomKeyframe, MousePosition, ClickEvent, VideoSegment, VoiceoverSegment, ClickEffectPreset, DEFAULT_CLICK_EFFECT
 from .zoom_engine import ZoomEngine
 from .cursor_renderer import draw_cursor_cv, draw_clicks_cv, _build_cursor_template
 from .backgrounds import BackgroundPreset, DEFAULT_PRESET, WAVE_LAYERS
@@ -426,6 +426,7 @@ class VideoExporter(QObject):
         bg_preset: Optional[BackgroundPreset] = None,
         frame_preset: Optional[FramePreset] = None,
         click_events: Optional[List[ClickEvent]] = None,
+        click_preset: Optional[ClickEffectPreset] = None,
         output_dim=None,
         duration_ms: float = 0.0,
         frame_timestamps: Optional[List[float]] = None,
@@ -461,6 +462,7 @@ class VideoExporter(QObject):
                   bg_preset or DEFAULT_PRESET,
                   frame_preset or DEFAULT_FRAME,
                   click_events or [],
+                  click_preset or DEFAULT_CLICK_EFFECT,
                   output_dim,
                   duration_ms,
                   frame_timestamps,
@@ -486,6 +488,7 @@ class VideoExporter(QObject):
         bg_preset: BackgroundPreset,
         frame_preset: FramePreset,
         click_events: List[ClickEvent],
+        click_preset: ClickEffectPreset,
         output_dim=None,
         duration_ms: float = 0.0,
         frame_timestamps: Optional[List[float]] = None,
@@ -962,6 +965,7 @@ class VideoExporter(QObject):
                         draw_clicks_cv(
                             frame, click_events, t_ms,
                             m_left, m_top, m_w, m_h,
+                            click_preset,
                         )
 
                     composed = _compose_cv(
@@ -1007,6 +1011,7 @@ class VideoExporter(QObject):
                                 draw_clicks_cv(
                                     fc, click_events, t_ms,
                                     m_left, m_top, m_w, m_h,
+                                    click_preset,
                                 )
                             composed = _compose_cv(
                                 fc, zoom, px, py, w, h,

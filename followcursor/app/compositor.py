@@ -21,6 +21,7 @@ from PySide6.QtGui import (
 from .models import MousePosition
 from .backgrounds import BackgroundPreset, DEFAULT_PRESET, WAVE_LAYERS
 from .frames import FramePreset, DEFAULT_FRAME
+from .models import ClickEffectPreset, DEFAULT_CLICK_EFFECT
 
 # Re-export ClickEvent so compositor callers don't need to import models
 from .models import ClickEvent
@@ -121,6 +122,7 @@ def compose_scene(
     bg_preset: Optional[BackgroundPreset] = None,
     frame_preset: Optional[FramePreset] = None,
     click_events: Optional[List[ClickEvent]] = None,
+    click_preset: Optional[ClickEffectPreset] = None,
 ) -> None:
     """Paint the device-frame composition onto *painter*.
 
@@ -320,6 +322,7 @@ def compose_scene(
                 draw_clicks_qpainter(
                     painter, click_events, time_ms, monitor_rect,
                     vscr_x, vscr_y, vscr_w, vscr_h,
+                    click_preset or DEFAULT_CLICK_EFFECT,
                 )
             finally:
                 painter.restore()
@@ -327,6 +330,7 @@ def compose_scene(
             draw_clicks_qpainter(
                 painter, click_events, time_ms, monitor_rect,
                 scr_x, scr_y, scr_w, scr_h,
+                click_preset or DEFAULT_CLICK_EFFECT,
             )
 
 

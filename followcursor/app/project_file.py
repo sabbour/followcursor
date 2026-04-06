@@ -40,6 +40,7 @@ atexit.register(_cleanup_extract_dirs)
 from .models import RecordingSession
 from .backgrounds import BackgroundPreset
 from .frames import FramePreset
+from .models import ClickEffectPreset
 
 logger = logging.getLogger(__name__)
 
@@ -56,6 +57,7 @@ def save_project(
     actual_fps: float = 30.0,
     bg_preset: Optional[BackgroundPreset] = None,
     frame_preset: Optional[FramePreset] = None,
+    click_preset: Optional[ClickEffectPreset] = None,
     metadata_only: bool = False,
 ) -> str:
     """Bundle session + raw video into a .fcproj ZIP file.
@@ -87,6 +89,8 @@ def save_project(
         data["bgPreset"] = bg_preset.to_dict()
     if frame_preset:
         data["framePreset"] = frame_preset.to_dict()
+    if click_preset:
+        data["clickPreset"] = click_preset.to_dict()
 
     json_str = json.dumps(data, indent=2)
 
@@ -321,6 +325,13 @@ def load_project(input_path: str) -> dict:
         except Exception:
             pass
 
+    click_preset = None
+    if "clickPreset" in data:
+        try:
+            click_preset = ClickEffectPreset.from_dict(data["clickPreset"])
+        except Exception:
+            pass
+
     return {
         "session": session,
         "video_path": video_path if os.path.isfile(video_path) else "",
@@ -328,4 +339,5 @@ def load_project(input_path: str) -> dict:
         "actual_fps": actual_fps,
         "bg_preset": bg_preset,
         "frame_preset": frame_preset,
+        "click_preset": click_preset,
     }

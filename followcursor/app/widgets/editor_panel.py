@@ -23,7 +23,7 @@ from PySide6.QtWidgets import (
     QApplication,
 )
 
-from ..models import ZoomKeyframe, MousePosition, KeyEvent, ClickEvent
+from ..models import ZoomKeyframe, MousePosition, KeyEvent, ClickEvent, ClickEffectPreset, CLICK_EFFECT_PRESETS, DEFAULT_CLICK_EFFECT
 from ..activity_analyzer import analyze_activity
 from ..backgrounds import (
     PRESETS, DEFAULT_PRESET, BackgroundPreset,
@@ -188,6 +188,7 @@ class EditorPanel(QWidget):
     auto_keyframes_generated = Signal(list)  # list of ZoomKeyframe
     background_changed = Signal(object)     # BackgroundPreset
     frame_changed = Signal(object)          # FramePreset
+    click_effect_changed = Signal(object)   # ClickEffectPreset
     debug_overlay_changed = Signal(bool)    # show/hide debug overlay
     output_dimensions_changed = Signal(object)  # (w, h) tuple or "auto"
     undo_requested = Signal()               # undo zoom keyframe change
@@ -384,6 +385,24 @@ class EditorPanel(QWidget):
         self._current_frame_preset = DEFAULT_FRAME
 
         self._container.addWidget(_CollapsibleSection("DEVICE FRAME", fr_body, collapsed=True))
+
+        # ── Click effect picker (collapsible) ────────────────────────
+        click_body = QWidget()
+        click_lay = QVBoxLayout(click_body)
+        click_lay.setContentsMargins(16, 6, 16, 8)
+        click_lay.setSpacing(6)
+
+        self._click_combo = QComboBox()
+        self._click_combo.setObjectName("DepthCombo")
+        self._click_combo.setFixedHeight(30)
+        for preset in CLICK_EFFECT_PRESETS:
+            self._click_combo.addItem(preset.name)
+        self._click_combo.setCurrentText(DEFAULT_CLICK_EFFECT.name)
+        self._click_combo.currentTextChanged.connect(self._on_click_changed)
+        click_lay.addWidget(self._click_combo)
+        self._current_click_preset = DEFAULT_CLICK_EFFECT
+
+        self._container.addWidget(_CollapsibleSection("CLICK EFFECTS", click_body, collapsed=True))
 
         # ── Output dimensions (collapsible) ──────────────────────────
         dim_body = QWidget()
@@ -980,3 +999,18 @@ class EditorPanel(QWidget):
             "QPushButton:hover { background: #8b5cf6; }"
         )
         dlg.exec()
+
+    def _on_click_changed(self, name: str) -> None:
+        """User picked a new click effect preset."""
+        preset = next((p for p in CLICK_EFFECT_PRESETS if p.name == name), DEFAULT_CLICK_EFFECT)
+        self._current_click_preset = preset
+        self.click_effect_changed.emit(preset)
+
+    def current_click_preset(self) -> ClickEffectPreset:
+        """Return the currently selected click effect preset."""
+        return self._current_click_preset
+
+    def set_click_preset(self, preset: ClickEffectPreset) -> None:
+        """Set the click effect preset from external code (e.g., project load)."""
+        self._current_click_preset = preset
+        self._click_combo.setCurrentText(preset.name)

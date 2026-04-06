@@ -95,7 +95,7 @@ class _SaveProjectWorker(QThread):
 
     def __init__(self, path: str, video_path: str, session,
                  monitor_rect, actual_fps: float,
-                 bg_preset, frame_preset,
+                 bg_preset, frame_preset, click_preset,
                  metadata_only: bool = False,
                  parent=None) -> None:
         super().__init__(parent)
@@ -106,6 +106,7 @@ class _SaveProjectWorker(QThread):
         self._actual_fps = actual_fps
         self._bg_preset = bg_preset
         self._frame_preset = frame_preset
+        self._click_preset = click_preset
         self._metadata_only = metadata_only
 
     def run(self) -> None:  # noqa: D401
@@ -724,6 +725,7 @@ class MainWindow(QMainWindow):
         self._frame_timestamps: List[float] = []  # per-frame ms offsets
         self._bg_preset = None  # BackgroundPreset, None = default
         self._frame_preset = None  # FramePreset, None = default
+        self._click_preset = None  # ClickEffectPreset, None = default
         self._last_export_path: str = ""  # path of last exported file
         self._output_dim = "auto"  # output dimensions: (w, h) or "auto"
         self._trim_start_ms: float = 0.0  # trim start point (0 = beginning)
@@ -742,6 +744,13 @@ class MainWindow(QMainWindow):
             match = next((p for p in FRAME_PRESETS if p.name == saved_frame), None)
             if match:
                 self._frame_preset = match
+        # Restore persisted click effect preset
+        from .models import CLICK_EFFECT_PRESETS
+        saved_click = self._settings.value("clickPreset", "")
+        if saved_click:
+            match = next((p for p in CLICK_EFFECT_PRESETS if p.name == saved_click), None)
+            if match:
+                self._click_preset = match
 
         # duration update timer
         self._dur_timer = QTimer(self)
@@ -854,6 +863,7 @@ class MainWindow(QMainWindow):
         self._editor.auto_keyframes_generated.connect(self._on_auto_keyframes)
         self._editor.background_changed.connect(self._on_bg_changed)
         self._editor.frame_changed.connect(self._on_frame_changed)
+        self._editor.click_effect_changed.connect(self._on_click_changed)
         self._editor.debug_overlay_changed.connect(self._on_debug_overlay_changed)
         self._editor.output_dimensions_changed.connect(self._on_output_dim_changed)
         self._editor.undo_requested.connect(self._undo)
@@ -900,6 +910,9 @@ class MainWindow(QMainWindow):
         if self._frame_preset:
             self._preview.set_frame_preset(self._frame_preset)
             self._editor.set_frame_by_name(self._frame_preset.name)
+        if self._click_preset:
+            self._preview.set_click_preset(self._click_preset)
+            self._editor.set_click_preset(self._click_preset)
 
         # Restore persisted encoder preference
         saved_encoder = self._settings.value("encoderId", "")
@@ -1632,6 +1645,13 @@ class MainWindow(QMainWindow):
         """Handle device frame preset change from editor panel."""
         self._frame_preset = preset
         self._preview.set_frame_preset(preset)
+
+    def _on_click_changed(self, preset) -> None:
+        """Handle click effect preset change from editor panel."""
+        self._click_preset = preset
+        self._preview.set_click_preset(preset)
+        # Persist to QSettings
+        self._settings.setValue("clickPreset", preset.name)
 
     def _on_debug_overlay_changed(self, enabled: bool) -> None:
         """Toggle zoom debug overlay on the preview."""
@@ -2752,6 +2772,7 @@ class MainWindow(QMainWindow):
                     self._bg_preset,
                     self._frame_preset,
                     self._click_events,
+                    self._click_preset,
                     self._output_dim,
                     duration_ms=self._rec_duration_ms,
                     frame_timestamps=self._frame_timestamps or None,
@@ -3204,7 +3225,7 @@ class MainWindow(QMainWindow):
             self._save_worker = _SaveProjectWorker(
                 path, self._video_path, session,
                 self._monitor_rect, self._recorder.actual_fps,
-                self._bg_preset, self._frame_preset,
+                self._bg_preset, self._frame_preset, self._click_preset,
                 metadata_only=is_resave,
                 parent=self,
             )
@@ -3315,6 +3336,13 @@ class MainWindow(QMainWindow):
             if loaded_frame:
                 self._frame_preset = loaded_frame
                 self._preview.set_frame_preset(loaded_frame)
+
+            # Restore click effect preset if saved
+            loaded_click = proj.get("click_preset")
+            if loaded_click:
+                self._click_preset = loaded_click
+                self._preview.set_click_preset(loaded_click)
+                self._editor.set_click_preset(loaded_click)
 
             self._set_view("edit")
             self._project_path = path
