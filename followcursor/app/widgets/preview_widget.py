@@ -70,6 +70,7 @@ class PreviewWidget(QWidget):
         self._bg_preset = None  # None → use default
         self._frame_preset = None  # None → use default frame
         self._click_preset = None  # None → use default click effect
+        self._annotations = None  # None → no annotations
 
         # recording overlay
         self._recording_mode: bool = False
@@ -145,6 +146,11 @@ class PreviewWidget(QWidget):
     def set_click_preset(self, preset) -> None:
         """Set the click effect preset for the compositor."""
         self._click_preset = preset
+        self.update()
+
+    def set_annotations(self, annotations) -> None:
+        """Set the annotations for the compositor."""
+        self._annotations = annotations
         self.update()
 
     def set_output_dim(self, dim) -> None:
@@ -712,6 +718,7 @@ class PreviewWidget(QWidget):
             frame_preset=self._frame_preset,
             click_events=self._click_events or None,
             click_preset=self._click_preset,
+            annotations=self._annotations,
         )
 
         painter.setClipping(False)

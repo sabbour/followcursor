@@ -42,6 +42,7 @@ from .models import ZoomKeyframe, MousePosition, ClickEvent, VideoSegment, Voice
 from .zoom_engine import ZoomEngine
 from .cursor_renderer import draw_cursor_cv, draw_clicks_cv, _build_cursor_template
 from .keystroke_renderer import draw_keystrokes_cv
+from .annotation_renderer import render_annotations_cv
 from .backgrounds import BackgroundPreset, DEFAULT_PRESET, WAVE_LAYERS
 from .frames import FramePreset, DEFAULT_FRAME
 
@@ -584,6 +585,7 @@ class VideoExporter(QObject):
         video_segments: Optional[List[VideoSegment]] = None,
         key_events: Optional[List] = None,
         keystroke_config: Optional = None,
+        annotations = None,
     ) -> None:
         """Start export in a background thread.
 
@@ -605,6 +607,7 @@ class VideoExporter(QObject):
         when present, only frames within these time ranges are exported.
         *key_events* — optional list of ``KeyEvent`` objects for keystroke rendering.
         *keystroke_config* — optional ``KeystrokeOverlayConfig`` for keystroke overlay settings.
+        *annotations* — optional ``AnnotationCollection`` for text, arrow, and highlight annotations.
         """
         self._thread = threading.Thread(
             target=self._run,
@@ -623,7 +626,8 @@ class VideoExporter(QObject):
                   voiceover_segments or [],
                   video_segments or [],
                   key_events or [],
-                  keystroke_config),
+                  keystroke_config,
+                  annotations),
             daemon=True,
         )
         self._thread.start()
@@ -831,6 +835,7 @@ class VideoExporter(QObject):
         video_segments: Optional[List[VideoSegment]] = None,
         key_events: Optional[List] = None,
         keystroke_config = None,
+        annotations = None,
     ) -> None:
         """Execute the full export algorithm on a worker thread.
 
@@ -1158,6 +1163,12 @@ class VideoExporter(QObject):
                             frame, key_events, t_ms, keystroke_config,
                             m_left, m_top, m_w, m_h,
                         )
+                    
+                    # Draw annotations if present
+                    if annotations:
+                        render_annotations_cv(
+                            frame, annotations, t_ms, m_w, m_h
+                        )
 
                     composed = _compose_cv(
                         frame, zoom, px, py, w, h,
@@ -1210,6 +1221,12 @@ class VideoExporter(QObject):
                                 draw_keystrokes_cv(
                                     fc, key_events, t_ms, keystroke_config,
                                     m_left, m_top, m_w, m_h,
+                                )
+                            
+                            # Draw annotations if present
+                            if annotations:
+                                render_annotations_cv(
+                                    fc, annotations, t_ms, m_w, m_h
                                 )
                             
                             composed = _compose_cv(

@@ -123,6 +123,7 @@ def compose_scene(
     frame_preset: Optional[FramePreset] = None,
     click_events: Optional[List[ClickEvent]] = None,
     click_preset: Optional[ClickEffectPreset] = None,
+    annotations = None,
 ) -> None:
     """Paint the device-frame composition onto *painter*.
 
@@ -331,6 +332,30 @@ def compose_scene(
                 painter, click_events, time_ms, monitor_rect,
                 scr_x, scr_y, scr_w, scr_h,
                 click_preset or DEFAULT_CLICK_EFFECT,
+            )
+
+    # ── annotations overlay ────────────────────────────────────────
+    if annotations and monitor_rect:
+        from .annotation_renderer import render_annotations_qpainter
+        if _zoom_video_only and zoom > 1.001:
+            src = source_rect
+            vscr_w = scr_w * (iw / src.width())
+            vscr_h = scr_h * (ih / src.height())
+            vscr_x = scr_x - src.left() * (vscr_w / iw)
+            vscr_y = scr_y - src.top() * (vscr_h / ih)
+            painter.save()
+            painter.setClipRect(QRectF(scr_x, scr_y, scr_w, scr_h))
+            try:
+                render_annotations_qpainter(
+                    painter, annotations, time_ms, monitor_rect,
+                    vscr_x, vscr_y, vscr_w, vscr_h,
+                )
+            finally:
+                painter.restore()
+        else:
+            render_annotations_qpainter(
+                painter, annotations, time_ms, monitor_rect,
+                scr_x, scr_y, scr_w, scr_h,
             )
 
 

@@ -494,5 +494,279 @@ class KeystrokeOverlayConfig:
         )
 
 
+@dataclass
+class TextAnnotation:
+    """A text annotation displayed for a time range.
+    
+    Text annotations overlay the video with user-defined text at a specific
+    position for a given time range.
+    """
+    id: str
+    start_ms: float
+    end_ms: float
+    x: float  # 0-1 normalized position
+    y: float  # 0-1 normalized position
+    text: str
+    font_size: int = 18
+    color: tuple[int, int, int, int] = (255, 255, 255, 255)  # RGBA
+    background_color: tuple[int, int, int, int] | None = (30, 30, 30, 200)  # RGBA or None for no background
+    
+    @staticmethod
+    def create(
+        start_ms: float,
+        end_ms: float,
+        x: float = 0.5,
+        y: float = 0.5,
+        text: str = "Text",
+        font_size: int = 18,
+        color: tuple[int, int, int, int] = (255, 255, 255, 255),
+        background_color: tuple[int, int, int, int] | None = (30, 30, 30, 200),
+    ) -> "TextAnnotation":
+        """Factory that auto-generates a UUID."""
+        return TextAnnotation(
+            id=str(uuid.uuid4()),
+            start_ms=start_ms,
+            end_ms=end_ms,
+            x=x,
+            y=y,
+            text=text,
+            font_size=font_size,
+            color=color,
+            background_color=background_color,
+        )
+    
+    def to_dict(self) -> dict:
+        """Serialize to a plain dict for JSON storage."""
+        d = {
+            "id": self.id,
+            "startMs": self.start_ms,
+            "endMs": self.end_ms,
+            "x": self.x,
+            "y": self.y,
+            "text": self.text,
+            "fontSize": self.font_size,
+            "color": list(self.color),
+        }
+        if self.background_color is not None:
+            d["backgroundColor"] = list(self.background_color)
+        return d
+    
+    @staticmethod
+    def from_dict(d: dict) -> "TextAnnotation":
+        """Reconstruct from a dict produced by ``to_dict()``."""
+        try:
+            bg_color = None
+            if "backgroundColor" in d:
+                bg_color = tuple(d["backgroundColor"])
+            return TextAnnotation(
+                id=d["id"],
+                start_ms=d["startMs"],
+                end_ms=d["endMs"],
+                x=d["x"],
+                y=d["y"],
+                text=d["text"],
+                font_size=d.get("fontSize", 18),
+                color=tuple(d.get("color", [255, 255, 255, 255])),
+                background_color=bg_color,
+            )
+        except KeyError as exc:
+            raise ValueError(f"TextAnnotation missing required field: {exc}") from exc
+
+
+@dataclass
+class ArrowAnnotation:
+    """An arrow annotation pointing from one location to another.
+    
+    Arrow annotations draw directional arrows to highlight movement or
+    connections between UI elements.
+    """
+    id: str
+    start_ms: float
+    end_ms: float
+    x1: float  # 0-1 normalized start position
+    y1: float
+    x2: float  # 0-1 normalized end position
+    y2: float
+    color: tuple[int, int, int, int] = (255, 204, 0, 255)  # RGBA (yellow)
+    thickness: int = 3
+    head_size: int = 12
+    
+    @staticmethod
+    def create(
+        start_ms: float,
+        end_ms: float,
+        x1: float = 0.3,
+        y1: float = 0.3,
+        x2: float = 0.5,
+        y2: float = 0.5,
+        color: tuple[int, int, int, int] = (255, 204, 0, 255),
+        thickness: int = 3,
+        head_size: int = 12,
+    ) -> "ArrowAnnotation":
+        """Factory that auto-generates a UUID."""
+        return ArrowAnnotation(
+            id=str(uuid.uuid4()),
+            start_ms=start_ms,
+            end_ms=end_ms,
+            x1=x1,
+            y1=y1,
+            x2=x2,
+            y2=y2,
+            color=color,
+            thickness=thickness,
+            head_size=head_size,
+        )
+    
+    def to_dict(self) -> dict:
+        """Serialize to a plain dict for JSON storage."""
+        return {
+            "id": self.id,
+            "startMs": self.start_ms,
+            "endMs": self.end_ms,
+            "x1": self.x1,
+            "y1": self.y1,
+            "x2": self.x2,
+            "y2": self.y2,
+            "color": list(self.color),
+            "thickness": self.thickness,
+            "headSize": self.head_size,
+        }
+    
+    @staticmethod
+    def from_dict(d: dict) -> "ArrowAnnotation":
+        """Reconstruct from a dict produced by ``to_dict()``."""
+        try:
+            return ArrowAnnotation(
+                id=d["id"],
+                start_ms=d["startMs"],
+                end_ms=d["endMs"],
+                x1=d["x1"],
+                y1=d["y1"],
+                x2=d["x2"],
+                y2=d["y2"],
+                color=tuple(d.get("color", [255, 204, 0, 255])),
+                thickness=d.get("thickness", 3),
+                head_size=d.get("headSize", 12),
+            )
+        except KeyError as exc:
+            raise ValueError(f"ArrowAnnotation missing required field: {exc}") from exc
+
+
+@dataclass
+class HighlightBox:
+    """A highlight box annotation to emphasize a rectangular area.
+    
+    Highlight boxes draw semi-transparent rectangles to draw attention to
+    specific UI elements or regions.
+    """
+    id: str
+    start_ms: float
+    end_ms: float
+    x: float  # 0-1 normalized position
+    y: float
+    width: float  # 0-1 normalized size
+    height: float
+    color: tuple[int, int, int, int] = (255, 204, 0, 100)  # RGBA (yellow, semi-transparent)
+    opacity: float = 0.4  # 0.0 - 1.0
+    border_width: int = 2
+    
+    @staticmethod
+    def create(
+        start_ms: float,
+        end_ms: float,
+        x: float = 0.3,
+        y: float = 0.3,
+        width: float = 0.2,
+        height: float = 0.15,
+        color: tuple[int, int, int, int] = (255, 204, 0, 100),
+        opacity: float = 0.4,
+        border_width: int = 2,
+    ) -> "HighlightBox":
+        """Factory that auto-generates a UUID."""
+        return HighlightBox(
+            id=str(uuid.uuid4()),
+            start_ms=start_ms,
+            end_ms=end_ms,
+            x=x,
+            y=y,
+            width=width,
+            height=height,
+            color=color,
+            opacity=opacity,
+            border_width=border_width,
+        )
+    
+    def to_dict(self) -> dict:
+        """Serialize to a plain dict for JSON storage."""
+        return {
+            "id": self.id,
+            "startMs": self.start_ms,
+            "endMs": self.end_ms,
+            "x": self.x,
+            "y": self.y,
+            "width": self.width,
+            "height": self.height,
+            "color": list(self.color),
+            "opacity": self.opacity,
+            "borderWidth": self.border_width,
+        }
+    
+    @staticmethod
+    def from_dict(d: dict) -> "HighlightBox":
+        """Reconstruct from a dict produced by ``to_dict()``."""
+        try:
+            return HighlightBox(
+                id=d["id"],
+                start_ms=d["startMs"],
+                end_ms=d["endMs"],
+                x=d["x"],
+                y=d["y"],
+                width=d["width"],
+                height=d["height"],
+                color=tuple(d.get("color", [255, 204, 0, 100])),
+                opacity=d.get("opacity", 0.4),
+                border_width=d.get("borderWidth", 2),
+            )
+        except KeyError as exc:
+            raise ValueError(f"HighlightBox missing required field: {exc}") from exc
+
+
+@dataclass
+class AnnotationCollection:
+    """Container for all annotation types in a recording session.
+    
+    Groups text, arrow, and highlight annotations together for easy
+    serialization and rendering.
+    """
+    texts: List[TextAnnotation] | None = None
+    arrows: List[ArrowAnnotation] | None = None
+    highlights: List[HighlightBox] | None = None
+    
+    def to_dict(self) -> dict:
+        """Serialize to a plain dict for JSON storage."""
+        d = {}
+        if self.texts:
+            d["texts"] = [t.to_dict() for t in self.texts]
+        if self.arrows:
+            d["arrows"] = [a.to_dict() for a in self.arrows]
+        if self.highlights:
+            d["highlights"] = [h.to_dict() for h in self.highlights]
+        return d
+    
+    @staticmethod
+    def from_dict(d: dict) -> "AnnotationCollection":
+        """Reconstruct from a dict produced by ``to_dict()``."""
+        texts = None
+        if "texts" in d:
+            texts = [TextAnnotation.from_dict(t) for t in d["texts"]]
+        arrows = None
+        if "arrows" in d:
+            arrows = [ArrowAnnotation.from_dict(a) for a in d["arrows"]]
+        highlights = None
+        if "highlights" in d:
+            highlights = [HighlightBox.from_dict(h) for h in d["highlights"]]
+        return AnnotationCollection(texts=texts, arrows=arrows, highlights=highlights)
+
+
 DEFAULT_FPS = 60
 DEFAULT_MOUSE_INTERVAL = 16

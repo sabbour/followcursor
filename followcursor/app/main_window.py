@@ -97,6 +97,7 @@ class _SaveProjectWorker(QThread):
                  monitor_rect, actual_fps: float,
                  bg_preset, frame_preset, click_preset,
                  keystroke_config,
+                 annotations,
                  metadata_only: bool = False,
                  parent=None) -> None:
         super().__init__(parent)
@@ -109,6 +110,7 @@ class _SaveProjectWorker(QThread):
         self._frame_preset = frame_preset
         self._click_preset = click_preset
         self._keystroke_config = keystroke_config
+        self._annotations = annotations
         self._metadata_only = metadata_only
 
     def run(self) -> None:  # noqa: D401
@@ -119,6 +121,7 @@ class _SaveProjectWorker(QThread):
                 self._monitor_rect, self._actual_fps,
                 self._bg_preset, self._frame_preset,
                 self._click_preset, self._keystroke_config,
+                self._annotations,
                 metadata_only=self._metadata_only,
             )
             self.done.emit(self._path)
@@ -736,6 +739,7 @@ class MainWindow(QMainWindow):
         self._project_path: str = ""      # path to current .fcproj file
         self._unsaved_changes: bool = False  # True when edits exist since last save
         self._keystroke_config = None  # KeystrokeOverlayConfig or None
+        self._annotations = None  # AnnotationCollection or None
 
         # Restore persisted background & frame presets
         saved_bg = self._settings.value("bgPreset", "")
@@ -869,6 +873,9 @@ class MainWindow(QMainWindow):
         self._editor.frame_changed.connect(self._on_frame_changed)
         self._editor.click_effect_changed.connect(self._on_click_changed)
         self._editor.keystroke_config_changed.connect(self._on_keystroke_config_changed)
+        self._editor.annotation_added.connect(self._on_annotation_added)
+        self._editor.annotation_removed.connect(self._on_annotation_removed)
+        self._editor.annotation_updated.connect(self._on_annotation_updated)
         self._editor.debug_overlay_changed.connect(self._on_debug_overlay_changed)
         self._editor.output_dimensions_changed.connect(self._on_output_dim_changed)
         self._editor.undo_requested.connect(self._undo)
@@ -1667,6 +1674,63 @@ class MainWindow(QMainWindow):
         self._settings.setValue("keystroke/style", config.style)
         self._settings.setValue("keystroke/filterMode", config.filter_mode)
         self._mark_dirty()
+
+    def _on_annotation_added(self, annot_type: str, annotation) -> None:
+        """Handle new annotation added from editor panel."""
+        from .models import AnnotationCollection
+        
+        if self._annotations is None:
+            self._annotations = AnnotationCollection()
+        
+        # Add to the appropriate list
+        if annot_type == "text":
+            if self._annotations.texts is None:
+                self._annotations.texts = []
+            self._annotations.texts.append(annotation)
+        elif annot_type == "arrow":
+            if self._annotations.arrows is None:
+                self._annotations.arrows = []
+            self._annotations.arrows.append(annotation)
+        elif annot_type == "highlight":
+            if self._annotations.highlights is None:
+                self._annotations.highlights = []
+            self._annotations.highlights.append(annotation)
+        
+        # Update preview
+        self._preview.set_annotations(self._annotations)
+        self._mark_dirty()
+        logger.info("Annotation added: %s", annot_type)
+
+    def _on_annotation_removed(self, annot_type: str, annot_id: str) -> None:
+        """Handle annotation removed from editor panel."""
+        if not self._annotations:
+            return
+        
+        # Remove from the appropriate list
+        if annot_type == "text" and self._annotations.texts:
+            self._annotations.texts = [
+                a for a in self._annotations.texts if a.id != annot_id
+            ]
+        elif annot_type == "arrow" and self._annotations.arrows:
+            self._annotations.arrows = [
+                a for a in self._annotations.arrows if a.id != annot_id
+            ]
+        elif annot_type == "highlight" and self._annotations.highlights:
+            self._annotations.highlights = [
+                a for a in self._annotations.highlights if a.id != annot_id
+            ]
+        
+        # Update preview
+        self._preview.set_annotations(self._annotations)
+        self._mark_dirty()
+        logger.info("Annotation removed: %s %s", annot_type, annot_id)
+
+    def _on_annotation_updated(self, annot_type: str, annotation) -> None:
+        """Handle annotation updated from editor panel."""
+        # For now, just trigger a preview refresh
+        self._preview.set_annotations(self._annotations)
+        self._mark_dirty()
+        logger.info("Annotation updated: %s", annot_type)
 
     def _on_debug_overlay_changed(self, enabled: bool) -> None:
         """Toggle zoom debug overlay on the preview."""
@@ -2683,6 +2747,7 @@ class MainWindow(QMainWindow):
         self._stop_voiceover_audio()
         self._preview.seek_to(time_ms)
         self._preview.set_current_time(time_ms)
+        self._editor.set_current_time(time_ms)  # Update editor panel for annotation placement
         self._zoom_engine.update(time_ms)
         self._preview.set_zoom(
             self._zoom_engine.current_zoom,
@@ -2798,6 +2863,7 @@ class MainWindow(QMainWindow):
                     video_segments=self._video_segments or None,
                     key_events=self._key_events or None,
                     keystroke_config=self._keystroke_config,
+                    annotations=self._annotations,
                 )
             except Exception:
                 logger.exception("Failed to start export")
@@ -3244,6 +3310,7 @@ class MainWindow(QMainWindow):
                 self._monitor_rect, self._recorder.actual_fps,
                 self._bg_preset, self._frame_preset, self._click_preset,
                 self._keystroke_config,
+                self._annotations,
                 metadata_only=is_resave,
                 parent=self,
             )
@@ -3367,6 +3434,13 @@ class MainWindow(QMainWindow):
             if loaded_keystroke:
                 self._keystroke_config = loaded_keystroke
                 self._editor.set_keystroke_config(loaded_keystroke)
+
+            # Restore annotations if saved
+            loaded_annotations = proj.get("annotations")
+            if loaded_annotations:
+                self._annotations = loaded_annotations
+                self._preview.set_annotations(loaded_annotations)
+                self._editor.refresh_annotations_list(loaded_annotations)
 
             self._set_view("edit")
             self._project_path = path

@@ -199,6 +199,9 @@ class EditorPanel(QWidget):
     add_voiceover_requested = Signal(float, str)  # timestamp_ms, voice
     ai_settings_changed = Signal()               # settings were updated
     keystroke_config_changed = Signal(object)    # KeystrokeOverlayConfig
+    annotation_added = Signal(str, object)       # type ("text"|"arrow"|"highlight"), annotation object
+    annotation_removed = Signal(str, str)        # type, annotation id
+    annotation_updated = Signal(str, object)     # type, annotation object
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -232,6 +235,7 @@ class EditorPanel(QWidget):
         self._trim_start_ms: float = 0.0
         self._trim_end_ms: float = 0.0
         self._duration: float = 0.0
+        self._current_time_ms: float = 0.0  # For annotation placement
 
         # ── Smart Zoom (collapsible) ─────────────────────────────────
         zoom_body = QWidget()
@@ -489,6 +493,65 @@ class EditorPanel(QWidget):
         self._current_click_preset = DEFAULT_CLICK_EFFECT
 
         self._container.addWidget(_CollapsibleSection("CLICK EFFECTS", click_body, collapsed=True))
+
+        # ── Annotations (collapsible) ────────────────────────────────
+        annot_body = QWidget()
+        annot_lay = QVBoxLayout(annot_body)
+        annot_lay.setContentsMargins(16, 6, 16, 8)
+        annot_lay.setSpacing(6)
+
+        annot_desc = QLabel("Add text, arrows, and highlights to emphasize key moments.")
+        annot_desc.setObjectName("Secondary")
+        annot_desc.setWordWrap(True)
+        annot_lay.addWidget(annot_desc)
+
+        # Add annotation buttons
+        btn_row = QHBoxLayout()
+        btn_row.setSpacing(6)
+        
+        btn_text = QPushButton("+ Text")
+        btn_text.setObjectName("CtrlBtn")
+        btn_text.setFixedHeight(32)
+        btn_text.clicked.connect(lambda: self._add_annotation("text"))
+        btn_row.addWidget(btn_text)
+        
+        btn_arrow = QPushButton("+ Arrow")
+        btn_arrow.setObjectName("CtrlBtn")
+        btn_arrow.setFixedHeight(32)
+        btn_arrow.clicked.connect(lambda: self._add_annotation("arrow"))
+        btn_row.addWidget(btn_arrow)
+        
+        btn_highlight = QPushButton("+ Highlight")
+        btn_highlight.setObjectName("CtrlBtn")
+        btn_highlight.setFixedHeight(32)
+        btn_highlight.clicked.connect(lambda: self._add_annotation("highlight"))
+        btn_row.addWidget(btn_highlight)
+        
+        annot_lay.addLayout(btn_row)
+
+        # Annotations list
+        from PySide6.QtWidgets import QScrollArea, QVBoxLayout as QVBoxLayout2
+        list_scroll = QScrollArea()
+        list_scroll.setWidgetResizable(True)
+        list_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        list_scroll.setMaximumHeight(200)
+        list_scroll.setStyleSheet(
+            "QScrollArea { border: 1px solid #2d2b45; background: #1b1a2e; border-radius: 4px; }"
+            "QScrollBar:vertical { background: #1b1a2e; width: 6px; }"
+            "QScrollBar::handle:vertical { background: #3d3a58; border-radius: 3px; min-height: 20px; }"
+            "QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical { height: 0; }"
+        )
+        
+        self._annotations_list_widget = QWidget()
+        self._annotations_list_layout = QVBoxLayout(self._annotations_list_widget)
+        self._annotations_list_layout.setContentsMargins(6, 6, 6, 6)
+        self._annotations_list_layout.setSpacing(4)
+        self._annotations_list_layout.addStretch()
+        
+        list_scroll.setWidget(self._annotations_list_widget)
+        annot_lay.addWidget(list_scroll)
+
+        self._container.addWidget(_CollapsibleSection("ANNOTATIONS", annot_body, collapsed=True))
 
         # ── Output dimensions (collapsible) ──────────────────────────
         dim_body = QWidget()
@@ -1150,3 +1213,146 @@ class EditorPanel(QWidget):
             "Keystroke config changed: position=%s, style=%s, filter=%s",
             config.position, config.style, config.filter_mode
         )
+
+    # ── Annotation methods ──────────────────────────────────────────
+
+    def set_current_time(self, time_ms: float) -> None:
+        """Update the current playhead position for annotation placement."""
+        self._current_time_ms = time_ms
+
+    def _add_annotation(self, annot_type: str) -> None:
+        """Add a new annotation at the current playhead position."""
+        from ..models import TextAnnotation, ArrowAnnotation, HighlightBox
+
+        # Default duration: 3 seconds
+        start_ms = self._current_time_ms
+        end_ms = start_ms + 3000.0
+
+        # Create annotation based on type
+        if annot_type == "text":
+            annotation = TextAnnotation.create(
+                start_ms=start_ms,
+                end_ms=end_ms,
+                x=0.5,
+                y=0.5,
+                text="Your text here",
+            )
+        elif annot_type == "arrow":
+            annotation = ArrowAnnotation.create(
+                start_ms=start_ms,
+                end_ms=end_ms,
+                x1=0.3,
+                y1=0.3,
+                x2=0.5,
+                y2=0.5,
+            )
+        elif annot_type == "highlight":
+            annotation = HighlightBox.create(
+                start_ms=start_ms,
+                end_ms=end_ms,
+                x=0.3,
+                y=0.3,
+                width=0.2,
+                height=0.15,
+            )
+        else:
+            logger.warning("Unknown annotation type: %s", annot_type)
+            return
+
+        # Emit signal to add annotation
+        self.annotation_added.emit(annot_type, annotation)
+        logger.info("Added %s annotation at %.1f ms", annot_type, start_ms)
+
+        # Add to UI list
+        self._add_annotation_to_list(annot_type, annotation)
+
+    def _add_annotation_to_list(self, annot_type: str, annotation) -> None:
+        """Add an annotation entry to the UI list."""
+        from PySide6.QtWidgets import QHBoxLayout, QPushButton, QLabel
+
+        # Create list item widget
+        item_widget = QWidget()
+        item_widget.setStyleSheet(
+            "QWidget { background: #28263e; border-radius: 4px; padding: 4px; }"
+        )
+        item_layout = QHBoxLayout(item_widget)
+        item_layout.setContentsMargins(6, 4, 6, 4)
+        item_layout.setSpacing(8)
+
+        # Type icon
+        icon_map = {"text": "📝", "arrow": "➡️", "highlight": "🔆"}
+        icon_label = QLabel(icon_map.get(annot_type, "•"))
+        icon_label.setFixedWidth(20)
+        item_layout.addWidget(icon_label)
+
+        # Description
+        if annot_type == "text":
+            desc = f"Text: {annotation.text[:20]}..."
+        elif annot_type == "arrow":
+            desc = f"Arrow ({annotation.x1:.1f},{annotation.y1:.1f}) → ({annotation.x2:.1f},{annotation.y2:.1f})"
+        else:
+            desc = f"Highlight at ({annotation.x:.1f},{annotation.y:.1f})"
+
+        desc_label = QLabel(desc)
+        desc_label.setObjectName("Secondary")
+        desc_label.setStyleSheet("color: #e4e4ed; font-size: 12px;")
+        item_layout.addWidget(desc_label, 1)
+
+        # Delete button
+        del_btn = QPushButton("×")
+        del_btn.setFixedSize(24, 24)
+        del_btn.setStyleSheet(
+            "QPushButton { background: transparent; color: #9c99b6; "
+            "border: none; font-size: 18px; font-weight: bold; }"
+            "QPushButton:hover { color: #ef4444; background: #3d3a58; border-radius: 4px; }"
+        )
+        del_btn.clicked.connect(
+            lambda: self._remove_annotation(annot_type, annotation.id, item_widget)
+        )
+        item_layout.addWidget(del_btn)
+
+        # Insert before the stretch
+        self._annotations_list_layout.insertWidget(
+            self._annotations_list_layout.count() - 1, item_widget
+        )
+
+    def _remove_annotation(self, annot_type: str, annot_id: str, widget: QWidget) -> None:
+        """Remove an annotation from both UI and data."""
+        # Remove from UI
+        self._annotations_list_layout.removeWidget(widget)
+        widget.deleteLater()
+
+        # Emit signal to remove from data
+        self.annotation_removed.emit(annot_type, annot_id)
+        logger.info("Removed %s annotation %s", annot_type, annot_id)
+
+    def clear_annotations_list(self) -> None:
+        """Clear all annotation items from the UI list."""
+        # Remove all widgets except the final stretch
+        while self._annotations_list_layout.count() > 1:
+            item = self._annotations_list_layout.takeAt(0)
+            if item.widget():
+                item.widget().deleteLater()
+
+    def refresh_annotations_list(self, annotations) -> None:
+        """Refresh the annotations list UI from an AnnotationCollection."""
+        self.clear_annotations_list()
+
+        if not annotations:
+            return
+
+        # Add text annotations
+        if annotations.texts:
+            for text in annotations.texts:
+                self._add_annotation_to_list("text", text)
+
+        # Add arrow annotations
+        if annotations.arrows:
+            for arrow in annotations.arrows:
+                self._add_annotation_to_list("arrow", arrow)
+
+        # Add highlight annotations
+        if annotations.highlights:
+            for highlight in annotations.highlights:
+                self._add_annotation_to_list("highlight", highlight)
+

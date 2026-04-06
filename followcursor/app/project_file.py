@@ -37,7 +37,7 @@ def _cleanup_extract_dirs() -> None:
 
 atexit.register(_cleanup_extract_dirs)
 
-from .models import RecordingSession, ClickEffectPreset, KeystrokeOverlayConfig
+from .models import RecordingSession, ClickEffectPreset, KeystrokeOverlayConfig, AnnotationCollection
 from .backgrounds import BackgroundPreset
 from .frames import FramePreset
 
@@ -58,6 +58,7 @@ def save_project(
     frame_preset: Optional[FramePreset] = None,
     click_preset: Optional[ClickEffectPreset] = None,
     keystroke_config: Optional[KeystrokeOverlayConfig] = None,
+    annotations = None,
     metadata_only: bool = False,
 ) -> str:
     """Bundle session + raw video into a .fcproj ZIP file.
@@ -93,6 +94,8 @@ def save_project(
         data["clickPreset"] = click_preset.to_dict()
     if keystroke_config:
         data["keystrokeConfig"] = keystroke_config.to_dict()
+    if annotations:
+        data["annotations"] = annotations.to_dict()
 
     json_str = json.dumps(data, indent=2)
 
@@ -341,6 +344,13 @@ def load_project(input_path: str) -> dict:
         except Exception:
             pass
 
+    annotations = None
+    if "annotations" in data:
+        try:
+            annotations = AnnotationCollection.from_dict(data["annotations"])
+        except Exception:
+            pass
+
     return {
         "session": session,
         "video_path": video_path if os.path.isfile(video_path) else "",
@@ -350,4 +360,5 @@ def load_project(input_path: str) -> dict:
         "frame_preset": frame_preset,
         "click_preset": click_preset,
         "keystroke_config": keystroke_config,
+        "annotations": annotations,
     }
