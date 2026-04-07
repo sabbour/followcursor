@@ -1,5 +1,5 @@
 name: Squad CI
-# Fast lint + test for Squad workflow branches (no PyInstaller build).
+# Fast test for Squad workflow branches (no PyInstaller build).
 # PRs to main are handled by build.yml which includes the full build pipeline.
 
 on:
@@ -34,4 +34,4 @@ jobs:
 
       - name: Run tests
         working-directory: followcursor
-        run: python -m pytest tests/ -x -v --ignore=tests/test_ai_service.py
+        run: python -m pytest tests/ -x -v

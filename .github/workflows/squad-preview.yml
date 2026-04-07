@@ -40,7 +40,7 @@ jobs:
 
       - name: Run tests
         working-directory: followcursor
-        run: python -m pytest tests/ -x -v --ignore=tests/test_ai_service.py
+        run: python -m pytest tests/ -x -v
 
       - name: Validate CHANGELOG has version entry
         shell: pwsh

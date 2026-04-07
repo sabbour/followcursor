@@ -34,7 +34,7 @@ jobs:
           $ver = python -c "exec(open('app/version.py').read()); print(__version__)"
           $sha = git rev-parse --short HEAD
           echo "APP_VERSION=$ver" >> $env:GITHUB_OUTPUT
-          echo "INSIDER_TAG=v$ver-insider.$sha" >> $env:GITHUB_OUTPUT
+          echo "INSIDER_TAG=insider-v$ver.$sha" >> $env:GITHUB_OUTPUT
           echo "INSIDER_VERSION=$ver-insider.$sha" >> $env:GITHUB_OUTPUT
 
       - name: Install dependencies
@@ -46,7 +46,7 @@ jobs:
 
       - name: Run tests
         working-directory: followcursor
-        run: python -m pytest tests/ -x -v --ignore=tests/test_ai_service.py
+        run: python -m pytest tests/ -x -v
 
       - name: Build with PyInstaller
         working-directory: followcursor
