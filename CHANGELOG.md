@@ -4,6 +4,23 @@ All notable changes to FollowCursor are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.11.0] — 2026-04-07
+
+### Added
+- **Mica/Acrylic backdrop** — Windows 11 Mica on the main window; Acrylic on the source picker dialog (requires Windows 11 22621+)
+- **Fluent 2 light theme** — full light theme with LIGHT_* design token set; press Ctrl+T to toggle dark/light at runtime
+- **FluentButton and FluentTabBar** — custom animated controls with Fluent 2 hover/press transitions and `fluentAnimated` property
+- **Editor panel layout polish** — 32px header, 4px-grid spacing, 320px width, SVG icons replacing emoji glyphs
+- **Fluent 2 spacing tokens** — filled gaps in `tokens.py` with the complete `SPACE_*` token set
+
+### Fixed
+- **QSlider handle** — 20px white circle matching Fluent 2 spec, using `T.FG_1` token
+- **Widget style gaps** — QCheckBox indeterminate gradient, QRadioButton radial dot
+- **Dark theme calibration** — aligned all neutral backgrounds to official Fluent 2 `colorNeutralBackground` values
+- **Section labels** — replaced all-caps text with sentence-case per Fluent 2 spec
+- **Source picker dialog** — aligned styling with Fluent 2
+- **Window thumbnail resolution** — increased capture resolution for sharper previews
+
 ## [0.10.0] — 2026-04-07
 
 ### Added
