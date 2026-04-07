@@ -455,3 +455,18 @@ FollowCursor's Phase 1 token system (created Jan 2026) introduced semantic color
    - Use `gh issue edit N --add-assignee @me` or set "in progress" label
 
 **Rationale:** User requests — these are workflow policies to prevent missed PR review feedback, ensure release planning visibility, and avoid duplicate work across parallel agent spawns.
+
+## Release Trigger Policy (asabbour, 2026-04-07)
+
+**Status:** Captured | **Type:** Development Workflow — Release Management
+
+### Directive
+
+Ralph should always trigger a release at the end of milestone work — defined as when the board is cleared (all PRs merged, no open issues).
+
+**Implementation:**
+- Ralph's work-check loop should invoke the `release` skill after confirming the board is clear
+- Release is the final step before entering idle-watch
+- This ensures milestone work naturally concludes with a versioned release for users
+
+**Rationale:** User request — provides a clear handoff point between milestone completion and release, enabling automated release workflow.
