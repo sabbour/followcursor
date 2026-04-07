@@ -3039,7 +3039,8 @@ class MainWindow(QMainWindow):
         """
         import winsound
         # Defensive copy to avoid race conditions with segment updates
-        segments_snapshot = list(self._voiceover_segments)
+        with self._vo_lock:
+            segments_snapshot = list(self._voiceover_segments)
         for seg in segments_snapshot:
             with self._vo_lock:
                 if seg.id in self._vo_played_ids:
@@ -3225,6 +3226,8 @@ class MainWindow(QMainWindow):
         for mp in self._mouse_track:
             if mp.timestamp >= seg.end_ms:
                 mp.timestamp -= gap
+        # Update the cached timestamp list
+        self._mouse_track_timestamps = [mp.timestamp for mp in self._mouse_track]
 
         # Retime frame timestamps after the deleted region
         if self._frame_timestamps:

@@ -17,15 +17,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 ### Changed
 
 - **Video exporter refactored** — decomposed 300+ line export thread into composable phases with `GeometryComputer` class and typed result dataclasses; 12 new geometry unit tests
+- **v0.7.1/v0.7.2 docs updated** — USER_GUIDE, ARCHITECTURE, CONTRIBUTING, and README updated with recording compression, DPAPI encryption, AI response caps, and dev signing changes
 
 ### Fixed
 
 - **Resource leaks** — cv2.VideoCapture now releases in try/finally blocks; ffmpeg subprocess cleanup uses deterministic stdin→wait→kill sequence; voiceover playback uses defensive copies to prevent thread races
 - **Keystroke security** — implemented filter_mode (all/modifiers-only/shortcuts-only) that was previously defined but ignored in the renderer; changed default from "all" to "shortcuts-only" to prevent password exposure; added security warning for "All Keys" mode
-
-### Documentation
-
-- **v0.7.1/v0.7.2 docs updated** — USER_GUIDE, ARCHITECTURE, CONTRIBUTING, and README updated with recording compression, DPAPI encryption, AI response caps, and dev signing changes
 
 ## [0.7.2] — 2026-03-28
 

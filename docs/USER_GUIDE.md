@@ -693,7 +693,7 @@ FollowCursor includes optional AI-powered features that use **Azure AI Foundry**
 6. Choose a **Voice** for TTS (alloy, echo, fable, onyx, nova, shimmer)
 7. Click **OK** — settings are saved automatically
 
-**Security Note:** Your API keys are encrypted using Windows DPAPI before being stored in the Windows Registry. They are decrypted on-demand when connecting to AI services and cleared from memory immediately after use. No plaintext credentials are written to disk.
+**Security Note:** Your API keys are encrypted using user-scoped Windows DPAPI before being stored in the Windows Registry (only the same Windows user on the same machine can decrypt them). Keys are stored in plaintext if DPAPI fails. They are decrypted only when needed for AI service connections.
 
 ### AI Smart Zoom
 

@@ -142,11 +142,11 @@ The active backend is shown in the status bar (`⚡ WGC` or `🖥 GDI`).
 ```mermaid
 flowchart LR
     WGC["WGC / GDI<br/><i>BGRA frames</i>"] -->|raw bytes| PIPE["ffmpeg stdin pipe"]
-    PIPE --> AVI["H.264 intermediate AVI<br/><i>CRF 18, ultrafast preset</i>"]
+    PIPE --> MP4["H.264 intermediate MP4<br/><i>CRF 18, ultrafast preset</i>"]
 ```
 
 - Frames are piped as raw BGRA bytes directly to ffmpeg's stdin
-- Intermediate format is **H.264** (CRF 18, ultrafast) inside AVI — balances speed and disk usage
+- Intermediate format is **H.264** (CRF 18, ultrafast) in MP4 container — balances speed and disk usage
   - Lossless huffyuv approach: ~50 GB/min for 4K recordings
   - H.264 intermediate: under 1 GB/min for 4K recordings
   - The intermediate video is not your final export — the full pipeline (zoom, pan, cursor, effects) is applied during export with your chosen quality settings
@@ -365,7 +365,7 @@ AI settings are persisted via `QSettings` under the `ai/` prefix:
 ```mermaid
 flowchart TD
     subgraph Phase 1 — Probe
-        SRC["Source AVI<br/><i>H.264 intermediate</i>"] --> PROBE["OpenCV VideoCapture<br/><i>probe FPS, frame count,<br/>recount if metadata/duration mismatch > 10%</i>"]
+        SRC["Source MP4<br/><i>H.264 intermediate</i>"] --> PROBE["OpenCV VideoCapture<br/><i>probe FPS, frame count,<br/>recount if metadata/duration mismatch > 10%</i>"]
     end
 
     subgraph Phase 2 — Precompute
@@ -580,7 +580,7 @@ flowchart LR
 | Finalizing a recording | "Processing…" | "Finalizing your recording" |
 | Loading a project file | "Loading project…" | "Extracting and restoring session" |
 
-When loading a `.fcproj` file, the heavy work (ZIP extraction, JSON deserialization, AVI copy) runs on a background `_LoadProjectWorker(QThread)` so the UI stays responsive. The overlay is shown before the worker starts and hidden when it emits its `finished` signal.
+When loading a `.fcproj` file, the heavy work (ZIP extraction, JSON deserialization, MP4 copy) runs on a background `_LoadProjectWorker(QThread)` so the UI stays responsive. The overlay is shown before the worker starts and hidden when it emits its `finished` signal.
 
 ---
 
@@ -615,7 +615,7 @@ block-beta
     columns 2
     block:zip["project.fcproj (ZIP)"]:2
         JSON["project.json\nsession metadata"]
-        AVI["recording.avi\nH.264 intermediate"]
+        AVI["recording.mp4\nH.264 intermediate"]
     end
 ```
 

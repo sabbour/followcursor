@@ -13,6 +13,7 @@ from PySide6.QtGui import (
     QFont,
     QMouseEvent,
     QWheelEvent,
+    QPolygonF,
 )
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QMenu, QScrollBar
 

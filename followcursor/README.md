@@ -206,8 +206,8 @@ To build locally before tagging, use the **Build** task (`Ctrl+Shift+B`) or the 
 
 FollowCursor protects your Azure AI Foundry API keys using Windows DPAPI (Data Protection API):
 
-- **At rest:** API keys stored in the Windows Registry are encrypted with your machine account credentials via DPAPI. No plaintext credentials are written to disk.
-- **In memory:** API keys are decrypted on-demand when connecting to AI services and cleared from memory once the connection completes.
+- **At rest:** API keys stored in the Windows Registry are encrypted with user-scoped DPAPI (only the same Windows user on the same machine can decrypt them). Keys are stored in plaintext if DPAPI fails.
+- **In memory:** API keys are decrypted only when needed for AI service connections.
 
 ### Temporary Files
 
