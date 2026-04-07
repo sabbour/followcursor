@@ -15,12 +15,10 @@ from PySide6.QtWidgets import (
     QFrame,
     QComboBox,
     QCheckBox,
-    QTextEdit,
     QLineEdit,
     QDialog,
     QDialogButtonBox,
     QFormLayout,
-    QApplication,
     QScrollArea,
 )
 
@@ -83,7 +81,7 @@ class _CollapsibleSection(QWidget):
 
         # Header button
         self._btn = QPushButton()
-        self._btn.setFixedHeight(28)
+        self._btn.setFixedHeight(32)
         self._btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self._btn.setStyleSheet(
             f"QPushButton {{ background: {T.BG_ELEVATED}; color: {T.FG_SECONDARY};"
@@ -227,7 +225,7 @@ class EditorPanel(QWidget):
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self.setObjectName("EditorPanel")
-        self.setFixedWidth(340)
+        self.setFixedWidth(320)
 
         # Outer layout: collapsible sections + fixed bottom bar
         outer = QVBoxLayout(self)
@@ -244,7 +242,7 @@ class EditorPanel(QWidget):
         scroll_content = QWidget()
         self._container = QVBoxLayout(scroll_content)
         self._container.setContentsMargins(0, T.SPACE_SM, 0, T.SPACE_SM)
-        self._container.setSpacing(0)
+        self._container.setSpacing(T.SPACE_LG)
         scroll.setWidget(scroll_content)
         outer.addWidget(scroll, 1)
 
@@ -257,7 +255,7 @@ class EditorPanel(QWidget):
         # ── Smart Zoom (collapsible) ─────────────────────────────────
         zoom_body = QWidget()
         zoom_lay = QVBoxLayout(zoom_body)
-        zoom_lay.setContentsMargins(T.SPACE_LG, T.SPACE_SM, T.SPACE_LG, T.SPACE_SM)
+        zoom_lay.setContentsMargins(T.SPACE_LG, T.SPACE_MD, T.SPACE_LG, T.SPACE_SM)
         zoom_lay.setSpacing(T.SPACE_SM)
 
         qa_desc = QLabel("Analyze activity to auto-generate zoom keyframes.")
@@ -285,7 +283,8 @@ class EditorPanel(QWidget):
         sens_row.addWidget(self._sensitivity_combo, 1)
         zoom_lay.addLayout(sens_row)
 
-        activity_btn = QPushButton("✨ Auto-generate zoom (local)")
+        activity_btn = QPushButton("Auto-generate zoom (local)")
+        activity_btn.setIcon(load_icon("gauge", color=T.FG_1))
         activity_btn.setObjectName("CtrlBtn")
         activity_btn.setFixedHeight(36)
         activity_btn.clicked.connect(self._auto_keyframe)
@@ -333,7 +332,7 @@ class EditorPanel(QWidget):
         # ── Chapters (collapsible) ───────────────────────────────────
         chapters_body = QWidget()
         chapters_lay = QVBoxLayout(chapters_body)
-        chapters_lay.setContentsMargins(T.SPACE_LG, T.SPACE_SM, T.SPACE_LG, T.SPACE_SM)
+        chapters_lay.setContentsMargins(T.SPACE_LG, T.SPACE_MD, T.SPACE_LG, T.SPACE_SM)
         chapters_lay.setSpacing(T.SPACE_SM)
 
         chapters_desc = QLabel("Add chapter markers for navigation\nin long recordings.")
@@ -367,7 +366,7 @@ class EditorPanel(QWidget):
         # ── Voiceover (collapsible) ──────────────────────────────────
         vo_body = QWidget()
         vo_lay = QVBoxLayout(vo_body)
-        vo_lay.setContentsMargins(T.SPACE_LG, T.SPACE_SM, T.SPACE_LG, T.SPACE_SM)
+        vo_lay.setContentsMargins(T.SPACE_LG, T.SPACE_MD, T.SPACE_LG, T.SPACE_SM)
         vo_lay.setSpacing(T.SPACE_SM)
 
         vo_desc = QLabel("Add text-to-speech voiceover segments\nat specific points in the timeline.")
@@ -393,7 +392,7 @@ class EditorPanel(QWidget):
         # ── Keystroke Overlay (collapsible) ──────────────────────────
         keystroke_body = QWidget()
         keystroke_lay = QVBoxLayout(keystroke_body)
-        keystroke_lay.setContentsMargins(T.SPACE_LG, T.SPACE_SM, T.SPACE_LG, T.SPACE_SM)
+        keystroke_lay.setContentsMargins(T.SPACE_LG, T.SPACE_MD, T.SPACE_LG, T.SPACE_SM)
         keystroke_lay.setSpacing(T.SPACE_SM)
 
         keystroke_desc = QLabel("Show keystrokes as floating overlays\nfor tutorial and demo recordings.")
@@ -479,7 +478,7 @@ class EditorPanel(QWidget):
         # ── Background picker (collapsible) ──────────────────────────
         bg_body = QWidget()
         bg_lay = QVBoxLayout(bg_body)
-        bg_lay.setContentsMargins(T.SPACE_LG, T.SPACE_SM, T.SPACE_LG, T.SPACE_SM)
+        bg_lay.setContentsMargins(T.SPACE_LG, T.SPACE_MD, T.SPACE_LG, T.SPACE_SM)
         bg_lay.setSpacing(T.SPACE_SM)
 
         self._bg_category_combo = QComboBox()
@@ -513,7 +512,7 @@ class EditorPanel(QWidget):
         # ── Frame picker (collapsible) ───────────────────────────────
         fr_body = QWidget()
         fr_lay = QVBoxLayout(fr_body)
-        fr_lay.setContentsMargins(T.SPACE_LG, T.SPACE_SM, T.SPACE_LG, T.SPACE_SM)
+        fr_lay.setContentsMargins(T.SPACE_LG, T.SPACE_MD, T.SPACE_LG, T.SPACE_SM)
         fr_lay.setSpacing(T.SPACE_SM)
 
         self._frame_combo = QComboBox()
@@ -531,7 +530,7 @@ class EditorPanel(QWidget):
         # ── Click effect picker (collapsible) ────────────────────────
         click_body = QWidget()
         click_lay = QVBoxLayout(click_body)
-        click_lay.setContentsMargins(T.SPACE_LG, T.SPACE_SM, T.SPACE_LG, T.SPACE_SM)
+        click_lay.setContentsMargins(T.SPACE_LG, T.SPACE_MD, T.SPACE_LG, T.SPACE_SM)
         click_lay.setSpacing(T.SPACE_SM)
 
         self._click_combo = QComboBox()
@@ -549,7 +548,7 @@ class EditorPanel(QWidget):
         # ── Annotations (collapsible) ────────────────────────────────
         annot_body = QWidget()
         annot_lay = QVBoxLayout(annot_body)
-        annot_lay.setContentsMargins(T.SPACE_LG, T.SPACE_SM, T.SPACE_LG, T.SPACE_SM)
+        annot_lay.setContentsMargins(T.SPACE_LG, T.SPACE_MD, T.SPACE_LG, T.SPACE_SM)
         annot_lay.setSpacing(T.SPACE_SM)
 
         annot_desc = QLabel("Add text, arrows, and highlights to emphasize key moments.")
@@ -605,7 +604,7 @@ class EditorPanel(QWidget):
         # ── Output dimensions (collapsible) ──────────────────────────
         dim_body = QWidget()
         dim_lay = QVBoxLayout(dim_body)
-        dim_lay.setContentsMargins(T.SPACE_LG, T.SPACE_SM, T.SPACE_LG, T.SPACE_SM)
+        dim_lay.setContentsMargins(T.SPACE_LG, T.SPACE_MD, T.SPACE_LG, T.SPACE_SM)
         dim_lay.setSpacing(T.SPACE_SM)
 
         self._dim_combo = QComboBox()
@@ -633,7 +632,7 @@ class EditorPanel(QWidget):
             f"background: {T.BG_SURFACE}; border-top: 1px solid {T.BORDER_SUBTLE};"
         )
         bottom_layout = QVBoxLayout(bottom_bar)
-        bottom_layout.setContentsMargins(T.SPACE_LG, T.SPACE_SM, T.SPACE_LG, T.SPACE_SM)
+        bottom_layout.setContentsMargins(T.SPACE_LG, T.SPACE_MD, T.SPACE_LG, T.SPACE_SM)
         bottom_layout.setSpacing(T.SPACE_XS)
 
         # Undo / Redo row
@@ -658,7 +657,12 @@ class EditorPanel(QWidget):
         info_row = QHBoxLayout()
         info_row.setSpacing(T.SPACE_SM)
 
-        self._info_label = QLabel("ℹ️")
+        self._info_label = QLabel()
+        _info_icon = load_icon("info", color=T.FG_MUTED)
+        if not _info_icon.isNull():
+            self._info_label.setPixmap(_info_icon.pixmap(16, 16))
+        else:
+            self._info_label.setText("ℹ")
         self._info_label.setObjectName("Secondary")
         self._info_label.setToolTip("Duration: 0:00\nMouse samples: 0\nKeyframes: 0")
         self._info_label.setCursor(Qt.CursorShape.WhatsThisCursor)
@@ -705,7 +709,7 @@ class EditorPanel(QWidget):
 
     def _show_settings_menu(self) -> None:
         """Show settings popup menu from the cog button."""
-        from PySide6.QtWidgets import QMenu, QWidgetAction
+        from PySide6.QtWidgets import QMenu
         menu = QMenu(self)
         menu.setStyleSheet(
             f"QMenu {{ background: {T.BG_INTERACTIVE}; color: {T.FG_PRIMARY};"
@@ -1382,10 +1386,20 @@ class EditorPanel(QWidget):
         item_layout.setContentsMargins(T.SPACE_SM, T.SPACE_XS, T.SPACE_SM, T.SPACE_XS)
         item_layout.setSpacing(T.SPACE_SM)
 
-        # Type icon
-        icon_map = {"text": "📝", "arrow": "➡️", "highlight": "🔆"}
-        icon_label = QLabel(icon_map.get(annot_type, "•"))
+        # Type icon — prefer Fluent icon, fall back to emoji glyph
+        _annot_icon_names = {
+            "text": "text_description",
+            "arrow": "arrow_right",
+            "highlight": "highlight",
+        }
+        _annot_emoji_fallback = {"text": "📝", "arrow": "➡️", "highlight": "🔆"}
+        icon_label = QLabel()
         icon_label.setFixedWidth(20)
+        _annot_icon = load_icon(_annot_icon_names.get(annot_type, "add"), color=T.FG_2)
+        if not _annot_icon.isNull():
+            icon_label.setPixmap(_annot_icon.pixmap(16, 16))
+        else:
+            icon_label.setText(_annot_emoji_fallback.get(annot_type, "•"))
         item_layout.addWidget(icon_label)
 
         # Description
