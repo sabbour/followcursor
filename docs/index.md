@@ -22,7 +22,7 @@ Record your screen or any individual window, then export a polished MP4 or GIF w
 
     ---
 
-    Auto-detect typing bursts and click clusters to generate cinematic zoom keyframes — or let AI analyze your recording like a professional cameraman.
+    Auto-detect typing bursts and click clusters to generate cinematic zoom keyframes — or let AI analyze your recording like a professional cameraman. Add **pan path points** to smoothly guide the camera between areas while staying zoomed in.
 
 -   :fluent-mic_20_regular: **AI Voiceover**
 
@@ -34,19 +34,19 @@ Record your screen or any individual window, then export a polished MP4 or GIF w
 
     ---
 
-    84 background presets, 5 device frame styles, annotations (text, arrows, highlights), click effects, and keystroke overlays.
+    84 background presets, 5 device frame styles, annotations (text, arrows, highlights), click effects, keystroke overlays, and padding controls.
 
 -   :fluent-video_20_regular: **Cinematic Export**
 
     ---
 
-    H.264 MP4 with GPU acceleration (NVENC, QuickSync, AMF) or GIF with palette-based encoding. Cursor, click ripples, and voiceover baked in.
+    H.264 MP4 with GPU acceleration (NVENC, QuickSync, AMF) or GIF with palette-based encoding. Cursor, click ripples, keystroke overlay, annotations, and voiceover baked in. Auto-detected and manual **chapter markers** embedded in MP4 metadata.
 
 -   :fluent-save_20_regular: **Project Files**
 
     ---
 
-    Save and resume work with `.fcproj` bundles. Full undo/redo, trimming, segment deletion, and chapter markers.
+    Save and resume work with `.fcproj` bundles. Full undo/redo, trimming, **ripple segment deletion**, and chapter markers.
 
 </div>
 
@@ -56,7 +56,7 @@ Record your screen or any individual window, then export a polished MP4 or GIF w
 
 New here? Follow the **[Quickstart Guide](QUICKSTART.md)** to record, edit, and export your first video in under 5 minutes.
 
-Looking for every option and feature? Read the **[User Guide](USER_GUIDE.md)**.
+Looking for every option and feature? Browse the **[User Guide](user-guide/recording.md)**.
 
 Want to contribute? See the **[Contributing Guide](CONTRIBUTING.md)** for dev setup, coding conventions, and how to submit changes.
 

@@ -224,6 +224,6 @@ Export renders every frame with zoom, cursor, click effects, keystroke overlay, 
 
 ## Next Steps
 
-- Read the **[User Guide](USER_GUIDE.md)** for the complete feature reference
+- Read the **[User Guide](user-guide/recording.md)** for the complete feature reference
 - Read the **[Architecture Guide](ARCHITECTURE.md)** to understand the codebase
 - Read the **[Contributing Guide](CONTRIBUTING.md)** to start developing

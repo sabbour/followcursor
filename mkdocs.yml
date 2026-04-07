@@ -53,7 +53,15 @@ markdown_extensions:
 nav:
   - Home: index.md
   - Getting Started: QUICKSTART.md
-  - User Guide: USER_GUIDE.md
+  - User Guide:
+    - Recording: user-guide/recording.md
+    - Zoom & Pan: user-guide/zoom.md
+    - Visual Customization: user-guide/customization.md
+    - Annotations & Overlays: user-guide/annotations.md
+    - AI Features: user-guide/ai.md
+    - Export: user-guide/export.md
+    - Project Files: user-guide/projects.md
+    - Keyboard Shortcuts: user-guide/shortcuts.md
   - Architecture: ARCHITECTURE.md
   - Contributing: CONTRIBUTING.md
 
