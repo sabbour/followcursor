@@ -3,7 +3,7 @@
 import math
 from typing import List
 
-from PySide6.QtCore import Qt, Signal, QRectF, QPointF
+from PySide6.QtCore import Qt, Signal, QRectF, QPointF, QSize
 from PySide6.QtGui import (
     QPainter,
     QColor,
@@ -306,9 +306,10 @@ class _TimelineTrack(QWidget):
             self.update()
             menu = QMenu(self)
             menu.setStyleSheet(self._MENU_STYLE)
-            edit_act = menu.addAction("  Edit voiceover")
+            edit_act = menu.addAction("Edit voiceover")
+            edit_act.setIcon(load_icon("edit", color=T.FG_PRIMARY))
             edit_act.triggered.connect(lambda: self.voiceover_clicked.emit(vo_id))
-            del_act = menu.addAction("  Delete voiceover")
+            del_act = menu.addAction("Delete voiceover")
             del_act.setIcon(load_icon("delete", color=T.DANGER))
             del_act.triggered.connect(lambda: self._delete_selected_voiceover())
             menu.exec(self.mapToGlobal(pos))
@@ -1407,6 +1408,7 @@ class TimelineWidget(QWidget):
         # play/pause
         self._play_btn = QPushButton()
         self._play_btn.setIcon(load_icon("play", variant="filled", color=T.BRAND))
+        self._play_btn.setIconSize(QSize(20, 20))
         self._play_btn.setObjectName("PlayBtn")
         self._play_btn.setToolTip("Play / Pause")
         self._play_btn.clicked.connect(self._on_play_pause)

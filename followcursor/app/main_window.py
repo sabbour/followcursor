@@ -9,7 +9,7 @@ from typing import Optional, List
 
 logger = logging.getLogger(__name__)
 
-from PySide6.QtCore import Qt, QTimer, QSettings, QByteArray, QEvent, QThread, Signal as CoreSignal
+from PySide6.QtCore import Qt, QTimer, QSettings, QByteArray, QEvent, QThread, Signal as CoreSignal, QSize
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import (
     QMainWindow,
@@ -27,6 +27,7 @@ from PySide6.QtWidgets import (
     QSystemTrayIcon,
     QMessageBox,
     QDialog,
+    QToolButton,
 )
 
 from .models import (
@@ -1036,9 +1037,12 @@ class MainWindow(QMainWindow):
         return sidebar
 
     @staticmethod
-    def _make_sidebar_btn(icon: QIcon, label: str, active: bool = False) -> QPushButton:
-        btn = QPushButton(f"\n{label}")
+    def _make_sidebar_btn(icon: QIcon, label: str, active: bool = False) -> QToolButton:
+        btn = QToolButton()
         btn.setIcon(icon)
+        btn.setIconSize(QSize(20, 20))
+        btn.setText(label)
+        btn.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextUnderIcon)
         btn.setObjectName("SidebarBtnActive" if active else "SidebarBtn")
         btn.setToolTip(label)
         return btn
@@ -1068,10 +1072,6 @@ class MainWindow(QMainWindow):
         layout = QVBoxLayout(w)
         layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.setSpacing(14)
-        icon = QLabel("🖥")
-        icon.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        icon.setStyleSheet("font-size: 40px; background: transparent;")
-        layout.addWidget(icon)
         text = QLabel("Click to select a screen")
         text.setAlignment(Qt.AlignmentFlag.AlignCenter)
         text.setStyleSheet("color: #b0aec4; font-size: 15px; font-weight: 500; background: transparent;")
@@ -1090,7 +1090,8 @@ class MainWindow(QMainWindow):
         layout.setSpacing(12)
         layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
-        self._btn_change_source = QPushButton("🖥  Change Screen")
+        self._btn_change_source = QPushButton("  Change Screen")
+        self._btn_change_source.setIcon(load_icon("desktop", color=T.FG_PRIMARY))
         self._btn_change_source.setObjectName("CtrlBtn")
         self._btn_change_source.clicked.connect(self._select_source)
         self._btn_change_source.setVisible(False)
@@ -1101,7 +1102,8 @@ class MainWindow(QMainWindow):
         self._btn_record.clicked.connect(self._start_recording)
         self._btn_record.setVisible(False)
 
-        self._btn_stop = QPushButton("◼  Stop Recording")
+        self._btn_stop = QPushButton("  Stop Recording")
+        self._btn_stop.setIcon(load_icon("stop", variant="filled", color=T.DANGER))
         self._btn_stop.setObjectName("StopBtn")
         self._btn_stop.clicked.connect(self._stop_recording)
         self._btn_stop.setVisible(False)
@@ -1133,7 +1135,8 @@ class MainWindow(QMainWindow):
         self._status_text.setTextFormat(Qt.TextFormat.RichText)
         self._status_text.setOpenExternalLinks(False)
         left.addWidget(self._status_text)
-        self._btn_clipchamp = QPushButton("📂  Show in folder")
+        self._btn_clipchamp = QPushButton("  Show in folder")
+        self._btn_clipchamp.setIcon(load_icon("folder_open", color=T.FG_PRIMARY))
         self._btn_clipchamp.setObjectName("CtrlBtn")
         self._btn_clipchamp.setVisible(False)
         self._btn_clipchamp.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -2250,9 +2253,9 @@ class MainWindow(QMainWindow):
         if backend == "WGC":
             label = "⚡ WGC"
         elif backend == "GDI":
-            label = "🖥 GDI"
+            label = "GDI"
         else:
-            label = f"🖥 {backend}"
+            label = backend
         self._capture_mode_label.setText(label)
         self._capture_mode_label.setVisible(True)
         logger.info("Capture backend: %s", backend)
@@ -2466,7 +2469,8 @@ class MainWindow(QMainWindow):
         menu.addSeparator()
 
         # ── Speed submenu ───────────────────────────────────────────
-        speed_menu = menu.addMenu("⏩  Speed")
+        speed_menu = menu.addMenu("  Speed")
+        speed_menu.setIcon(load_icon("gauge", color=T.FG_PRIMARY))
         speed_menu.setStyleSheet(menu.styleSheet())
         current_speed = target_kf.speed
         # 0.5, 0.75, 1.0, 1.25, 1.5, ... 10.0 in 0.25 steps
@@ -2485,7 +2489,8 @@ class MainWindow(QMainWindow):
         menu.addSeparator()
 
         # Centroid repositioning
-        centroid_act = menu.addAction("📍  Pick zoom center on preview\u2026")
+        centroid_act = menu.addAction("  Pick zoom center on preview\u2026")
+        centroid_act.setIcon(load_icon("location", color=T.FG_PRIMARY))
         centroid_act.triggered.connect(
             lambda: self._enter_centroid_pick(start_kf_id)
         )
@@ -2621,12 +2626,13 @@ class MainWindow(QMainWindow):
             "QMenu::separator { height: 1px; background: #3d3a58; margin: 4px 8px; }"
         )
 
-        header = menu.addAction(f"📌  Pan point {pp_number}")
+        header = menu.addAction(f"Pan point {pp_number}")
         header.setEnabled(False)
         menu.addSeparator()
 
         # Pick center on preview
-        pick_act = menu.addAction("📍  Pick center on preview\u2026")
+        pick_act = menu.addAction("  Pick center on preview\u2026")
+        pick_act.setIcon(load_icon("location", color=T.FG_PRIMARY))
         pick_act.triggered.connect(lambda: self._enter_centroid_pick(pan_kf_id))
 
         # Move earlier / later (reorder)

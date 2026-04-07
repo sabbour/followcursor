@@ -56,7 +56,7 @@ class TitleBar(QWidget):
         layout.addWidget(self._btn_export)
 
         self._btn_discard = QPushButton("  Discard")
-        self._btn_discard.setIcon(load_icon("delete", color=T.FG_PRIMARY))
+        self._btn_discard.setIcon(load_icon("delete", color=T.DANGER_TEXT))
         self._btn_discard.setObjectName("DiscardBtn")
         self._btn_discard.clicked.connect(self.discard_clicked.emit)
         self._btn_discard.setVisible(False)

@@ -1,11 +1,10 @@
 """Icon loader for Fluent UI System Icons with theme-aware coloring."""
 
 import logging
-import os
 from typing import Dict, Optional
 from pathlib import Path
 
-from PySide6.QtCore import QByteArray, QSize
+from PySide6.QtCore import QByteArray, QSize, QRectF
 from PySide6.QtGui import QIcon, QPixmap, QPainter, QColor
 from PySide6.QtSvg import QSvgRenderer
 
@@ -74,7 +73,7 @@ def load_icon(
         pixmap.fill(QColor(0, 0, 0, 0))  # Transparent background
         
         painter = QPainter(pixmap)
-        renderer.render(painter)
+        renderer.render(painter, QRectF(0, 0, size, size))
         painter.end()
 
         # Create icon from pixmap
@@ -85,8 +84,8 @@ def load_icon(
         
         return icon
 
-    except Exception as e:
-        logger.error(f"Failed to load icon {name}: {e}")
+    except Exception:
+        logger.exception(f"Failed to load icon {name}")
         return QIcon()
 
 
