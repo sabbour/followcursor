@@ -258,17 +258,13 @@ SHADOW_LAYER_4_AMBIENT: str = "rgba(0, 0, 0, 0.24)"  # unused (see SHADOW_LAYER_
 SHADOW_LAYER_5_BLUR: int = 28
 SHADOW_LAYER_5_OFFSET_Y: int = 14
 SHADOW_LAYER_5_KEY: str = "rgba(0, 0, 0, 0.28)"
-SHADOW_LAYER_5_AMBIENT_BLUR: int = 8
-SHADOW_LAYER_5_AMBIENT_OFFSET_Y: int = 2
 SHADOW_LAYER_5_AMBIENT: str = "rgba(0, 0, 0, 0.20)"  # unused (see SHADOW_LAYER_2_AMBIENT note)
 
 # Shadow Layer 6 (Shadow64) — High z-index flyouts
 SHADOW_LAYER_6_BLUR: int = 64
 SHADOW_LAYER_6_OFFSET_Y: int = 32
 SHADOW_LAYER_6_KEY: str = "rgba(0, 0, 0, 0.28)"
-SHADOW_LAYER_6_AMBIENT_BLUR: int = 16
-SHADOW_LAYER_6_AMBIENT_OFFSET_Y: int = 4
-SHADOW_LAYER_6_AMBIENT: str = "rgba(0, 0, 0, 0.24)"  # unused (see SHADOW_LAYER_2_AMBIENT note)
+
 
 # Material effects — subtle transparency for overlays (acrylic-inspired)
 MATERIAL_OVERLAY_ALPHA: float = 0.92  # backdrop opacity

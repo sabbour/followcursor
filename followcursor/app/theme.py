@@ -235,7 +235,7 @@ QSlider::groove:horizontal {{
     border-radius: 2px;
 }}
 QSlider::handle:horizontal {{
-    background: #ffffff;
+    background: {T.FG_1};
     border: none;
     width: 20px;
     height: 20px;
@@ -243,7 +243,7 @@ QSlider::handle:horizontal {{
     border-radius: 10px;
 }}
 QSlider::handle:horizontal:hover {{
-    background: #ffffff;
+    background: {T.FG_1};
     width: 22px;
     height: 22px;
     margin: -9px 0;
