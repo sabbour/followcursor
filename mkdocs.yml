@@ -1,6 +1,6 @@
 site_name: FollowCursor
 site_description: Windows screen recorder with cinematic cursor-following zoom
-site_url: https://sabbour.github.io/followcursor/
+site_url: https://sabbour.me/followcursor
 repo_url: https://github.com/sabbour/followcursor
 repo_name: sabbour/followcursor
 
@@ -23,8 +23,25 @@ theme:
     - navigation.tabs
     - navigation.sections
     - navigation.expand
+    - navigation.top
     - search.suggest
+    - search.highlight
     - content.code.copy
+    - content.tabs.link
+  icon:
+    repo: fontawesome/brands/github
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - attr_list
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
 
 nav:
   - Home: index.md

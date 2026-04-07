@@ -7,11 +7,14 @@ Record your screen or any individual window, then export a polished MP4 video wh
 ![FollowCursor screenshot](../screenshot.png)
 
 > **New here?** Jump to the [Quickstart Guide](../docs/QUICKSTART.md) to get recording in under 5 minutes.
+>
+> **📖 Full documentation:** [sabbour.me/followcursor](https://sabbour.me/followcursor)
 
 ## Documentation
 
 | Document | Description |
 | -------- | ----------- |
+| [**Documentation Site**](https://sabbour.me/followcursor) | Full docs site with search and navigation |
 | [User Guide](../docs/USER_GUIDE.md) | Complete feature reference — every feature explained |
 | [Quickstart Guide](../docs/QUICKSTART.md) | Install, record, edit, export — step by step |
 | [Architecture Guide](../docs/ARCHITECTURE.md) | How the codebase works: data flow, zoom engine, capture pipeline |

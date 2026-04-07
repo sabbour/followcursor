@@ -1,191 +1,229 @@
-# FollowCursor — Quickstart Guide
+# Getting Started
 
 Get up and running in under 5 minutes.
 
 ---
 
-## 1. Prerequisites
+## 1. Installation
+
+### Option A: Download a release (recommended)
+
+Download the latest .msix installer or portable .zip from the [GitHub Releases](https://github.com/sabbour/followcursor/releases) page. The MSIX installer is signed and can be double-clicked to install on Windows 10/11.
+
+### Option B: Run from source
+
+**Prerequisites:**
 
 | Requirement | Notes |
 | ----------- | ----- |
 | **Windows 10 (build 1903+) or Windows 11** | Required for Windows Graphics Capture API |
-| **Python 3.10 or newer** | [Download](https://www.python.org/downloads/) — check **"Add to PATH"** during install. **ARM64 Windows:** install the **x64** edition (not ARM64). |
-| **ffmpeg** | Bundled automatically via `imageio-ffmpeg` — no manual install needed |
+| **Python 3.10 or newer** | [Download](https://www.python.org/downloads/) — check **Add to PATH** during install |
+| **ffmpeg** | Bundled automatically via imageio-ffmpeg — no manual install needed |
 
-## 2. Install & Launch
+!!! warning "ARM64 Windows"
+    Install the **x64** edition of Python, not ARM64. Many dependencies (OpenCV, windows-capture) don''t have ARM64 wheels. x64 Python runs fine via emulation.
 
-### Option A: One-command setup (recommended)
+**One-command setup:**
 
-Open a terminal in the `followcursor/` folder and run:
+`powershell
+cd followcursor
+.\scripts\Start-Dev.ps1
+`
 
-```bat
-dev.bat
-```
+This creates a virtual environment, installs all dependencies, and launches the app.
 
-This will:
+**Manual setup:**
 
-1. Create a Python virtual environment (`.venv/`)
-2. Install all dependencies from `requirements.txt`
-3. Launch the app
-
-### Option B: Manual setup
-
-```bat
+`powershell
 cd followcursor
 python -m venv .venv
-.venv\Scripts\activate
+.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 python main.py
-```
+`
 
 ### Option C: VS Code
 
 1. Open the repo root in VS Code
 2. Press **F5** to launch with the debugger attached
-3. Or press **Ctrl+Shift+B** to build a standalone `.exe`
+3. Or press **Ctrl+Shift+B** to build a standalone .exe
 
 ---
 
-## 3. Record Your First Video
+## 2. Record Your First Video
 
 ### Step 1 — Pick a source
 
-Click the **⏺ Record** button in the sidebar, then click **Select Source**.
+Click **Select Source** in the sidebar to open the Source Picker.
 
-- **Screens tab** — pick a monitor to capture the full display
-- **Windows tab** — pick a specific window (captured without bleed-through from other windows)
+| Tab | What it captures | Method |
+| --- | ---------------- | ------ |
+| **Screens** | An entire monitor | Windows Graphics Capture (hardware-accelerated) |
+| **Windows** | A single application window | Win32 PrintWindow (no bleed-through) |
+
+Each option shows a live thumbnail so you can confirm the correct source.
 
 ### Step 2 — Start recording
 
-Click the red **⏺ Start Recording** button. A 3-second countdown appears, then:
+Click the red **Start Recording** button. A **3-second countdown** (3, 2, 1) gives you time to switch to the target app. Then:
 
-- The app minimizes to the system tray
-- A subtle red border pulses around the captured area
-- Mouse position (60 Hz), keyboard events, and clicks are tracked
+- The app minimizes to the **system tray**
+- A subtle **red border** pulses around the captured area
+- **Mouse position** (60 Hz), **keyboard events**, and **clicks** are tracked
 
-> **Tip:** Press **Ctrl+Shift+=** during recording to zoom in at the cursor, or **Ctrl+Shift+-** to zoom back out. These are global hotkeys that work from any app.
+!!! tip "Live zoom hotkeys"
+    Press **Ctrl+Shift+=** during recording to zoom in at the cursor, or **Ctrl+Shift+-** to zoom back out. These are global hotkeys — they work from any app.
 
 ### Step 3 — Stop recording
 
-Press **Ctrl+Shift+R** or right-click the tray icon → **Stop Recording**.
+Press **Ctrl+Shift+R** (global hotkey) or right-click the tray icon and select **Stop Recording**.
 
-The app restores from the tray and switches to the **Edit** view.
+The app restores and switches to the **Edit** view with your recording loaded.
 
 ---
 
-## 4. Edit & Add Zoom
+## 3. Edit & Add Zoom
 
 ### Auto-generate zoom keyframes
 
 1. In the **Editor Panel** (right side), find the **SMART ZOOM** section
 2. Choose a sensitivity: **Low** (few zooms), **Medium**, or **High** (many zooms)
-3. Click **✨ Auto-generate zoom keyframes**
+3. Click **Auto-generate zoom keyframes**
 
-The analyzer detects two types of activity:
+The analyzer detects:
 
-- **Typing bursts** — mouse is still while keys are pressed (uses keystroke cursor position for accuracy)
-- **Click clusters** — one or more clicks in a short window (highest priority; spatially close clusters stay zoomed in)
+- **Typing bursts** — mouse is still while keys are pressed, zooms into the typing area
+- **Click clusters** — clicks in a short window, zooms into the click region (highest priority)
+
+Spatially close activity is merged into sustained zooms, and consecutive clusters are chained — the camera pans between them instead of zooming out and back in.
 
 ### Add manual zoom
 
-- **Right-click the preview** → **🔍 Add Zoom here** — places a zoom keyframe at the clicked position
-- **Editor panel** → **🔍 Add Zoom** — adds a keyframe at the current playback position
+- **Right-click the preview** to add a zoom at the clicked position
+- **Press Z** to insert a keyframe at the playhead position
+- **Editor panel** click **Add Zoom** to add at the current playback position
 
 ### Edit zoom segments
 
-- **Right-click a zoom segment** on the timeline to:
-  - Set depth: Subtle (1.25×), Medium (1.5×), Close (2×), Detail (2.5×)
-  - **📍 Set centroid** — click the preview to reposition the zoom center
-  - **🗑 Delete zoom section**
-- **Drag segment edges** to resize the zoom duration
-- **Drag the segment body** to move the entire zoom in time
+| Interaction | What it does |
+| ----------- | ------------ |
+| Right-click a segment | Set depth (Subtle 1.25x, Medium 1.5x, Close 2x, Detail 2.5x), set centroid, or delete |
+| Drag a segment edge | Resize the zoom duration |
+| Drag the segment body | Move the zoom to a different time |
+| Set centroid | Click the preview to reposition where the camera focuses |
 
-### Customize the look
+### Add pan path points
+
+While viewing a zoom segment, right-click the preview and select **Add pan point here** to create smooth panning within the zoomed view. Pan points show as numbered yellow markers on the timeline.
+
+---
+
+## 4. Customize the Look
 
 | Setting | Options |
 | ------- | ------- |
-| **Background** | 84 presets in 3 categories — Solid (39) · Gradient (37) · Pattern (8: wavy) |
-| **Device Frame** | Wide Bezel · Slim Bezel · Thin Border · Shadow Only · No Frame |
-| **Output Size** | Auto · 16:9 · 3:2 · 4:3 · 1:1 · 9:16 |
+| **Background** | 84 presets in 3 categories — Solid (39), Gradient (37), Pattern (8: wavy) |
+| **Device Frame** | Wide Bezel, Slim Bezel, Thin Border, Shadow Only, No Frame |
+| **Output Size** | Auto, 16:9, 3:2, 4:3, 1:1, 9:16 |
+| **Click Effects** | 8 presets — Subtle Purple, Bold Red, Neon Cyan, and more |
+| **Keystroke Overlay** | Show keyboard shortcuts during playback (3 filter modes) |
+| **Annotations** | Add text labels, arrows, and highlight boxes |
 
 ### Trim the recording
 
-Drag the **yellow trim handles** at the edges of the timeline to cut unwanted content from the start or end. The trimmed region is dimmed, and only the trimmed portion is exported.
+Drag the **yellow trim handles** at the timeline edges to cut unwanted content. Only the trimmed portion is exported. Right-click a handle and select **Reset trim** to undo.
 
 ### Undo & Redo
 
-- **Ctrl+Z** to undo the last zoom keyframe change
-- **Ctrl+Shift+Z** or **Ctrl+Y** to redo
-- Or use the **↩ Undo** / **Redo ↪** buttons at the bottom of the editor panel
+- **Ctrl+Z** to undo, **Ctrl+Shift+Z** or **Ctrl+Y** to redo
+- Up to **50 levels** of undo history
 
 ---
 
 ## 5. Export
 
-Click **⬆ Export** in the title bar.
+Click **Export** in the title bar.
 
-- Choose a destination folder and filename
-- Export renders every frame with zoom, cursor overlay, click ripple effects, device bezel, and background
-- Output: H.264 MP4 at CRF 18 equivalent quality (GPU-accelerated encoding when available, software fallback)
+| Format | Extension | Best for |
+| ------ | --------- | -------- |
+| **MP4 Video** | .mp4 | Sharing, uploading, presentations |
+| **GIF Animation** | .gif | GitHub READMEs, Markdown docs, Slack |
+
+- **MP4** — H.264 at CRF 18 quality. GPU-accelerated encoding (NVENC, QuickSync, AMF) is auto-detected with software fallback.
+- **GIF** — 15 fps, 256-color palette with Bayer dithering for smooth color transitions.
+
+Export renders every frame with zoom, cursor, click effects, keystroke overlay, annotations, device bezel, and background.
 
 ---
 
-## 6. Save & Resume Later
+## 6. Save & Resume
 
-- **Ctrl+S** or **File → Save Project** — saves a `.fcproj` file (ZIP bundle containing the raw video + all metadata). Re-saves to the same file if previously saved.
-- **File → Open Project** — load a `.fcproj` to continue editing
-- The title bar shows the current project name and a **●** indicator when there are unsaved changes
-- Closing the app with unsaved changes prompts a **Save / Don’t Save / Cancel** confirmation
+- **Ctrl+S** — saves a .fcproj file (ZIP bundle with raw video + all metadata + voiceover audio)
+- Re-saving is near-instant — only metadata is updated, the video is never re-copied
+- The title bar shows the project name and a dot indicator for unsaved changes
+- Closing with unsaved changes prompts **Save / Don''t Save / Cancel**
 
 ---
 
 ## Keyboard Shortcuts
 
+### Global Hotkeys (work from any application)
+
 | Shortcut | Action |
 | -------- | ------ |
-| `Ctrl+Shift+R` | Start/stop recording (global — works from any app) |
-| `Ctrl+Shift+=` | Zoom in at cursor position (during recording) |
-| `Ctrl+Shift+-` | Zoom out to 1.0× (during recording) |
-| Right-click zoom segment | Edit depth / centroid / delete |
-| Right-click video segment | Delete segment |
-| Right-click preview | Add zoom at click position |
-| Drag segment edge | Resize zoom duration |
-| Drag segment body | Move zoom in time |
-| Click event dot | Select click event |
-| `Delete` | Remove selected zoom segment, video segment, or click event |
-| `Ctrl+Z` | Undo last zoom/click/segment change |
-| `Ctrl+Shift+Z` / `Ctrl+Y` | Redo last undone change |
-| `Space` | Play / Pause |
-| `Z` | Insert zoom keyframe at playhead |
-| `⏮` / `⏭` | Skip to start / end |
+| Ctrl+Shift+R | Start or stop recording |
+| Ctrl+Shift+= | Zoom in at cursor position (during recording) |
+| Ctrl+Shift+- | Zoom out to 1.0x (during recording) |
+
+### Editor Shortcuts
+
+| Shortcut | Action |
+| -------- | ------ |
+| Space | Play / Pause |
+| Z | Insert zoom keyframe at playhead |
+| Delete | Remove selected zoom segment, video segment, or click event |
+| Ctrl+Z | Undo |
+| Ctrl+Shift+Z / Ctrl+Y | Redo |
+| Ctrl+S | Save project |
+
+### Mouse Interactions
+
+| Interaction | Where | Action |
+| ----------- | ----- | ------ |
+| Left-click | Timeline | Seek to that time |
+| Left-click | Zoom segment | Select segment |
+| Left-click | Click event dot | Select click event |
+| Right-click | Preview | Add zoom at click position |
+| Right-click | Timeline (empty) | Add zoom or voiceover |
+| Right-click | Zoom segment | Depth / centroid / delete |
+| Drag edge | Zoom segment | Resize duration |
+| Drag body | Zoom segment | Move in time |
+| Drag handle | Timeline edge | Set trim start/end |
 
 ---
 
 ## Troubleshooting
 
-### "No monitors found" or blank thumbnails
+### No monitors found or blank thumbnails
 
-- Make sure you're running on Windows 10 build 1903+ or Windows 11
-- Some Remote Desktop sessions don't support Windows Graphics Capture — if WGC fails, the app falls back to GDI capture automatically
+- Make sure you are running on Windows 10 build 1903+ or Windows 11
+- Some Remote Desktop sessions don''t support WGC — the app falls back to GDI capture automatically
 
-### Recording is laggy or dropped frames
+### Recording is laggy
 
 - Close unnecessary apps to free GPU resources
-- WGC (Windows Graphics Capture) is hardware-accelerated and should be smooth on most systems; check the status bar for "⚡ WGC" confirmation
+- Check the status bar for WGC confirmation — WGC is hardware-accelerated and should be smooth
 
 ### Export takes a long time
 
-- Export renders every frame with zoom/cursor/bezel — this can be intensive
-- If a GPU encoder is available (NVENC, QuickSync, AMF), it's auto-selected for faster exports. Check **⚙ Settings → Video encoder** to verify
-- Progress is shown in the title bar's Export button
-
-### Red recording border not visible
-
-- The border draws inside the monitor bounds. On multi-monitor setups, it should be visible on the captured monitor. If you're recording a window (not a full monitor), no border is shown.
+- If a GPU encoder is available, it is auto-selected for faster exports
+- Check **Settings, Video encoder** to verify which encoder is active
+- Progress is shown in the title bar Export button
 
 ---
 
 ## Next Steps
 
-- Read the [Architecture Guide](ARCHITECTURE.md) to understand how the codebase is structured
-- Read the [Contributing Guide](CONTRIBUTING.md) to set up a development environment
+- Read the **[User Guide](USER_GUIDE.md)** for the complete feature reference
+- Read the **[Architecture Guide](ARCHITECTURE.md)** to understand the codebase
+- Read the **[Contributing Guide](CONTRIBUTING.md)** to start developing

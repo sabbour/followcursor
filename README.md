@@ -5,6 +5,8 @@ A Windows screen recorder with cinematic cursor-following zoom — built with **
 Record your screen or any individual window, then export a polished MP4 video where the camera smoothly follows and zooms into your cursor movements. Perfect for tutorials, demos, and product walkthroughs.
 
 > **New here?** Jump to the [Quickstart Guide](docs/QUICKSTART.md) to get recording in under 5 minutes.
+>
+> **📖 Full documentation:** [sabbour.me/followcursor](https://sabbour.me/followcursor)
 
 <https://github.com/user-attachments/assets/b2e8bb7e-2f8e-4668-ab63-c4e4fe0ec552>
 
@@ -12,6 +14,7 @@ Record your screen or any individual window, then export a polished MP4 video wh
 
 | Document | Description |
 | -------- | ----------- |
+| [**Documentation Site**](https://sabbour.me/followcursor) | Full docs site with search and navigation |
 | [User Guide](docs/USER_GUIDE.md) | Complete feature reference — every feature explained |
 | [Quickstart Guide](docs/QUICKSTART.md) | Install, record, edit, export — step by step |
 | [Architecture Guide](docs/ARCHITECTURE.md) | How the codebase works: data flow, zoom engine, capture pipeline |

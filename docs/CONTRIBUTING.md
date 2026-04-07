@@ -1,4 +1,4 @@
-# Contributing to FollowCursor
+# Contributing Guide
 
 Thanks for your interest in contributing! This guide covers everything you need to set up a development environment and submit changes.
 
@@ -9,56 +9,58 @@ Thanks for your interest in contributing! This guide covers everything you need 
 ### Prerequisites
 
 - **Windows 10 (build 1903+) or Windows 11**
-- **Python 3.10+** — [Download](https://www.python.org/downloads/) (check "Add to PATH")  
-  > **ARM64 Windows:** Install the **x64** (Windows installer 64-bit) edition, not ARM64. Many dependencies (OpenCV, dxcam) have no ARM64 wheels; x64 Python runs fine via emulation.
+- **Python 3.10+** — [Download](https://www.python.org/downloads/) (check "Add to PATH")
 - **Git** — [Download](https://git-scm.com/downloads)
 - **VS Code** (recommended) — [Download](https://code.visualstudio.com/)
 
-### Clone & install
+!!! warning "ARM64 Windows"
+    Install the **x64** edition of Python, not ARM64. Many dependencies (OpenCV, windows-capture) don't have ARM64 wheels. x64 Python runs fine via emulation.
 
-```bat
-git clone https://github.com/your-org/followcursor.git
+### Clone & Install
+
+```powershell
+git clone https://github.com/sabbour/followcursor.git
 cd followcursor/followcursor
 python -m venv .venv
-.venv\Scripts\activate
+.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 ```
 
-Or simply run `dev.bat` to do all of this and launch the app.
+Or run `.\scripts\Start-Dev.ps1` to do all of this and launch the app.
 
-### VS Code integration
+### VS Code Integration
 
 The repo includes VS Code configuration in `.vscode/`:
 
 - **F5** — Launch with debugger (debugpy attached)
 - **Ctrl+Shift+B** — Build standalone `.exe` via PyInstaller
-- Automation terminals use `cmd.exe` (not WSL) — configured via `terminal.integrated.automationProfile.windows`
+- Automation terminals use `cmd.exe` (not WSL)
 
 ---
 
 ## Repository Layout
 
-```text
-followcursor/              ← repo root (.git, .github, .vscode live here)
-├── .github/workflows/     ← CI pipeline
-├── .vscode/               ← VS Code tasks, launch, settings
-├── docs/                  ← Documentation
-│   ├── QUICKSTART.md
-│   ├── ARCHITECTURE.md
-│   └── CONTRIBUTING.md
-└── followcursor/          ← Python project root
-    ├── main.py            ← Entry point
-    ├── requirements.txt
-    ├── build.bat
-    ├── dev.bat
-    └── app/               ← Application package
-        ├── version.py     ← Single source of truth for version
-        ├── models.py
-        ├── ...
-        └── widgets/
+```
+followcursor/              <-- repo root (.git, .github, .vscode)
+|-- .github/workflows/     <-- CI pipeline
+|-- .vscode/               <-- VS Code tasks, launch, settings
+|-- docs/                  <-- Documentation (mkdocs-material site)
++-- followcursor/          <-- Python project root
+    |-- main.py            <-- Entry point
+    |-- requirements.txt
+    |-- pytest.ini
+    |-- scripts/           <-- Build & infra PowerShell scripts
+    |-- tests/             <-- Unit tests (pytest)
+    +-- app/               <-- Application package
+        |-- version.py     <-- Single source of truth for version
+        |-- models.py      <-- Data classes
+        |-- tokens.py      <-- Fluent 2 design tokens
+        |-- theme.py       <-- QSS dark theme
+        +-- widgets/       <-- UI widgets
 ```
 
-> **Note:** The `.github/` and `.vscode/` folders live at **repo root**, not inside `followcursor/`. The Python project files live inside the `followcursor/` subfolder.
+!!! note
+    `.github/` and `.vscode/` live at **repo root**, not inside `followcursor/`. Python project files live inside the `followcursor/` subfolder.
 
 ---
 
@@ -68,7 +70,8 @@ followcursor/              ← repo root (.git, .github, .vscode live here)
 
 - **Type hints** on all function signatures
 - **Docstrings** on classes and complex methods
-- Use `from __future__ import annotations` is not needed — Python 3.10+ union syntax (`X | None`) is used directly
+- Python 3.10+ union syntax (`X | None`) used directly
+- **Logging** via `logging` module — no bare `print()`. Each module: `logger = logging.getLogger(__name__)`
 
 ### Qt / PySide6
 
@@ -77,17 +80,51 @@ followcursor/              ← repo root (.git, .github, .vscode live here)
 - **Signals/slots** for all inter-component communication
 - Use `setPixelSize()` for fonts — never `setPointSize()` (avoids DPI issues)
 
+### Design Tokens
+
+All colors, spacing, radii, and typography values come from `app/tokens.py`. Import as `from . import tokens as T` and reference token constants instead of hardcoding hex values or pixel sizes.
+
 ### Naming
 
-- Snake_case for functions and variables
-- PascalCase for classes
+- `snake_case` for functions and variables
+- `PascalCase` for classes
 - Private methods prefixed with `_`
-- Constants in UPPER_SNAKE_CASE
+- Constants in `UPPER_SNAKE_CASE`
 
 ### Threading
 
 - Background threads for: recording, export, input hooks, thumbnail generation
-- Never access Qt widgets from background threads — use signals to communicate back to the main thread
+- Never access Qt widgets from background threads — use signals
+- Win32 hooks use `WINFUNCTYPE` (not `CFUNCTYPE`) for 64-bit compatibility
+
+---
+
+## Testing
+
+### Test Suite
+
+- **Framework:** pytest (configured via `followcursor/pytest.ini`)
+- **Location:** `followcursor/tests/` — one `test_<module>.py` per source module
+- **Current count:** 359 tests
+- **Scope:** Pure-logic layer (no Qt dependency in tests)
+
+### Modules Tested
+
+models, zoom_engine, activity_analyzer, utils, frames, backgrounds, project_file, ai_service, fluent_effects
+
+### Running Tests
+
+Execute the **Run Tests** VS Code task (`Ctrl+Shift+P` > Tasks: Run Task > Run Tests).
+
+!!! warning
+    Do **not** run pytest manually in a terminal — use the VS Code task to ensure the correct environment and working directory.
+
+### Writing Tests
+
+- Place tests in `followcursor/tests/test_<module>.py`
+- Use shared fixtures from `conftest.py`
+- Test data models, serialization roundtrips, algorithms, and edge cases
+- Tests must not depend on Qt (no widget instantiation)
 
 ---
 
@@ -95,61 +132,30 @@ followcursor/              ← repo root (.git, .github, .vscode live here)
 
 ### Credential Storage
 
-When storing sensitive credentials (API keys, tokens):
-
-- **Use Windows DPAPI** — Encrypt credentials with `dpapi.CryptProtectData()` before storing in the Windows Registry via `QSettings`
-- **Decrypt on-demand** — Decrypt with `dpapi.CryptUnprotectData()` only when the credential is needed
-- **Clear from memory** — Use temporary variables that go out of scope immediately after use
-- **Never log credentials** — Sanitize any debug output to exclude secrets
-- **Example** (from `ai_service.py`):
-
-  ```python
-  from ctypes import windll
-  
-  def store_api_key(key: str):
-      """Encrypt and store API key using Windows DPAPI."""
-      data = windll.crypt32.CryptProtectData(...)
-      QSettings().setValue("ai/apiKey", data)
-  
-  def retrieve_api_key() -> str:
-      """Decrypt API key from Windows Registry."""
-      encrypted = QSettings().value("ai/apiKey")
-      decrypted = windll.crypt32.CryptUnprotectData(...)
-      return decrypted
-  ```
+- **Use Windows DPAPI** — encrypt credentials before storing in Windows Registry
+- **Decrypt on-demand** — decrypt only when the credential is needed
+- **Never log credentials** — sanitize debug output
+- See `app/credentials.py` for the encrypt/decrypt implementation
 
 ### Temporary File Cleanup
 
-FollowCursor creates temporary files during recording and export. Always clean up:
-
-- **Immediate deletion** — delete temp files as soon as they're no longer needed, not at process exit
-- **Unique filenames** — use `tempfile.NamedTemporaryFile()` or randomized names to avoid collisions in concurrent operations
-- **Track extraction dirs** — maintain a set of extracted project directories and clean them up in `closeEvent()` or a cleanup routine
-- **Fallback cleanup** — on app launch, scan for orphaned temp directories from previous crashes and remove them
-- **Error-safe deletion** — wrap `os.remove()` and `shutil.rmtree()` in try/except to handle file-in-use and permission errors gracefully
-
-**Example** (cleanup in `closeEvent`):
-
-```python
-def closeEvent(self, event: QCloseEvent) -> None:
-    for temp_dir in self._temp_dirs:
-        try:
-            shutil.rmtree(temp_dir, ignore_errors=True)
-        except Exception as e:
-            logger.error(f"Failed to clean temp dir {temp_dir}: {e}")
-    os._exit(0)  # Force exit to avoid Qt cleanup hangs
-```
+- Delete temp files immediately when no longer needed
+- Use unique filenames (`tempfile.NamedTemporaryFile()` or randomized names)
+- Track extraction directories and clean up in `closeEvent()`
+- Wrap deletion in try/except for file-in-use errors
 
 ---
 
 ## Common Pitfalls
 
-1. **Never** use `source` or `bash` commands for Windows Python — always use `.venv\Scripts\python.exe` directly
+1. **Never** use `source` or `bash` commands for Windows Python — use `.venv\Scripts\python.exe`
 2. **Never** add `SetProcessDpiAwareness` — PySide6 already sets `PER_MONITOR_DPI_AWARE_V2`
-3. **Never** use `CFUNCTYPE` for Win32 hook callbacks — use `WINFUNCTYPE` for 64-bit compatibility
-4. **Never** use trademarked device names (Surface, MacBook) in frame presets
+3. **Never** use `CFUNCTYPE` for Win32 hook callbacks — use `WINFUNCTYPE`
+4. **Never** use trademarked device names in frame presets
 5. **Never** run the compositor during recording — use blur overlay instead
-6. **Never** import heavy modules at the top of widget files if they're only used in specific methods — use deferred imports
+6. **Never** import heavy modules at top of widget files — use deferred imports
+7. Catch both `BrokenPipeError` and `OSError` on ffmpeg pipe writes (Windows raises `OSError(22)`)
+8. `closeEvent` uses `os._exit(0)` for clean shutdown
 
 ---
 
@@ -159,37 +165,32 @@ def closeEvent(self, event: QCloseEvent) -> None:
 
 1. Create a feature branch from `main`
 2. Make your changes
-3. Verify all files compile:
+3. Run the **Run Tests** VS Code task — all tests must pass
+4. Test manually — launch the app and verify
+5. Commit with a descriptive message
+6. Push and open a Pull Request
 
-   ```bat
-   .venv\Scripts\python.exe -c "import py_compile, pathlib; [py_compile.compile(str(f), doraise=True) for f in pathlib.Path('.').rglob('*.py') if '.venv' not in str(f)]"
-   ```
+### Branching Strategy
 
-4. Run the test suite:
+All features, bug fixes, and significant changes must be developed on a **dedicated branch** (e.g. `fix/encoder-fallback`, `feat/gif-palette`). Trivial documentation-only edits may go directly on `main`.
 
-   ```bat
-   .venv\Scripts\python.exe -m pytest tests/ -v
-   ```
+An **auto-rebase** workflow (`.github/workflows/auto-rebase.yml`) automatically rebases all open PRs whenever `main` is updated. PRs labeled `no-rebase` are excluded.
 
-5. Test manually — launch the app and verify your changes work
-6. Commit with a descriptive message
-7. Push and open a Pull Request
-
-### Adding a new widget
+### Adding a New Widget
 
 1. Create `app/widgets/your_widget.py`
-2. Use `QWidget` and set an `objectName` for QSS styling
+2. Use `QWidget` with an `objectName` for QSS styling
 3. Define signals for outbound communication
 4. Wire it up in `MainWindow.__init__`
-5. Add QSS rules in `theme.py` if needed
+5. Add QSS rules in `theme.py` using tokens from `tokens.py`
 
-### Adding a background preset
+### Adding a Background Preset
 
-Edit `app/backgrounds.py` — add a new `BackgroundPreset` to the `PRESETS` list. The editor panel grid auto-generates buttons for all presets.
+Edit `app/backgrounds.py` — add a `BackgroundPreset` to the `PRESETS` list. The editor panel grid auto-generates buttons.
 
-### Adding a frame preset
+### Adding a Frame Preset
 
-Edit `app/frames.py` — add a new `FramePreset` to the `FRAME_PRESETS` list. Use generic names only.
+Edit `app/frames.py` — add a `FramePreset` to `FRAME_PRESETS`. Use generic names only (no trademarks).
 
 ---
 
@@ -197,77 +198,80 @@ Edit `app/frames.py` — add a new `FramePreset` to the `FRAME_PRESETS` list. Us
 
 FollowCursor uses [Semantic Versioning](https://semver.org/) (MAJOR.MINOR.PATCH):
 
-- **MAJOR** — breaking changes to project file format or CLI
-- **MINOR** — new features (new background presets, zoom modes, etc.)
-- **PATCH** — bug fixes
+| Bump | When |
+| ---- | ---- |
+| **MAJOR** | Breaking changes to project file format, CLI, or public API |
+| **MINOR** | New features, new export formats, new UI panels |
+| **PATCH** | Bug fixes, performance improvements, documentation fixes |
 
 The version lives in `followcursor/app/version.py`:
 
 ```python
-__version__ = "0.1.0"
+__version__ = "0.8.0"
 ```
 
 ### Releasing
 
 1. Update `__version__` in `app/version.py`
-2. Commit: `git commit -am "Bump version to 0.2.0"`
-3. Tag: `git tag v0.2.0`
-4. Push: `git push origin main --tags`
-5. GitHub Actions builds and creates a Release automatically
-
----
-
-## Architecture Overview
-
-See [ARCHITECTURE.md](ARCHITECTURE.md) for a detailed walkthrough of:
-
-- Data flow from recording → editing → export
-- Zoom engine interpolation (smootherstep easing)
-- Activity analyzer signal detection
-- Compositor pipeline (QPainter for preview, NumPy for export)
-- Threading model
-- UI widget hierarchy
+2. Add a new section to `CHANGELOG.md` with today's date
+3. Run tests — all must pass
+4. Commit: `release: vX.Y.Z`
+5. Merge to `main`
+6. Tag: `git tag vX.Y.Z`
+7. Push: `git push origin main --tags`
+8. CI builds `.exe` + signed MSIX and creates a GitHub Release
 
 ---
 
 ## Dependencies
 
-| Package | Version | Purpose |
-| ------- | ------- | ------- |
-| PySide6 | ≥ 6.6.0 | Qt 6 GUI framework |
-| mss | ≥ 9.0.0 | GDI fallback screen capture |
-| opencv-python | ≥ 4.9.0 | Video decode/encode, image processing |
-| numpy | ≥ 1.26.0 | Array operations for frame manipulation |
-| imageio-ffmpeg | ≥ 0.5.1 | Bundled ffmpeg binary |
-| windows-capture | ≥ 1.5.0 | Windows Graphics Capture API bindings |
+| Package | Purpose |
+| ------- | ------- |
+| PySide6 | Qt 6 GUI framework |
+| mss | GDI fallback screen capture |
+| opencv-python | Video decode/encode, image processing |
+| numpy | Array operations for frame manipulation |
+| imageio-ffmpeg | Bundled ffmpeg binary |
+| windows-capture | Windows Graphics Capture API bindings |
 
 To add a dependency:
 
 1. `pip install package-name`
-2. Add it to `requirements.txt` with a minimum version
-3. If it's heavy and not needed at import time, use a deferred import
+2. Add to `requirements.txt` with a minimum version
+3. If heavy and not needed at import time, use a deferred import
 
 ---
 
 ## Build & CI
 
-### Local build
+### Local Build
 
-```bat
-build.bat
+```powershell
+.\scripts\Build-App.ps1
 ```
 
-Produces `dist/FollowCursor/FollowCursor.exe` — a single-folder PyInstaller distribution.
+Produces `dist\FollowCursor\FollowCursor.exe` — a single-folder PyInstaller distribution.
 
-### CI pipeline
+### MSIX Package
+
+```powershell
+# Unsigned (local testing)
+.\scripts\Build-Msix.ps1 -Version "0.8.0" -SkipSign
+
+# Signed with local PFX
+.\scripts\Build-Msix.ps1 -Version "0.8.0" -LocalPfx ".\cert.pfx" -Publisher "CN=MyName"
+```
+
+### CI Pipeline
 
 GitHub Actions runs on every push/PR to `main`:
 
 1. Extracts version from `app/version.py`
-2. Installs dependencies
-3. Builds with PyInstaller (same exclude list as `build.bat`)
-4. Uploads versioned artifact
-5. Creates GitHub Release on `v*` tags
+2. Installs dependencies (Python 3.13, Windows runner)
+3. Runs the pytest suite
+4. Builds with PyInstaller
+5. Uploads versioned artifact
+6. On `v*` tags: builds MSIX, signs with Azure Trusted Signing, creates GitHub Release
 
 ---
 
