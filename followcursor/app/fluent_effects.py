@@ -83,6 +83,11 @@ def _parse_rgba(rgba_str: str) -> QColor:
 def apply_shadow(widget: QWidget, level: str = "layer2") -> None:
     """Apply a Fluent 2 drop shadow to *widget*.
 
+    Qt's QGraphicsDropShadowEffect only supports a single shadow, so we use
+    the key shadow (stronger component) from the Fluent 2 spec. Ambient shadow
+    tokens are available in tokens.py for future custom renderers that can
+    composite multiple shadow layers.
+
     Parameters
     ----------
     widget:

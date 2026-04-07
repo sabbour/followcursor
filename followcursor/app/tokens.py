@@ -78,8 +78,8 @@ BRAND_DISABLED: str = "#4c3d7a"                        # disabled brand bg
 # ── Fluent 2 Semantic Status Colors ───────────────────────────────────
 # Success (green ramp) — colorStatusSuccess*
 SUCCESS: str = "#10b981"             # green primary (Fluent 2 spec)
-SUCCESS_BG_1: str = "#0c5239"        # green shade40 — danger background (tint60)
-SUCCESS_BG_2: str = "#0f6b4a"        # green shade30 — warning background (tint40)
+SUCCESS_BG_1: str = "#0c5239"        # green shade40 — success background
+SUCCESS_BG_2: str = "#0f6b4a"        # green shade30 — success content bg
 SUCCESS_FG: str = "#6ee7b7"          # green tint30 — success foreground on dark
 
 # Danger (cranberry/red ramp) — colorStatusDanger*
@@ -148,19 +148,22 @@ SHADOW_LAYER_1_AMBIENT: str = "rgba(0, 0, 0, 0.24)"    # dark theme: 24% ambient
 SHADOW_LAYER_2_BLUR: int = 4
 SHADOW_LAYER_2_OFFSET_Y: int = 2
 SHADOW_LAYER_2_KEY: str = "rgba(0, 0, 0, 0.28)"
+# NOTE: Qt's QGraphicsDropShadowEffect only supports a single shadow. The ambient
+# shadow tokens below are defined for Fluent 2 spec reference but are not used.
+# Future custom renderers (QPainter compositing, WebView overlays) may use both.
 SHADOW_LAYER_2_AMBIENT: str = "rgba(0, 0, 0, 0.24)"
 
 # Shadow Layer 3 (Shadow8) — Command bars, tooltips, dropdowns
 SHADOW_LAYER_3_BLUR: int = 8
 SHADOW_LAYER_3_OFFSET_Y: int = 4
 SHADOW_LAYER_3_KEY: str = "rgba(0, 0, 0, 0.28)"
-SHADOW_LAYER_3_AMBIENT: str = "rgba(0, 0, 0, 0.24)"
+SHADOW_LAYER_3_AMBIENT: str = "rgba(0, 0, 0, 0.24)"  # unused (see SHADOW_LAYER_2_AMBIENT note)
 
 # Shadow Layer 4 (Shadow16) — Dialogs, callouts, flyouts
 SHADOW_LAYER_4_BLUR: int = 16
 SHADOW_LAYER_4_OFFSET_Y: int = 8
 SHADOW_LAYER_4_KEY: str = "rgba(0, 0, 0, 0.28)"
-SHADOW_LAYER_4_AMBIENT: str = "rgba(0, 0, 0, 0.24)"
+SHADOW_LAYER_4_AMBIENT: str = "rgba(0, 0, 0, 0.24)"  # unused (see SHADOW_LAYER_2_AMBIENT note)
 
 # Material effects — subtle transparency for overlays (acrylic-inspired)
 MATERIAL_OVERLAY_ALPHA: float = 0.92  # backdrop opacity
