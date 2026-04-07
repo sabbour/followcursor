@@ -25,7 +25,7 @@ from PySide6.QtWidgets import (
 )
 
 from .. import tokens as T
-from ..fluent_effects import apply_shadow
+from ..fluent_effects import apply_shadow, install_focus_ring
 from ..models import ZoomKeyframe, MousePosition, KeyEvent, ClickEvent, ClickEffectPreset, CLICK_EFFECT_PRESETS, DEFAULT_CLICK_EFFECT, KeystrokeOverlayConfig
 from ..activity_analyzer import analyze_activity
 from ..backgrounds import (
@@ -177,6 +177,10 @@ class _AISettingsDialog(QDialog):
         buttons.accepted.connect(self.accept)
         buttons.rejected.connect(self.reject)
         layout.addWidget(buttons)
+
+        # Fluent 2 — focus rings on dialog input fields
+        for child in self.findChildren((QLineEdit,)):
+            install_focus_ring(child)
 
     def get_settings(self):
         from ..ai_service import AISettings
@@ -688,6 +692,10 @@ class EditorPanel(QWidget):
         self._key_events: List[KeyEvent] = []
         self._click_events: List[ClickEvent] = []
         self._monitor_rect: dict = {}
+
+        # Fluent 2 — focus ring glow on all interactive controls
+        for child in self.findChildren((QPushButton, QComboBox)):
+            install_focus_ring(child)
 
     # ── position / depth controls ───────────────────────────────────
 

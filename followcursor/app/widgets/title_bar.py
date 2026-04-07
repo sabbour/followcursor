@@ -3,6 +3,7 @@
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import QWidget, QHBoxLayout, QLabel, QPushButton
 
+from ..fluent_effects import install_focus_ring
 from ..version import __version__
 
 
@@ -57,6 +58,10 @@ class TitleBar(QWidget):
         self._btn_discard.clicked.connect(self.discard_clicked.emit)
         self._btn_discard.setVisible(False)
         layout.addWidget(self._btn_discard)
+
+        # Fluent 2 — keyboard focus glow on action buttons
+        install_focus_ring(self._btn_export)
+        install_focus_ring(self._btn_discard)
 
         layout.addSpacing(12)
 
