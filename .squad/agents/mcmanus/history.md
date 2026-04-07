@@ -1,6 +1,33 @@
 # McManus — UI Dev History
 
+# McManus — UI Dev History
+
 ## Recent Work
+
+### 2026-04-07: Issue #98 Session Log (Orchestration Complete)
+
+**Session:** 2026-04-07T10:34:00Z  
+**Task:** Adopt Fluent 2 color system and elevation tokens (Issue #98)  
+**Outcome:** ✅ Complete — PR #102
+
+Comprehensive implementation of Fluent 2 Phase 3, aligning FollowCursor's color system with Microsoft's official design spec. Replaced Phase 1's custom purple-tinted dark palette with authentic Fluent 2 grey ramps and proper 5-layer elevation architecture.
+
+**Key deliverables:**
+- tokens.py: Full Fluent 2 grey palette, 5-layer shadow system, semantic color/stroke/background tokens
+- fluent_effects.py: Expanded shadow levels from 2 to 7 entries (layer0-4 + legacy aliases)
+- test_fluent_effects.py: 3 opacity fixes, 5 new layer validation tests
+- Backward compatibility: All Phase 1 token names maintained as aliases
+
+**Results:**
+- ✅ All 375 tests pass
+- ✅ Zero breaking changes
+- ✅ PR #102 ready for team review
+- ✅ Branch: feat/issue-98-fluent2-colors
+
+**References:**
+- Fluent 2 Color System: https://fluent2.microsoft.design/color
+- Elevation Spec: https://fluent2.microsoft.design/elevation
+- Squad decisions.md: mcmanus-fluent2-colors.md
 
 ### 2026-04-06: Interactive Annotations (Issue #54)
 
@@ -36,6 +63,64 @@ Implemented complete annotation system for text, arrows, and highlights.
 **Testing**: All 58 existing tests pass.
 
 ## Learnings
+
+### 2026-07-23: Fluent 2 Phase 3 — Authentic Color System & Elevation (Issue #98)
+
+**Context**: Prior phases built a token system but used custom purple-tinted dark palette. This phase aligns with the *official* Fluent 2 spec using Microsoft's grey ramps and elevation formula.
+
+**Research approach**:
+- Fetched official Fluent 2 docs: color system, color tokens, elevation spec
+- Web-searched for detailed token mappings and dark theme shadow values
+- Discovered Fluent 2 uses grey[N] notation (grey[0]=black, grey[16], grey[84]=light grey)
+- Found exact shadow formulas: Shadow2 (2px blur, 1px offset), Shadow4, Shadow8, Shadow16
+- Dark theme shadow opacity: 28% key + 24% ambient (not the 25%/35% I had before)
+
+**tokens.py changes**:
+- **Color ramp**: Replaced custom hex with Fluent 2 grey palette
+  - BG_SOLID (#000000) = grey[0]
+  - BG_LAYER_1 (#141414) = grey[4] — app canvas
+  - BG_LAYER_2 (#1f1f1f) = grey[8] — panels
+  - BG_LAYER_3 (#292929) = grey[12] — cards
+  - BG_LAYER_4 (#333333) = grey[16] — elevated
+  - BG_LAYER_5 (#3d3d3d) = grey[20] — highest
+- **Foreground**: FG_1 (white), FG_2 (grey[84]), FG_3 (grey[68]), FG_4 (grey[60]), FG_DISABLED (grey[36])
+- **Strokes**: STROKE_ACCESSIBLE (grey[68]), STROKE_1 (grey[40]), STROKE_2 (grey[32]), STROKE_SUBTLE (grey[4])
+- **5-layer elevation** (not just 2):
+  - SHADOW_LAYER_0: No shadow (flat)
+  - SHADOW_LAYER_1: 2px blur, 1px offset (Shadow2)
+  - SHADOW_LAYER_2: 4px blur, 2px offset (Shadow4)
+  - SHADOW_LAYER_3: 8px blur, 4px offset (Shadow8)
+  - SHADOW_LAYER_4: 16px blur, 8px offset (Shadow16)
+  - All use 28% key + 24% ambient opacity (dark theme spec)
+- **Semantic status colors**: Updated with Fluent 2 cranberry (danger), green (success), orange (warning), blue (info) ramps
+- **Legacy aliases**: BG_CANVAS → BG_LAYER_1, BG_PANEL → BG_LAYER_2, etc. (backward compat)
+
+**fluent_effects.py**:
+- Expanded `_SHADOW_LEVELS` from 2 to 7 entries (layer0-4 + subtle/medium aliases)
+- Default shadow level changed from "subtle" to "layer2" (cards)
+- Updated docstring with all layer options and use cases
+
+**test_fluent_effects.py**:
+- Fixed shadow opacity assertions (71 for 0.28 alpha, not 63 or 89)
+- Added 5 new tests for each Fluent 2 layer (layer0-4)
+- Verified blur/offset values match spec exactly
+
+**Key decisions**:
+1. **Backwards compatibility is critical** — kept all legacy token names as aliases so existing QSS doesn't break
+2. **Fluent 2 naming convention** — used "layer0-4" instead of inventing custom names, makes docs alignment clear
+3. **No visual redesign** — this is a *spec alignment* pass, not a UX change. The theme still looks similar but now follows official Fluent 2 values
+4. **Grey ramp abstraction** — used actual grey[N] hex values in comments, but exposed them as semantic tokens (BG_LAYER_*, FG_*, STROKE_*)
+5. **Material effects stub** — added MATERIAL_OVERLAY_ALPHA/CARD_ALPHA tokens for future acrylic/mica work
+
+**Testing**: All 375 tests pass (3 fluent_effects tests updated, 5 new layer tests added).
+
+**References saved**:
+- https://fluent2.microsoft.design/color
+- https://fluent2.microsoft.design/color-tokens/
+- https://fluent2.microsoft.design/elevation
+
+**Branch**: `feat/issue-98-fluent2-colors`  
+**PR**: #102
 
 ### 2026-07-23: Complete Documentation Rewrite (PR #95)
 
