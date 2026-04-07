@@ -37,6 +37,58 @@ Implemented complete annotation system for text, arrows, and highlights.
 
 ## Learnings
 
+### 2026-01-20: Fluent 2 / Windows 11 Design Research
+
+**Windows 11 Design System:**
+- Uses Fluent 2 with 4px base spacing grid, 4px/8px corner radius standards
+- Typography: Segoe UI Variable with defined type ramp (Header 46px/200, Body 15px/400, Caption 12px/400)
+- Materials: Mica (opaque wallpaper tint for backgrounds) and Acrylic (frosted glass for transient UI)
+- Motion: 100ms ease-out for state changes, 300ms for content reveals
+- Color system: Semantic tokens (`colorBrandBackground`, `colorNeutralForeground1`, etc.) with theme-aware values
+
+**Fluent 2 Component Catalog:**
+- Mapped 50+ Fluent components to Qt equivalents (Button→QPushButton, Switch→Custom, Slider→QSlider, etc.)
+- High priority for video editor: Button, Slider, Tablist, Combobox, Progress Bar, Dialog, Toolbar, Tooltip
+- Some components need custom QPainter (Switch, Badge, Persona), others work with QSS (Button, Input, Card)
+
+**PySide6-Fluent-Widgets Library:**
+- Mature library (1000+ commits) with GPLv3 license (compatible with FollowCursor)
+- Provides 50+ Fluent-styled widgets with acrylic blur, animations, light/dark themes
+- Homepage: https://qfluentwidgets.com/ | PyPI: https://pypi.org/project/PySide6-Fluent-Widgets/
+- Installation: `pip install "PySide6-Fluent-Widgets[full]"`
+- Includes: NavigationInterface, FluentDialog, FluentCard, CommandBar, etc.
+
+**Current Theme Analysis:**
+- ✅ Strengths: Segoe UI Variable, dark palette, purple accent (#8b5cf6), border radius on most elements
+- ❌ Gaps: Inconsistent spacing (not on 4px grid), mixed corner radius (6-12px), no design tokens, missing animations, no drop shadows, no focus indicators
+- Current spacing values: 4px, 6px, 8px, 12px, 14px, 16px, 18px, 20px — need normalization
+- Current radius values: 4px, 6px, 8px, 10px, 12px, 18px — need to standardize to 4px/8px
+
+**Implementation Strategy:**
+- **Hybrid approach:** Use library for standard UI (navigation, dialogs, cards), custom QSS/QPainter for specialized (timeline, preview, title bar)
+- **Design token system:** Create `app/tokens.py` with constants for spacing (4/8/12/16/24/32px), radius (4/8px), colors (semantic names)
+- **Quick wins:** Normalize spacing to 4px grid, unify corner radius to 4px/8px, add missing status colors (Warning #f59e0b, Info #3b82f6)
+- **Phased rollout:** Pilot library in source picker → refine custom QSS → token system → animations/shadows → accessibility
+
+**Key Qt/PySide6 Techniques:**
+- QSS supports `border-radius` for rounded corners but not CSS transitions (need QPropertyAnimation)
+- QPainter required for: custom shapes (pill switches), gradients, semi-transparent overlays
+- QGraphicsDropShadowEffect for elevation shadows (4px blur, 2px offset for subtle depth)
+- QStyle/QProxyStyle for system-wide appearance changes (alternative to per-widget styling)
+- Acrylic blur requires native OS APIs (DWM on Windows) — library handles this
+
+**File Paths:**
+- Theme: `followcursor/app/theme.py` — single DARK_THEME QSS string
+- Widgets: `followcursor/app/widgets/` — title_bar, editor_panel, preview, timeline, source_picker
+- Style data: `followcursor/app/backgrounds.py`, `followcursor/app/frames.py` — presets for compositor
+
+**Next Steps:**
+- Decision needed on hybrid approach (library + custom QSS)
+- Pilot PySide6-Fluent-Widgets in source picker dialog
+- Create design token system for spacing/color/radius consistency
+- Add QPropertyAnimation for hover states (100ms ease-out)
+- Audit accessibility (focus indicators, keyboard nav, contrast ratios)
+
 1. **Dual-Pipeline Pattern**: The cursor and keystroke renderers established a clean pattern with separate QPainter and OpenCV render functions. Following this pattern made integration straightforward and maintainable.
 
 2. **Normalized Coordinates**: Using 0-1 normalized coordinates for annotation positions ensures annotations work correctly regardless of source resolution or export dimensions. Critical for cross-resolution compatibility.

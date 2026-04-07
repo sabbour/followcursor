@@ -56,3 +56,50 @@
 
 ---
 *All decisions applied as of 2026-04-07T01:30:06Z*
+
+## Fluent 2 Design Research (McManus, 2026-04-07)
+
+**Status:** Complete | **Research Type:** UI Design & Windows 11 Alignment
+
+### Summary
+
+Comprehensive analysis of Windows 11 Fluent 2 design system and PySide6 implementation strategies. Full research document in .squad/agents/mcmanus/fluent2-research.md.
+
+### Key Findings
+
+1. **PySide6-Fluent-Widgets:** Mature, GPLv3-licensed library with 50+ Fluent-styled components (navigation, dialogs, cards, inputs). Supports acrylic effects, animations, and light/dark themes.
+
+2. **Current FollowCursor Theme:** 70% aligned with Fluent 2 — uses Segoe UI Variable and modern dark palette, but needs:
+    - Spacing normalization (4px grid)
+    - Corner radius unification (4px/8px)
+    - Drop shadows and state animations
+    - Status colors (Warning/Info)
+
+3. **Recommended Hybrid Approach:**
+    - **Library:** Navigation sidebar, dialogs, source picker, standard controls (combobox, slider)
+    - **Custom QSS:** Timeline (specialized), preview widget (compositing), title bar (frameless)
+    - **Design tokens:** Create 	okens.py for spacing, radius, colors
+
+4. **Implementation Phases:**
+    - Phase 1: Pilot PySide6-Fluent-Widgets in source picker (1–2 weeks)
+    - Phase 2: Refine custom QSS with spacing/radius fixes (2–3 weeks)
+    - Phase 3: Design token system (1 week)
+    - Phase 4: Animations & shadows (1 week)
+    - Phase 5: Accessibility & polish (1 week)
+
+5. **Quick Wins:**
+    - Normalize spacing to 4px grid
+    - Unify corner radius (4px elements, 8px containers)
+    - Add semantic color tokens
+
+## User Directive (Ahmed Sabbour, 2026-04-07)
+
+**Status:** Captured | **Type:** Development Workflow
+
+### Directive
+
+Create branches and worktrees before major work. All significant changes should be developed on a dedicated branch with a git worktree, not directly on main.
+
+**Rationale:** User request — established to maintain clean main branch and enable parallel development.
+
+*Updated: 2026-04-07T07:33:49Z*
