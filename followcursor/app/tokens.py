@@ -14,6 +14,7 @@ Reference:
 # ── Spacing (Fluent 2 Spacer Tokens) ──────────────────────────────────
 # Based on https://fluent2.microsoft.design/layout
 # Uses 2px base unit with Fluent 2 spacer values (size20, size40, size80, etc.)
+SPACE_NONE: int = 0   # sizeNone
 SPACE_XXS: int = 2   # size20 — tight compact spacing
 SPACE_XS: int = 4    # size40 — minimal padding
 SPACE_SM: int = 8    # size80 — small controls, icons
