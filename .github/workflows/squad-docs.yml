@@ -1,53 +1,43 @@
-name: Squad Docs — Validate
-# Validates markdown documentation files are present and well-formed.
-# No docs site is built — FollowCursor docs are plain markdown in docs/.
+name: Squad Docs — Build & Deploy
 
 on:
   workflow_dispatch:
   push:
-    branches: [preview, main]
+    branches: [main]
     paths:
       - 'docs/**'
+      - 'mkdocs.yml'
       - '.github/workflows/squad-docs.yml'
-  pull_request:
-    paths:
-      - 'docs/**'
 
 permissions:
   contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
 
 jobs:
-  validate:
+  build:
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - run: pip install mkdocs-material
+      - run: mkdocs build --strict
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site/
 
-      - name: Check required docs exist
-        run: |
-          missing=0
-          for f in docs/USER_GUIDE.md docs/QUICKSTART.md docs/ARCHITECTURE.md docs/CONTRIBUTING.md; do
-            if [ ! -f "$f" ]; then
-              echo "::error::Missing required doc: $f"
-              missing=1
-            else
-              echo "✅ $f exists ($(wc -l < "$f") lines)"
-            fi
-          done
-          if [ "$missing" -eq 1 ]; then exit 1; fi
-
-      - name: Validate markdown structure
-        run: |
-          errors=0
-          for f in docs/*.md; do
-            if [ ! -s "$f" ]; then
-              echo "::error::Empty file: $f"
-              errors=1
-              continue
-            fi
-            if ! grep -q '^#' "$f"; then
-              echo "::warning::No headings found in $f"
-            fi
-            echo "✅ $f validated"
-          done
-          if [ "$errors" -eq 1 ]; then exit 1; fi
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

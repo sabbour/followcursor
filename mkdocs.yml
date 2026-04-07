@@ -1,0 +1,34 @@
+site_name: FollowCursor
+site_description: Windows screen recorder with cinematic cursor-following zoom
+site_url: https://sabbour.github.io/followcursor/
+repo_url: https://github.com/sabbour/followcursor
+repo_name: sabbour/followcursor
+
+theme:
+  name: material
+  palette:
+    - scheme: default
+      primary: deep purple
+      accent: purple
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: deep purple
+      accent: purple
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - search.suggest
+    - content.code.copy
+
+nav:
+  - Home: index.md
+  - Getting Started: QUICKSTART.md
+  - User Guide: USER_GUIDE.md
+  - Architecture: ARCHITECTURE.md
+  - Contributing: CONTRIBUTING.md
