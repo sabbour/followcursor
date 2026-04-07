@@ -235,20 +235,26 @@ QSlider::groove:horizontal {{
     border-radius: 2px;
 }}
 QSlider::handle:horizontal {{
-    background: {T.BG_LAYER_5};
-    border: 2px solid {T.BRAND};
-    width: 16px;
-    height: 16px;
+    background: #ffffff;
+    border: none;
+    width: 20px;
+    height: 20px;
     margin: -8px 0;
-    border-radius: 8px;
+    border-radius: 10px;
 }}
 QSlider::handle:horizontal:hover {{
-    background: {T.BRAND_HOVER};
-    border-color: {T.BRAND_HOVER};
+    background: #ffffff;
+    width: 22px;
+    height: 22px;
+    margin: -9px 0;
+    border-radius: 11px;
 }}
 QSlider::handle:horizontal:pressed {{
-    background: {T.BRAND_ACTIVE};
-    border-color: {T.BRAND_ACTIVE};
+    background: #f0f0f0;
+    width: 18px;
+    height: 18px;
+    margin: -7px 0;
+    border-radius: 9px;
 }}
 QSlider::sub-page:horizontal {{
     background: {T.BRAND};
