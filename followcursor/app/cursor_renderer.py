@@ -12,14 +12,15 @@ from typing import List, Optional, Tuple
 import cv2
 import numpy as np
 
-from PySide6.QtCore import QPointF, Qt
+from PySide6.QtCore import QByteArray, QPointF, QRectF, Qt
 from PySide6.QtGui import (
     QColor,
+    QImage,
     QPainter,
-    QPainterPath,
     QPen,
     QBrush,
 )
+from PySide6.QtSvg import QSvgRenderer
 
 from .models import MousePosition, ClickEvent, ClickEffectPreset, DEFAULT_CLICK_EFFECT
 
@@ -70,19 +71,75 @@ def _interp_mouse(track: List[MousePosition], time_ms: float) -> Optional[Tuple[
     return a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t
 
 
-# ── Classic arrow cursor shape (normalized, tip at 0,0) ─────────────
-# Points define a standard Windows-style pointer arrow, normalized
-# so that the full height = 1.0 and width is proportional.
+# ── SVG cursor shape ────────────────────────────────────────────────
+# Pointer arrow defined as two SVG sub-paths.  The outer silhouette
+# provides the dark border; the inner shape is filled white.
+# Original viewBox 0 0 2048 2048; arrow tip at ~(384, 141).
 
-_ARROW_POINTS = [
-    (0.00, 0.00),    # tip (hotspot)
-    (0.00, 1.00),    # left edge bottom
-    (0.22, 0.74),    # notch entry
-    (0.42, 1.08),    # lower arm
-    (0.56, 0.96),    # arm tip
-    (0.32, 0.63),    # inner notch
-    (0.60, 0.63),    # right wing tip
-]
+_SVG_PATH_OUTER = (
+    "M1089 2027q-38 0-69-19t-48-55l-167-364-257 258"
+    "q-28 28-67 28-41 0-69-27t-28-69V141q0-41 28-68t69-28"
+    "q39 0 67 28l1171 1171q28 28 28 67 0 41-27 69t-69 28"
+    "h-381l151 337q11 25 11 53 0 38-19 68t-54 47l-216 102"
+    "q-26 12-54 12z"
+)
+
+_SVG_PATH_INNER = (
+    "M1088 1899l216-101-171-383"
+    "q-8-18-8-39 0-40 28-68t68-28h352"
+    "L512 219v1482l236-235"
+    "q28-28 68-28 28 0 52 15t35 41l185 405z"
+)
+
+# Shadow offset in SVG-space units (~8 % of arrow height)
+_SHADOW_OFF = 160
+
+# Arrow-tip (hotspot) in SVG coordinates
+_TIP_SVG_X, _TIP_SVG_Y = 384, 141
+
+# ViewBox starts exactly at the arrow tip so the hotspot is at the
+# rendered-image origin (top-left = pixel 0,0).  The right/bottom edge
+# is kept at the same absolute SVG position as before to preserve the
+# full cursor body + shadow.
+_VB_X, _VB_Y = _TIP_SVG_X, _TIP_SVG_Y  # tip at viewBox origin
+_VB_W, _VB_H = 1536, 2059               # extends to SVG x=1920, y=2200
+
+# Hotspot normalised to viewBox (0-1) — exactly zero because the tip
+# IS the viewBox origin.
+_TIP_NX = 0.0
+_TIP_NY = 0.0
+
+# Fraction of viewBox height occupied by the arrow (tip to bottom)
+_ARROW_FRAC = (2027 - _TIP_SVG_Y) / _VB_H
+
+
+def _build_cursor_svg() -> bytes:
+    """Assemble the cursor SVG with shadow, outline, and fill layers."""
+    ol = f"rgb({CURSOR_OUTLINE[0]},{CURSOR_OUTLINE[1]},{CURSOR_OUTLINE[2]})"
+    fl = f"rgb({CURSOR_COLOR[0]},{CURSOR_COLOR[1]},{CURSOR_COLOR[2]})"
+    sa = f"{CURSOR_SHADOW_ALPHA / 255:.3f}"
+    return (
+        f'<svg xmlns="http://www.w3.org/2000/svg"'
+        f' viewBox="{_VB_X} {_VB_Y} {_VB_W} {_VB_H}">'
+        f'<path fill="black" fill-opacity="{sa}"'
+        f' transform="translate({_SHADOW_OFF},{_SHADOW_OFF})"'
+        f' d="{_SVG_PATH_OUTER}"/>'
+        f'<path fill="{ol}" d="{_SVG_PATH_OUTER}"/>'
+        f'<path fill="{fl}" d="{_SVG_PATH_INNER}"/>'
+        f'</svg>'
+    ).encode("utf-8")
+
+
+_CURSOR_SVG_BYTES: bytes = _build_cursor_svg()
+_cached_renderer: Optional[QSvgRenderer] = None
+
+
+def _get_renderer() -> QSvgRenderer:
+    """Return a module-cached QSvgRenderer (created lazily)."""
+    global _cached_renderer
+    if _cached_renderer is None:
+        _cached_renderer = QSvgRenderer(QByteArray(_CURSOR_SVG_BYTES))
+    return _cached_renderer
 
 
 # ── QPainter-based cursor (for live preview) ───────────────────────
@@ -121,34 +178,22 @@ def draw_cursor_qpainter(
     px = screen_rect_x + nx * screen_rect_w
     py = screen_rect_y + ny * screen_rect_h
 
-    # Cursor size scales with screen rect
+    # Cursor size scales with screen rect (desired arrow height)
     cs = max(14.0, screen_rect_h * 0.032)
 
-    path = QPainterPath()
-    pts = _ARROW_POINTS
-    path.moveTo(px + pts[0][0] * cs, py + pts[0][1] * cs)
-    for ax, ay in pts[1:]:
-        path.lineTo(px + ax * cs, py + ay * cs)
-    path.closeSubpath()
+    # Full SVG render size (arrow + shadow)
+    render_h = cs / _ARROW_FRAC
+    render_w = render_h * (_VB_W / _VB_H)
+
+    # Hotspot offset in rendered pixels
+    hx = _TIP_NX * render_w
+    hy = _TIP_NY * render_h
+
+    # Position SVG so the arrow tip aligns with (px, py)
+    target = QRectF(px - hx, py - hy, render_w, render_h)
 
     painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
-
-    # Drop shadow (offset + translucent)
-    shadow_off = max(1.5, cs * 0.08)
-    shadow_path = QPainterPath()
-    shadow_path.moveTo(px + pts[0][0] * cs + shadow_off, py + pts[0][1] * cs + shadow_off)
-    for ax, ay in pts[1:]:
-        shadow_path.lineTo(px + ax * cs + shadow_off, py + ay * cs + shadow_off)
-    shadow_path.closeSubpath()
-    painter.setPen(Qt.PenStyle.NoPen)
-    painter.setBrush(QBrush(QColor(0, 0, 0, CURSOR_SHADOW_ALPHA)))
-    painter.drawPath(shadow_path)
-
-    # Outline
-    outline_w = max(CURSOR_OUTLINE_W, cs * 0.07)
-    painter.setPen(QPen(QColor(*CURSOR_OUTLINE), outline_w, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap, Qt.PenJoinStyle.RoundJoin))
-    painter.setBrush(QBrush(QColor(*CURSOR_COLOR)))
-    painter.drawPath(path)
+    _get_renderer().render(painter, target)
 
 
 # ── OpenCV/numpy-based cursor (for export) ─────────────────────────
@@ -157,51 +202,49 @@ def draw_cursor_qpainter(
 def _build_cursor_template(height: int) -> Tuple[np.ndarray, np.ndarray]:
     """Pre-render a cursor image + alpha mask at the given pixel height.
 
-    Returns (cursor_bgr, cursor_alpha) both of shape (H, W).
-    The cursor tip is at (0, 0) in the returned image.
+    Returns:
+        cursor_bgr:   shape (H, W, 3) — BGR colour channels.
+        cursor_alpha: shape (H, W)    — single-channel alpha mask (0-255).
+
+    The cursor tip is at pixel (0, 0) in both returned arrays.
     Includes a soft drop shadow for depth.
     """
     h = max(height, 8)
-    w = int(h * 0.7) + 2  # ensure enough width
-    shadow_off = max(2, int(h * 0.08))
-    pad = shadow_off + 4  # extra padding for shadow
 
-    cursor_bgra = np.zeros((h + pad * 2, w + pad * 2, 4), dtype=np.uint8)
+    # Render height covers the full SVG (arrow + shadow)
+    render_h = int(h / _ARROW_FRAC) + 1
+    render_w = int(render_h * (_VB_W / _VB_H)) + 1
 
-    pts = np.array(
-        [[int(p[0] * h) + pad, int(p[1] * h) + pad] for p in _ARROW_POINTS],
-        dtype=np.int32,
-    )
+    renderer = QSvgRenderer(QByteArray(_CURSOR_SVG_BYTES))
 
-    # Drop shadow (offset, semi-transparent)
-    shadow_pts = pts + shadow_off
-    cv2.fillPoly(cursor_bgra, [shadow_pts], (0, 0, 0, CURSOR_SHADOW_ALPHA))
-    # Blur the shadow channel slightly
-    alpha_ch = cursor_bgra[:, :, 3].copy()
-    blur_k = max(3, int(h * 0.1)) | 1  # must be odd
-    alpha_ch = cv2.GaussianBlur(alpha_ch, (blur_k, blur_k), 0)
-    cursor_bgra[:, :, 3] = alpha_ch
+    img = QImage(render_w, render_h, QImage.Format.Format_ARGB32)
+    img.fill(Qt.GlobalColor.transparent)
+    p = QPainter(img)
+    p.setRenderHint(QPainter.RenderHint.Antialiasing, True)
+    renderer.render(p)
+    p.end()
 
-    # Outline (dark, slightly thicker)
-    outline_thick = max(2, int(h * 0.09))
-    cv2.fillPoly(cursor_bgra, [pts], (*CURSOR_OUTLINE[::-1], 255))
-    cv2.polylines(cursor_bgra, [pts], True, (*CURSOR_OUTLINE[::-1], 255), outline_thick, cv2.LINE_AA)
+    # QImage ARGB32 on little-endian stores bytes as B, G, R, A
+    bpl = img.bytesPerLine()
+    buf = img.bits()
+    raw = np.frombuffer(buf, dtype=np.uint8).reshape(render_h, bpl)
+    arr = raw[:, : render_w * 4].reshape(render_h, render_w, 4).copy()
 
-    # Inner fill (white)
-    cv2.fillPoly(cursor_bgra, [pts], (255, 255, 255, 255))
+    # The viewBox origin IS the arrow tip, so pixel (0, 0) is already the
+    # hotspot — no cropping offset is required.
 
-    # Trim to bounding box
-    alpha = cursor_bgra[:, :, 3]
-    rows = np.any(alpha > 0, axis=1)
-    cols = np.any(alpha > 0, axis=0)
+    cursor_alpha = arr[:, :, 3]
+
+    # Trim right & bottom transparent edges
+    rows = np.any(cursor_alpha > 0, axis=1)
+    cols = np.any(cursor_alpha > 0, axis=0)
     if not rows.any():
         return np.zeros((1, 1, 3), dtype=np.uint8), np.zeros((1, 1), dtype=np.uint8)
-    rmin, rmax = np.where(rows)[0][[0, -1]]
-    cmin, cmax = np.where(cols)[0][[0, -1]]
-    cropped = cursor_bgra[rmin:rmax + 1, cmin:cmax + 1]
+    rmax = np.where(rows)[0][-1]
+    cmax = np.where(cols)[0][-1]
 
-    cursor_bgr = cropped[:, :, :3]
-    cursor_alpha = cropped[:, :, 3]
+    cursor_bgr = arr[: rmax + 1, : cmax + 1, :3].copy()
+    cursor_alpha = cursor_alpha[: rmax + 1, : cmax + 1].copy()
     return cursor_bgr, cursor_alpha
 
 
