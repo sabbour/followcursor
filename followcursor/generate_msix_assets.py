@@ -10,20 +10,17 @@ Produces the PNG files required by AppxManifest.xml:
 
 Run from the followcursor/ directory (same level as main.py).
 Output goes to msix/Assets/.
+
+Requires only Pillow (no Qt/PySide6 needed).
 """
 
 import os
-import sys
 
-sys.path.insert(0, os.path.dirname(__file__))
-
-from PySide6.QtWidgets import QApplication
-from PySide6.QtGui import QImage, QPainter, QColor
-from PySide6.QtCore import Qt, QRect
-from app.icon import create_app_icon
+from PIL import Image
 
 ASSETS_DIR = os.path.join(os.path.dirname(__file__), "msix", "Assets")
-BG_COLOR = QColor("#1b1a2e")
+ICO_PATH = os.path.join(os.path.dirname(__file__), "followcursor.ico")
+BG_COLOR = (27, 26, 46, 255)  # #1b1a2e fully opaque
 
 SIZES = {
     "Square44x44Logo.png": (44, 44),
@@ -35,26 +32,30 @@ SIZES = {
 }
 
 
+def _load_largest_icon() -> Image.Image:
+    """Load the highest-resolution frame from the .ico file."""
+    ico = Image.open(ICO_PATH)
+    sizes = ico.info.get("sizes", [(ico.width, ico.height)])
+    largest = max(sizes, key=lambda s: s[0] * s[1])
+    ico.size = largest  # type: ignore[assignment]
+    ico.load()
+    return ico.convert("RGBA")
+
+
 def main() -> None:
-    app = QApplication.instance() or QApplication(sys.argv)
-    icon = create_app_icon()
+    source = _load_largest_icon()
     os.makedirs(ASSETS_DIR, exist_ok=True)
 
     for filename, (w, h) in SIZES.items():
-        img = QImage(w, h, QImage.Format.Format_ARGB32_Premultiplied)
-        img.fill(BG_COLOR)
-        painter = QPainter(img)
-        painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
-        # Centre the icon in the tile (use the smaller dimension as icon size
-        # with 25 % padding so it doesn't touch the edges)
+        tile = Image.new("RGBA", (w, h), BG_COLOR)
+        # Centre the icon with 25 % padding on the shorter axis
         icon_size = int(min(w, h) * 0.75)
+        resized = source.resize((icon_size, icon_size), Image.LANCZOS)
         x = (w - icon_size) // 2
         y = (h - icon_size) // 2
-        pixmap = icon.pixmap(icon_size, icon_size)
-        painter.drawPixmap(x, y, pixmap)
-        painter.end()
+        tile.paste(resized, (x, y), mask=resized)
         out_path = os.path.join(ASSETS_DIR, filename)
-        img.save(out_path, "PNG")
+        tile.save(out_path, "PNG")
         print(f"  {filename} ({w}×{h})")
 
     print(f"Assets written to {ASSETS_DIR}")
