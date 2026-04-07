@@ -2,7 +2,7 @@
 Fluent 2 animated button with smooth hover and press transitions.
 
 Provides a drop-in replacement for QPushButton with Fluent 2 micro-interactions:
-- Animated hover overlay (white, 6% opacity, 150ms InOutQuad fade)
+- Animated hover overlay (white, 6% opacity, 150ms OutCubic fade)
 - Press overlay (black, 5% opacity, instant)
 - Uses QPropertyAnimation on a custom hover_opacity Q_PROPERTY
 """
@@ -11,6 +11,7 @@ import logging
 from PySide6.QtCore import QPropertyAnimation, Property, QEasingCurve, Qt
 from PySide6.QtWidgets import QPushButton
 from PySide6.QtGui import QPainter, QColor
+from . import tokens as T
 
 logger = logging.getLogger(__name__)
 
@@ -31,8 +32,9 @@ class FluentButton(QPushButton):
 
         # Setup hover animation
         self._hover_anim = QPropertyAnimation(self, b"hover_opacity")
-        self._hover_anim.setDuration(150)
-        self._hover_anim.setEasingCurve(QEasingCurve.Type.InOutQuad)
+        self._hover_anim.setDuration(T.DURATION_FAST)
+        self._hover_anim.setEasingCurve(QEasingCurve.Type.OutCubic)
+        self.setProperty("fluentAnimated", True)
 
     def get_hover_opacity(self) -> float:
         """Get current hover opacity value (0.0 to 1.0)."""
@@ -89,8 +91,8 @@ class FluentButton(QPushButton):
             painter.setRenderHint(QPainter.RenderHint.Antialiasing)
             rect = self.rect()
 
-            # Match border radius from QSS (Fluent standard is 6px)
-            radius = 6
+            # Match border radius to QSS (T.RADIUS_SMALL = 4px for buttons)
+            radius = T.RADIUS_SMALL
 
             if self._pressed:
                 # Press overlay: black at 5% opacity

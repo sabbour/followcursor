@@ -58,6 +58,13 @@ QPushButton:focus {{
     border: 2px solid {T.BRAND};
     padding: {T.SPACE_XS - 1}px {T.SPACE_SM - 1}px;
 }}
+/* FluentButton — suppress QSS hover snap so the animated overlay takes over */
+QPushButton[fluentAnimated="true"]:hover {{
+    background-color: transparent;
+}}
+QPushButton[fluentAnimated="true"]:pressed {{
+    background-color: transparent;
+}}
 
 /* ══════════════════════════════════════════════════════════════
    INPUTS — Fluent 2 Input & Textarea Patterns
@@ -295,6 +302,10 @@ QTabBar::tab:selected {{
 QTabBar::tab:focus {{
     outline: {T.FOCUS_RING_WIDTH}px solid {T.BRAND};
     outline-offset: {T.FOCUS_RING_OFFSET}px;
+}}
+/* FluentTabBar — suppress QSS hover snap so the animated overlay takes over */
+QTabBar[fluentAnimated="true"]::tab:hover {{
+    background-color: transparent;
 }}
 
 /* ══════════════════════════════════════════════════════════════

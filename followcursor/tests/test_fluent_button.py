@@ -10,6 +10,7 @@ from PySide6.QtWidgets import QApplication
 from PySide6.QtCore import QEasingCurve
 from app.fluent_button import FluentButton
 from app.fluent_tab_bar import FluentTabBar
+from app import tokens as T
 
 
 @pytest.fixture(scope="module")
@@ -46,10 +47,10 @@ class TestFluentButton:
         assert button.hover_opacity == 1.0
 
     def test_hover_animation_duration(self, qapp):
-        """Hover animation should be configured for 150ms InOutQuad."""
+        """Hover animation should use DURATION_FAST (150ms) with OutCubic easing."""
         button = FluentButton()
-        assert button._hover_anim.duration() == 150
-        assert button._hover_anim.easingCurve().type() == QEasingCurve.Type.InOutQuad
+        assert button._hover_anim.duration() == T.DURATION_FAST
+        assert button._hover_anim.easingCurve().type() == QEasingCurve.Type.OutCubic
 
     def test_initial_state(self, qapp):
         """FluentButton should initialize with no hover or press state."""
@@ -81,10 +82,10 @@ class TestFluentTabBar:
         assert tab_bar.hover_opacity == 1.0
 
     def test_hover_animation_duration(self, qapp):
-        """Hover animation should be configured for 150ms InOutQuad."""
+        """Hover animation should use DURATION_FAST (150ms) with OutCubic easing."""
         tab_bar = FluentTabBar()
-        assert tab_bar._hover_anim.duration() == 150
-        assert tab_bar._hover_anim.easingCurve().type() == QEasingCurve.Type.InOutQuad
+        assert tab_bar._hover_anim.duration() == T.DURATION_FAST
+        assert tab_bar._hover_anim.easingCurve().type() == QEasingCurve.Type.OutCubic
 
     def test_initial_state(self, qapp):
         """FluentTabBar should initialize with no hover or press state."""

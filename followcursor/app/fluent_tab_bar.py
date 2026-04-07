@@ -2,16 +2,16 @@
 Fluent 2 animated tab bar with smooth hover transitions.
 
 Provides a drop-in replacement for QTabBar with Fluent 2 micro-interactions:
-- Animated hover overlay (white, 6% opacity, 150ms InOutQuad fade)
+- Animated hover overlay (white, 6% opacity, 150ms OutCubic fade)
 - Press overlay (black, 5% opacity, instant)
 - Uses QPropertyAnimation on a custom hover_opacity Q_PROPERTY per tab
 """
 
 import logging
-from typing import Dict
-from PySide6.QtCore import QPropertyAnimation, Property, QEasingCurve, Qt, QPoint
+from PySide6.QtCore import QPropertyAnimation, Property, QEasingCurve, Qt
 from PySide6.QtWidgets import QTabBar
 from PySide6.QtGui import QPainter, QColor, QMouseEvent
+from . import tokens as T
 
 logger = logging.getLogger(__name__)
 
@@ -33,11 +33,12 @@ class FluentTabBar(QTabBar):
 
         # Setup hover animation
         self._hover_anim = QPropertyAnimation(self, b"hover_opacity")
-        self._hover_anim.setDuration(150)
-        self._hover_anim.setEasingCurve(QEasingCurve.Type.InOutQuad)
+        self._hover_anim.setDuration(T.DURATION_FAST)
+        self._hover_anim.setEasingCurve(QEasingCurve.Type.OutCubic)
 
         # Enable mouse tracking to detect hover
         self.setMouseTracking(True)
+        self.setProperty("fluentAnimated", True)
 
     def get_hover_opacity(self) -> float:
         """Get current hover opacity value (0.0 to 1.0)."""
@@ -114,10 +115,7 @@ class FluentTabBar(QTabBar):
 
         # Only draw overlay if hovering or pressing a valid tab
         if (self._hover_opacity > 0 and self._hover_tab >= 0) or self._pressed_tab >= 0:
-            painter = QPainter(self)
-            painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-
-            # Determine which tab to overlay
+            # Determine which tab to overlay — validate before creating painter
             target_tab = self._pressed_tab if self._pressed_tab >= 0 else self._hover_tab
             if target_tab < 0 or target_tab >= self.count():
                 return
@@ -126,17 +124,22 @@ class FluentTabBar(QTabBar):
             if rect.isNull():
                 return
 
-            # Match border radius from QSS (Fluent standard is 6px)
-            radius = 6
+            painter = QPainter(self)
+            try:
+                painter.setRenderHint(QPainter.RenderHint.Antialiasing)
 
-            if self._pressed_tab >= 0:
-                # Press overlay: black at 5% opacity
-                painter.setBrush(QColor(0, 0, 0, int(0.05 * 255)))
-            else:
-                # Hover overlay: white at 6% opacity, scaled by animation
-                alpha = int(0.06 * 255 * self._hover_opacity)
-                painter.setBrush(QColor(255, 255, 255, alpha))
+                # QTabBar::tab has no border-radius in theme.py — use T.RADIUS_NONE
+                radius = T.RADIUS_NONE
 
-            painter.setPen(Qt.PenStyle.NoPen)
-            painter.drawRoundedRect(rect, radius, radius)
-            painter.end()
+                if self._pressed_tab >= 0:
+                    # Press overlay: black at 5% opacity
+                    painter.setBrush(QColor(0, 0, 0, int(0.05 * 255)))
+                else:
+                    # Hover overlay: white at 6% opacity, scaled by animation
+                    alpha = int(0.06 * 255 * self._hover_opacity)
+                    painter.setBrush(QColor(255, 255, 255, alpha))
+
+                painter.setPen(Qt.PenStyle.NoPen)
+                painter.drawRoundedRect(rect, radius, radius)
+            finally:
+                painter.end()
