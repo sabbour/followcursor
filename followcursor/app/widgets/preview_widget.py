@@ -440,7 +440,8 @@ class PreviewWidget(QWidget):
 
         if self._zoom > 1.01:
             # Inside a zoom segment — offer pan point
-            act_pan = menu.addAction("📌  Add pan point here")
+            act_pan = menu.addAction("  Add pan point here")
+            act_pan.setIcon(load_icon("location", color=T.FG_PRIMARY))
             act_pan.triggered.connect(
                 lambda: self.pan_point_requested.emit(time_ms, pan_x, pan_y)
             )
