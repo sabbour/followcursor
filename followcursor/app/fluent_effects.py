@@ -25,7 +25,7 @@ from . import tokens as T
 logger = logging.getLogger(__name__)
 
 # ── Drop Shadows ────────────────────────────────────────────────────────
-# Fluent 2 elevation system with 5 layers (0-4) matching official spec
+# Fluent 2 elevation system with 7 layers (0-6) matching official spec
 
 _SHADOW_LEVELS = {
     # Layer 0: No shadow (flat surfaces)
@@ -57,6 +57,18 @@ _SHADOW_LEVELS = {
         "blur": T.SHADOW_LAYER_4_BLUR,
         "offset": T.SHADOW_LAYER_4_OFFSET_Y,
         "color": T.SHADOW_LAYER_4_KEY,
+    },
+    # Layer 5 (Shadow28): Modals, dialogs
+    "layer5": {
+        "blur": T.SHADOW_LAYER_5_BLUR,
+        "offset": T.SHADOW_LAYER_5_OFFSET_Y,
+        "color": T.SHADOW_LAYER_5_KEY,
+    },
+    # Layer 6 (Shadow64): High z-index flyouts
+    "layer6": {
+        "blur": T.SHADOW_LAYER_6_BLUR,
+        "offset": T.SHADOW_LAYER_6_OFFSET_Y,
+        "color": T.SHADOW_LAYER_6_KEY,
     },
     # Legacy aliases for backward compatibility
     "subtle": {
@@ -100,6 +112,8 @@ def apply_shadow(widget: QWidget, level: str = "layer2") -> None:
         - ``'layer2'`` (default): Cards, grid items, list items
         - ``'layer3'``: Command bars, tooltips, dropdowns
         - ``'layer4'``: Dialogs, callouts, flyouts
+        - ``'layer5'``: Modals, dialogs
+        - ``'layer6'``: High z-index flyouts
         - ``'subtle'``: Legacy alias for layer2
         - ``'medium'``: Legacy alias for layer3
     """

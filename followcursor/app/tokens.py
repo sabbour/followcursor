@@ -254,6 +254,22 @@ SHADOW_LAYER_4_OFFSET_Y: int = 8
 SHADOW_LAYER_4_KEY: str = "rgba(0, 0, 0, 0.28)"
 SHADOW_LAYER_4_AMBIENT: str = "rgba(0, 0, 0, 0.24)"  # unused (see SHADOW_LAYER_2_AMBIENT note)
 
+# Shadow Layer 5 (Shadow28) — Modals, dialogs
+SHADOW_LAYER_5_BLUR: int = 28
+SHADOW_LAYER_5_OFFSET_Y: int = 14
+SHADOW_LAYER_5_KEY: str = "rgba(0, 0, 0, 0.28)"
+SHADOW_LAYER_5_AMBIENT_BLUR: int = 8
+SHADOW_LAYER_5_AMBIENT_OFFSET_Y: int = 2
+SHADOW_LAYER_5_AMBIENT: str = "rgba(0, 0, 0, 0.20)"  # unused (see SHADOW_LAYER_2_AMBIENT note)
+
+# Shadow Layer 6 (Shadow64) — High z-index flyouts
+SHADOW_LAYER_6_BLUR: int = 64
+SHADOW_LAYER_6_OFFSET_Y: int = 32
+SHADOW_LAYER_6_KEY: str = "rgba(0, 0, 0, 0.28)"
+SHADOW_LAYER_6_AMBIENT_BLUR: int = 16
+SHADOW_LAYER_6_AMBIENT_OFFSET_Y: int = 4
+SHADOW_LAYER_6_AMBIENT: str = "rgba(0, 0, 0, 0.24)"  # unused (see SHADOW_LAYER_2_AMBIENT note)
+
 # Material effects — subtle transparency for overlays (acrylic-inspired)
 MATERIAL_OVERLAY_ALPHA: float = 0.92  # backdrop opacity
 MATERIAL_CARD_ALPHA: float = 0.98     # card/dialog opacity
@@ -301,3 +317,28 @@ SHADOW_SUBTLE_COLOR = SHADOW_LAYER_2_KEY
 SHADOW_MEDIUM_BLUR = SHADOW_LAYER_3_BLUR
 SHADOW_MEDIUM_OFFSET = SHADOW_LAYER_3_OFFSET_Y
 SHADOW_MEDIUM_COLOR = SHADOW_LAYER_3_KEY
+
+# ── Fluent 2 Light Theme Colors ───────────────────────────────────────────
+# Official Fluent 2 light mode palette
+# Reference: https://fluent2.microsoft.design/color
+LIGHT_BG_1: str = "#ffffff"        # colorNeutralBackground1 — canvas
+LIGHT_BG_2: str = "#fafafa"        # colorNeutralBackground2
+LIGHT_BG_3: str = "#f5f5f5"        # colorNeutralBackground3
+LIGHT_BG_4: str = "#f0f0f0"        # colorNeutralBackground4
+LIGHT_BG_5: str = "#ebebeb"        # colorNeutralBackground5
+LIGHT_FG_1: str = "#242424"        # colorNeutralForeground1 — primary text
+LIGHT_FG_2: str = "#424242"        # colorNeutralForeground2 — secondary text
+LIGHT_FG_3: str = "#616161"        # colorNeutralForeground3 — tertiary text
+LIGHT_FG_4: str = "#707070"        # colorNeutralForeground4 — quaternary
+LIGHT_STROKE_1: str = "#d1d1d1"    # colorNeutralStroke1 — default borders
+LIGHT_STROKE_2: str = "#e0e0e0"    # colorNeutralStroke2 — dividers
+LIGHT_STROKE_ACCESSIBLE: str = "#616161"  # colorNeutralStrokeAccessible (3:1 contrast)
+LIGHT_BRAND_FG: str = "#0f6cbd"    # colorBrandForeground1 (light mode brand)
+LIGHT_BRAND_BG: str = "#0f6cbd"    # colorBrandBackground
+LIGHT_BRAND_BG_HOVER: str = "#115ea3"     # colorBrandBackgroundHover
+LIGHT_BRAND_BG_PRESSED: str = "#0e4775"   # colorBrandBackgroundPressed
+
+# Light theme subtle interactive states
+LIGHT_BG_SUBTLE_HOVER: str = "#f5f5f5"    # subtle hover
+LIGHT_BG_SUBTLE_PRESSED: str = "#ebebeb"  # subtle pressed
+LIGHT_BG_CARD_HOVER: str = "#fafafa"      # card hover
