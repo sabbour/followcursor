@@ -115,3 +115,16 @@ The keystroke filter dropdown initially had a static tooltip listing all three m
 - **"Shortcuts Only":** Explains safer behavior
 
 This creates a feedback loop: users see the security implication RIGHT as they change the setting, not buried in documentation. This reduces accidental password leaks during tutorial recordings.
+
+### Release v0.9.0 and v0.10.0 — 2026-04-07
+Executed a dual-release cycle:
+
+1. **Closed milestones** — closed all 4 open milestones (v0.6.1, v0.7.0, v0.8.1, v0.10.0) via GitHub API
+2. **Released v0.9.0** — created GitHub Release from existing tag with CHANGELOG notes (Fluent 2 design system, SVG cursor, CI/CD, fixes)
+3. **Released v0.10.0** — bumped `version.py`, added CHANGELOG section (Fluent 2 colors/icons/typography/widgets, docs rewrite, auto-rebase removal), fixed stale version references in docs (`CONTRIBUTING.md` 0.8.0→0.10.0, `README.md` 0.5.0/0.6.0→0.10.0), committed via PR (branch protection enforced), tagged, and created GitHub Release
+
+**Key patterns:**
+- Branch protection on `main` requires a PR + CI pass — can't push directly, even for release commits
+- The `sabbour` (personal) account has merge permissions; the EMU account (`asabbour_microsoft`) does not — always switch auth before mutations
+- `gh auth switch` can silently revert between command invocations — chain auth switch + API call in one shell command to be safe
+- Review threads from Copilot PR reviewer must be resolved before merge — address feedback in code, then resolve via GraphQL mutation
