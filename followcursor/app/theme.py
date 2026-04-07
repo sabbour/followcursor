@@ -17,6 +17,23 @@ QWidget {{
     font-size: {T.FONT_SIZE_BODY}px;
     border: none;
 }}
+/* ── Default transparent border (prevents layout jump on focus) ── */
+QPushButton {{
+    border: {T.FOCUS_RING_WIDTH}px solid transparent;
+}}
+QComboBox {{
+    border: {T.FOCUS_RING_WIDTH}px solid transparent;
+}}
+QSpinBox {{
+    border: {T.FOCUS_RING_WIDTH}px solid transparent;
+}}
+QDoubleSpinBox {{
+    border: {T.FOCUS_RING_WIDTH}px solid transparent;
+}}
+QSlider {{
+    border: {T.FOCUS_RING_WIDTH}px solid transparent;
+}}
+
 /* ── Focus indicators (keyboard accessibility) ──── */
 QPushButton:focus {{
     border: {T.FOCUS_RING_WIDTH}px solid {T.BRAND};
@@ -28,6 +45,15 @@ QLineEdit:focus {{
     border: {T.FOCUS_RING_WIDTH}px solid {T.BRAND};
 }}
 QTextEdit:focus {{
+    border: {T.FOCUS_RING_WIDTH}px solid {T.BRAND};
+}}
+QSpinBox:focus {{
+    border: {T.FOCUS_RING_WIDTH}px solid {T.BRAND};
+}}
+QDoubleSpinBox:focus {{
+    border: {T.FOCUS_RING_WIDTH}px solid {T.BRAND};
+}}
+QSlider:focus {{
     border: {T.FOCUS_RING_WIDTH}px solid {T.BRAND};
 }}
 QCheckBox:focus {{

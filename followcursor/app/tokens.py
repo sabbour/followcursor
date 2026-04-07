@@ -26,6 +26,7 @@ BG_SURFACE: str = "#1b1a2e"      # general widget background
 BG_ELEVATED: str = "#201f34"     # raised surfaces – cards, items, placeholder
 BG_INTERACTIVE: str = "#28263e"  # clickable surfaces – buttons, tooltips
 BG_HOVER: str = "#353350"        # hover state for interactive elements
+BG_HOVER_STRONG: str = "#3f3d5c"  # stronger hover (active drag, emphasis)
 
 # ── Border ─────────────────────────────────────────────────────────────
 BORDER_SUBTLE: str = "#2d2b45"   # low-contrast dividers

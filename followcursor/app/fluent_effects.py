@@ -86,8 +86,8 @@ class HoverAnimationFilter(QObject):
         btn = QPushButton("Click me")
         install_hover_animation(btn, "_bg_opacity", 0.0, 1.0, duration_ms=100)
 
-    For colour transitions, use :func:`install_hover_bg_animation` which
-    handles the ``QColor`` type automatically.
+    For background-colour transitions, use :func:`install_hover_bg_animation`
+    which sets up the ``QColor`` property and animation automatically.
     """
 
     def __init__(
@@ -154,6 +154,40 @@ def install_hover_animation(
     )
     widget.installEventFilter(filt)
     return filt
+
+
+def install_hover_bg_animation(
+    widget: QWidget,
+    normal_color: str = T.BG_INTERACTIVE,
+    hover_color: str = T.BG_HOVER,
+    duration_ms: int = T.DURATION_FAST,
+) -> HoverAnimationFilter:
+    """Install a hover background-colour animation on *widget*.
+
+    Convenience wrapper around :func:`install_hover_animation` for the
+    common case of transitioning a background ``QColor`` on mouse enter /
+    leave.
+
+    Parameters
+    ----------
+    widget:
+        Target widget.
+    normal_color:
+        CSS hex colour for the resting state (default: ``BG_INTERACTIVE``).
+    hover_color:
+        CSS hex colour for the hovered state (default: ``BG_HOVER``).
+    duration_ms:
+        Transition duration (default: ``DURATION_FAST`` = 100 ms).
+
+    Returns the installed :class:`HoverAnimationFilter`.
+    """
+    return install_hover_animation(
+        widget,
+        "_bg_color",
+        QColor(normal_color),
+        QColor(hover_color),
+        duration_ms,
+    )
 
 
 # ── Focus Ring ──────────────────────────────────────────────────────────
