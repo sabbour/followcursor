@@ -85,7 +85,7 @@ Right-click a segment and choose how far in the camera zooms:
 
 ### Setting the Camera Focus Point (Centroid)
 
-Each zoom segment has a **centroid** — the point the camera centres on. To change it:
+Each zoom segment has a **centroid** — the point the camera centers on. To change it:
 
 1. Right-click the zoom segment on the timeline
 2. Choose **Set centroid**

@@ -52,7 +52,7 @@ Chapters appear as flag markers on your timeline and can be embedded as navigati
 FollowCursor detects chapters automatically:
 
 - Gaps in activity (3+ seconds of idle time)
-- Major position changes between clips
+- Major cursor position jumps
 
 You can also add chapters manually. Chapters are included in the MP4 file metadata and supported by players like YouTube and VLC.
 

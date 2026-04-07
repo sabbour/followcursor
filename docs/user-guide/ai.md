@@ -17,13 +17,11 @@ Before using AI features, you need to connect your Azure AI Foundry credentials:
 | **Endpoint** | Your Azure AI Foundry endpoint URL |
 | **API Key** | Your API key (or a GitHub token if using GitHub Models) |
 | **Chat Model** | The deployment name for your language model (e.g. `gpt-4o-mini`) |
-| **TTS Model** | The deployment name for text-to-speech (needed for voiceover) |
-| **Voice** | Your preferred voice for speech synthesis |
 
 4. Click **OK** — your credentials are saved securely
 
 !!! note "Credential security"
-    Your API keys are encrypted before being stored and only decrypted when a request is made. They are cleared from memory immediately after use.
+    Your API keys are encrypted before being stored and only decrypted when needed to make a request.
 
 ---
 
@@ -66,7 +64,7 @@ Synthesized voiceover segments appear as **teal blocks** on the timeline's Voice
 
 ### Voice Options
 
-Six voice options are available. The default is **Ava** (en-US, neural). You can change the default voice in **Settings > AI Settings**.
+Available voices are loaded dynamically from your configured text-to-speech service. When creating or editing a voiceover segment, choose from the voices currently listed in the voice selector for that segment.
 
 | Attribute | Range | Default |
 | --------- | ----- | ------- |

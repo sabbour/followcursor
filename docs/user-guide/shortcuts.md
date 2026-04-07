@@ -24,7 +24,7 @@ These work when the FollowCursor editor window is active.
 | -------- | ------ |
 | **Space** | Play / Pause |
 | **Z** | Insert a zoom keyframe at the playhead position |
-| **Delete** | Remove the selected zoom segment, video segment, or click event |
+| **Delete** | Remove the selected zoom segment, video segment, voiceover segment, or click event |
 | **Ctrl+Z** | Undo |
 | **Ctrl+Shift+Z** or **Ctrl+Y** | Redo |
 | **Ctrl+S** | Save project |

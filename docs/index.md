@@ -34,7 +34,7 @@ Record your screen or any individual window, then export a polished MP4 or GIF w
 
     ---
 
-    84 background presets, 5 device frame styles, annotations (text, arrows, highlights), click effects, keystroke overlays, and padding controls.
+    84 background presets, 5 device frame styles, annotations (text, arrows, highlights), click effects, keystroke overlays, and polished frame presets.
 
 -   :fluent-video_20_regular: **Cinematic Export**
 
