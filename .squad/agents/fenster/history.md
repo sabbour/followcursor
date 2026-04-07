@@ -115,3 +115,9 @@ The keystroke filter dropdown initially had a static tooltip listing all three m
 - **"Shortcuts Only":** Explains safer behavior
 
 This creates a feedback loop: users see the security implication RIGHT as they change the setting, not buried in documentation. This reduces accidental password leaks during tutorial recordings.
+
+## Issue #133 — README accuracy (fix/133-readme-accuracy)
+- Fixed screen_recorder.py docstring line 6 (was: "lossless AVI", now: H.264 CRF 18 ultrafast MP4)
+- Added 8 missing features to README: AI Smart Zoom, Voiceover/TTS, Chapters, Annotations, Keystroke Overlay, Click Effects, Pan Path Points, Segment Deletion
+- Fixed architecture table Recording Pipe entry
+- PR opened for #133
