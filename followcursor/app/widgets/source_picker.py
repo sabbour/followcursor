@@ -20,6 +20,7 @@ from PySide6.QtGui import QPixmap, QImage
 from .. import tokens as T
 from ..fluent_effects import apply_shadow
 from ..icon_loader import load_icon
+from ..mica import is_acrylic_supported, enable_acrylic
 
 # ScreenRecorder imported lazily inside methods to avoid pulling in
 # cv2/numpy/mss at startup.
@@ -388,6 +389,11 @@ class SourcePickerDialog(QDialog):
             color = T.FG_PRIMARY if i == index else T.FG_2
             icon_name = self._tab_icon_names[i]
             self._tabs.setTabIcon(i, load_icon(icon_name, color=color))
+
+    def showEvent(self, event) -> None:  # type: ignore[override]
+        super().showEvent(event)
+        if is_acrylic_supported():
+            enable_acrylic(int(self.winId()))
 
     def done(self, result: int) -> None:
         """Stop background thumbnail workers before closing the dialog."""

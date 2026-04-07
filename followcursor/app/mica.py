@@ -43,8 +43,8 @@ def is_mica_supported() -> bool:
 
 
 def is_acrylic_supported() -> bool:
-    """Returns True on Windows 10 Build 19041+ (for completeness)."""
-    return _get_build_number() >= 19041
+    """Returns True on Windows 11 Build 22621+ (same requirement as Mica)."""
+    return is_mica_supported()
 
 
 def _set_dwm_attribute(hwnd: int, attribute: int, value: int) -> bool:
@@ -53,9 +53,22 @@ def _set_dwm_attribute(hwnd: int, attribute: int, value: int) -> bool:
         return False
     try:
         dwmapi = ctypes.windll.dwmapi
+        dwm_set_window_attribute = dwmapi.DwmSetWindowAttribute
+        dwm_set_window_attribute.argtypes = (
+            ctypes.c_void_p,   # hwnd
+            ctypes.c_uint32,   # attribute
+            ctypes.c_void_p,   # pvAttribute
+            ctypes.c_uint32,   # cbAttribute
+        )
+        dwm_set_window_attribute.restype = ctypes.c_long
+
+        hwnd_ptr = ctypes.c_void_p(hwnd)
         val = ctypes.c_int(value)
-        result = dwmapi.DwmSetWindowAttribute(
-            hwnd, attribute, ctypes.byref(val), ctypes.sizeof(val)
+        result = dwm_set_window_attribute(
+            hwnd_ptr,
+            ctypes.c_uint32(attribute),
+            ctypes.cast(ctypes.byref(val), ctypes.c_void_p),
+            ctypes.c_uint32(ctypes.sizeof(val)),
         )
         return result == 0  # S_OK
     except Exception as e:
@@ -84,9 +97,9 @@ def enable_mica(hwnd: int, dark_mode: bool = True) -> bool:
     success = _set_dwm_attribute(hwnd, DWMWA_SYSTEMBACKDROP_TYPE, DWM_SYSTEMBACKDROP_MICA)
     
     if success:
-        logger.info("Mica backdrop enabled")
+        logger.debug("Mica backdrop enabled")
     else:
-        logger.warning("Failed to enable Mica backdrop")
+        logger.debug("Failed to enable Mica backdrop")
     
     return success
 
@@ -112,9 +125,9 @@ def enable_acrylic(hwnd: int, dark_mode: bool = True) -> bool:
     success = _set_dwm_attribute(hwnd, DWMWA_SYSTEMBACKDROP_TYPE, DWM_SYSTEMBACKDROP_ACRYLIC)
     
     if success:
-        logger.info("Acrylic backdrop enabled")
+        logger.debug("Acrylic backdrop enabled")
     else:
-        logger.warning("Failed to enable Acrylic backdrop")
+        logger.debug("Failed to enable Acrylic backdrop")
     
     return success
 
