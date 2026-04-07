@@ -17,6 +17,9 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtGui import QPixmap, QImage
 
+from .. import tokens as T
+from ..fluent_effects import apply_shadow
+
 # ScreenRecorder imported lazily inside methods to avoid pulling in
 # cv2/numpy/mss at startup.
 
@@ -115,7 +118,9 @@ class _SourceCard(QFrame):
         self._thumb_label = QLabel()
         self._thumb_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self._thumb_label.setMinimumHeight(100)
-        self._thumb_label.setStyleSheet("background: #0a0a18; border-radius: 6px;")
+        self._thumb_label.setStyleSheet(
+            f"background: {T.BG_CANVAS}; border-radius: {T.RADIUS_SMALL}px;"
+        )
         if thumb:
             self._thumb_label.setPixmap(
                 thumb.scaled(self._thumb_label.width() or 400, 200,
@@ -130,6 +135,9 @@ class _SourceCard(QFrame):
         name_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         name_label.setWordWrap(True)
         layout.addWidget(name_label)
+
+        # Fluent 2 — subtle elevation shadow on cards
+        apply_shadow(self, level="subtle")
 
     @property
     def selected(self) -> bool:
@@ -176,22 +184,30 @@ class SourcePickerDialog(QDialog):
         self._win_worker: _WindowThumbWorker | None = None
         self.chosen_source: dict = {}  # returned to caller
 
+        # Fluent 2 — medium elevation shadow on floating dialogs
+        apply_shadow(self, level="medium")
+
         layout = QVBoxLayout(self)
         layout.setContentsMargins(32, 28, 32, 24)
         layout.setSpacing(8)
 
         title = QLabel("Select Source")
-        title.setStyleSheet("font-size: 20px; font-weight: 600;")
+        title.setStyleSheet(
+            f"font-size: {T.FONT_SIZE_HEADER}px; font-weight: 600;"
+        )
         layout.addWidget(title)
 
         # Tabs: Screens | Windows
         self._tabs = QTabWidget()
         self._tabs.setStyleSheet(
-            "QTabWidget::pane { border: none; }"
-            "QTabBar::tab { background: #1e1c30; color: #9998b0; padding: 8px 20px;"
-            "  border: none; border-bottom: 2px solid transparent; font-size: 13px; }"
-            "QTabBar::tab:selected { color: #e4e4ed; border-bottom: 2px solid #8b5cf6; }"
-            "QTabBar::tab:hover { color: #c0bfda; }"
+            f"QTabWidget::pane {{ border: none; }}"
+            f"QTabBar::tab {{ background: {T.BG_SURFACE}; color: {T.FG_SECONDARY};"
+            f"  padding: {T.SPACE_XS}px 20px;"
+            f"  border: none; border-bottom: 2px solid transparent;"
+            f"  font-size: {T.FONT_SIZE_BODY}px; }}"
+            f"QTabBar::tab:selected {{ color: {T.FG_PRIMARY};"
+            f"  border-bottom: 2px solid {T.BRAND}; }}"
+            f"QTabBar::tab:hover {{ color: {T.FG_PRIMARY}; }}"
         )
         self._tabs.addTab(self._build_screens_tab(), "\U0001f5a5  Screens")
         self._tabs.addTab(self._build_windows_tab(), "\U0001fa9f  Windows")

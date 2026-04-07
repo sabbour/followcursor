@@ -24,6 +24,8 @@ from PySide6.QtWidgets import (
     QScrollArea,
 )
 
+from .. import tokens as T
+from ..fluent_effects import apply_shadow, install_focus_ring
 from ..models import ZoomKeyframe, MousePosition, KeyEvent, ClickEvent, ClickEffectPreset, CLICK_EFFECT_PRESETS, DEFAULT_CLICK_EFFECT, KeystrokeOverlayConfig
 from ..activity_analyzer import analyze_activity
 from ..backgrounds import (
@@ -83,11 +85,12 @@ class _CollapsibleSection(QWidget):
         self._btn.setFixedHeight(28)
         self._btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self._btn.setStyleSheet(
-            "QPushButton { background: #201f34; color: #a09cb5; font-size: 11px;"
-            "  font-weight: 600; letter-spacing: 1px; border: none;"
-            "  border-bottom: 1px solid #2d2b45; text-align: left;"
-            "  padding: 0 16px; }"
-            "QPushButton:hover { background: #28263e; color: #e4e4ed; }"
+            f"QPushButton {{ background: {T.BG_ELEVATED}; color: {T.FG_SECONDARY};"
+            f"  font-size: {T.FONT_SIZE_CAPTION}px;"
+            f"  font-weight: 600; letter-spacing: 1px; border: none;"
+            f"  border-bottom: 1px solid {T.BORDER_SUBTLE}; text-align: left;"
+            f"  padding: 0 {T.SPACE_MD}px; }}"
+            f"QPushButton:hover {{ background: {T.BG_INTERACTIVE}; color: {T.FG_PRIMARY}; }}"
         )
         self._btn.clicked.connect(self._toggle)
         layout.addWidget(self._btn)
@@ -118,16 +121,25 @@ class _AISettingsDialog(QDialog):
         self.setWindowTitle("AI Settings — Azure AI Foundry")
         self.setMinimumWidth(420)
         self.setStyleSheet(
-            "QDialog { background: #1b1a2e; }"
-            "QLabel { color: #e4e4ed; font-size: 13px; }"
-            "QLineEdit { background: #28263e; color: #e4e4ed; border: 1px solid #3d3a58;"
-            "  border-radius: 6px; padding: 6px; font-size: 13px; }"
-            "QComboBox { background: #28263e; color: #e4e4ed; border: 1px solid #3d3a58;"
-            "  border-radius: 6px; padding: 4px 8px; font-size: 13px; }"
-            "QPushButton { background: #28263e; color: #e4e4ed; border: 1px solid #3d3a58;"
-            "  border-radius: 6px; padding: 6px 16px; min-width: 80px; }"
-            "QPushButton:hover { background: #8b5cf6; }"
+            f"QDialog {{ background: {T.BG_SURFACE}; }}"
+            f"QLabel {{ color: {T.FG_PRIMARY}; font-size: {T.FONT_SIZE_BODY}px; }}"
+            f"QLineEdit {{ background: {T.BG_INTERACTIVE}; color: {T.FG_PRIMARY};"
+            f"  border: 1px solid {T.CARD_BORDER};"
+            f"  border-radius: {T.RADIUS_SMALL}px; padding: 6px;"
+            f"  font-size: {T.FONT_SIZE_BODY}px; }}"
+            f"QComboBox {{ background: {T.BG_INTERACTIVE}; color: {T.FG_PRIMARY};"
+            f"  border: 1px solid {T.CARD_BORDER};"
+            f"  border-radius: {T.RADIUS_SMALL}px; padding: {T.SPACE_XXS}px {T.SPACE_XS}px;"
+            f"  font-size: {T.FONT_SIZE_BODY}px; }}"
+            f"QPushButton {{ background: {T.BG_INTERACTIVE}; color: {T.FG_PRIMARY};"
+            f"  border: 1px solid {T.CARD_BORDER};"
+            f"  border-radius: {T.RADIUS_SMALL}px; padding: 6px {T.SPACE_MD}px;"
+            f"  min-width: 80px; }}"
+            f"QPushButton:hover {{ background: {T.BRAND}; }}"
         )
+
+        # Fluent 2 — medium shadow on floating dialog
+        apply_shadow(self, level="medium")
 
         layout = QVBoxLayout(self)
         layout.setSpacing(12)
@@ -138,7 +150,7 @@ class _AISettingsDialog(QDialog):
             "TTS uses Azure Speech Service with the same key."
         )
         info.setWordWrap(True)
-        info.setStyleSheet("color: #9c99b6; font-size: 12px;")
+        info.setStyleSheet(f"color: {T.FG_SECONDARY}; font-size: 12px;")
         layout.addWidget(info)
 
         form = QFormLayout()
@@ -165,6 +177,10 @@ class _AISettingsDialog(QDialog):
         buttons.accepted.connect(self.accept)
         buttons.rejected.connect(self.reject)
         layout.addWidget(buttons)
+
+        # Fluent 2 — focus rings on dialog input fields
+        for child in self.findChildren((QLineEdit,)):
+            install_focus_ring(child)
 
     def get_settings(self):
         from ..ai_service import AISettings
@@ -222,10 +238,7 @@ class EditorPanel(QWidget):
         scroll.setWidgetResizable(True)
         scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         scroll.setStyleSheet(
-            "QScrollArea { border: none; background: transparent; }"
-            "QScrollBar:vertical { background: #1b1a2e; width: 6px; }"
-            "QScrollBar::handle:vertical { background: #3d3a58; border-radius: 3px; min-height: 30px; }"
-            "QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical { height: 0; }"
+            f"QScrollArea {{ border: none; background: transparent; }}"
         )
         scroll_content = QWidget()
         self._container = QVBoxLayout(scroll_content)
@@ -288,15 +301,15 @@ class EditorPanel(QWidget):
         or_row.setSpacing(8)
         or_line_l = QFrame()
         or_line_l.setFrameShape(QFrame.Shape.HLine)
-        or_line_l.setStyleSheet("background-color: #2d2b45; max-height: 1px;")
+        or_line_l.setStyleSheet(f"background-color: {T.BORDER_SUBTLE}; max-height: 1px;")
         or_row.addWidget(or_line_l, 1)
         or_label = QLabel("or")
         or_label.setObjectName("Secondary")
-        or_label.setStyleSheet("color: #6c6890; font-size: 11px;")
+        or_label.setStyleSheet(f"color: {T.FG_MUTED}; font-size: {T.FONT_SIZE_CAPTION}px;")
         or_row.addWidget(or_label)
         or_line_r = QFrame()
         or_line_r.setFrameShape(QFrame.Shape.HLine)
-        or_line_r.setStyleSheet("background-color: #2d2b45; max-height: 1px;")
+        or_line_r.setStyleSheet(f"background-color: {T.BORDER_SUBTLE}; max-height: 1px;")
         or_row.addWidget(or_line_r, 1)
         zoom_lay.addLayout(or_row)
 
@@ -390,10 +403,10 @@ class EditorPanel(QWidget):
         self._keystroke_enabled = QCheckBox("Show keystrokes")
         self._keystroke_enabled.setObjectName("CtrlBtn")
         self._keystroke_enabled.setStyleSheet(
-            "QCheckBox { color: #e4e4ed; font-size: 13px; padding: 2px; }"
-            "QCheckBox::indicator { width: 18px; height: 18px; }"
-            "QCheckBox::indicator:unchecked { background: #28263e; border: 1px solid #3d3a58; border-radius: 3px; }"
-            "QCheckBox::indicator:checked { background: #8b5cf6; border: 1px solid #8b5cf6; border-radius: 3px; }"
+            f"QCheckBox {{ color: {T.FG_PRIMARY}; font-size: {T.FONT_SIZE_BODY}px; padding: 2px; }}"
+            f"QCheckBox::indicator {{ width: 18px; height: 18px; }}"
+            f"QCheckBox::indicator:unchecked {{ background: {T.BG_INTERACTIVE}; border: 1px solid {T.CARD_BORDER}; border-radius: 3px; }}"
+            f"QCheckBox::indicator:checked {{ background: {T.BRAND}; border: 1px solid {T.BRAND}; border-radius: 3px; }}"
         )
         self._keystroke_enabled.setChecked(False)
         self._keystroke_enabled.toggled.connect(self._on_keystroke_enabled_changed)
@@ -572,10 +585,8 @@ class EditorPanel(QWidget):
         list_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         list_scroll.setMaximumHeight(200)
         list_scroll.setStyleSheet(
-            "QScrollArea { border: 1px solid #2d2b45; background: #1b1a2e; border-radius: 4px; }"
-            "QScrollBar:vertical { background: #1b1a2e; width: 6px; }"
-            "QScrollBar::handle:vertical { background: #3d3a58; border-radius: 3px; min-height: 20px; }"
-            "QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical { height: 0; }"
+            f"QScrollArea {{ border: 1px solid {T.BORDER_SUBTLE}; background: {T.BG_SURFACE};"
+            f"  border-radius: {T.RADIUS_SMALL}px; }}"
         )
         
         self._annotations_list_widget = QWidget()
@@ -616,7 +627,9 @@ class EditorPanel(QWidget):
 
         # ── Fixed bottom bar (outside scroll area) ──────────────────
         bottom_bar = QWidget()
-        bottom_bar.setStyleSheet("background: #1b1a2e; border-top: 1px solid #2d2b45;")
+        bottom_bar.setStyleSheet(
+            f"background: {T.BG_SURFACE}; border-top: 1px solid {T.BORDER_SUBTLE};"
+        )
         bottom_layout = QVBoxLayout(bottom_bar)
         bottom_layout.setContentsMargins(16, 6, 16, 6)
         bottom_layout.setSpacing(4)
@@ -648,8 +661,9 @@ class EditorPanel(QWidget):
         self._info_label.setToolTip("Duration: 0:00\nMouse samples: 0\nKeyframes: 0")
         self._info_label.setCursor(Qt.CursorShape.WhatsThisCursor)
         self._info_label.setStyleSheet(
-            "QLabel { color: #6c6890; font-size: 13px; padding: 4px 0; }"
-            "QToolTip { background: #28263e; color: #e4e4ed; border: 1px solid #3d3a58; padding: 6px; }"
+            f"QLabel {{ color: {T.FG_MUTED}; font-size: {T.FONT_SIZE_BODY}px; padding: {T.SPACE_XXS}px 0; }}"
+            f"QToolTip {{ background: {T.BG_INTERACTIVE}; color: {T.FG_PRIMARY};"
+            f"  border: 1px solid {T.CARD_BORDER}; padding: 6px; }}"
         )
         info_row.addWidget(self._info_label)
 
@@ -679,6 +693,10 @@ class EditorPanel(QWidget):
         self._click_events: List[ClickEvent] = []
         self._monitor_rect: dict = {}
 
+        # Fluent 2 — focus ring glow on all interactive controls
+        for child in self.findChildren((QPushButton, QComboBox)):
+            install_focus_ring(child)
+
     # ── position / depth controls ───────────────────────────────────
 
     def _show_settings_menu(self) -> None:
@@ -686,9 +704,10 @@ class EditorPanel(QWidget):
         from PySide6.QtWidgets import QMenu, QWidgetAction
         menu = QMenu(self)
         menu.setStyleSheet(
-            "QMenu { background: #28263e; color: #e4e4ed; border: 1px solid #3d3a58; padding: 4px; }"
-            "QMenu::item { padding: 6px 20px; }"
-            "QMenu::item:selected { background: #8b5cf6; }"
+            f"QMenu {{ background: {T.BG_INTERACTIVE}; color: {T.FG_PRIMARY};"
+            f"  border: 1px solid {T.CARD_BORDER}; padding: {T.SPACE_XXS}px; }}"
+            f"QMenu::item {{ padding: 6px 20px; }}"
+            f"QMenu::item:selected {{ background: {T.BRAND}; }}"
         )
 
         # Debug overlay toggle
@@ -858,7 +877,7 @@ class EditorPanel(QWidget):
             if preset is None:
                 continue
             is_active = btn is active_btn
-            border = "#a78bfa" if is_active else "transparent"
+            border = T.BRAND_ACTIVE if is_active else "transparent"
             btn.setStyleSheet(self._bg_swatch_css(preset, border))
 
     @staticmethod
@@ -867,9 +886,10 @@ class EditorPanel(QWidget):
         r1, g1, b1 = preset.color_top
         r2, g2, b2 = preset.color_bottom
         kind = preset.kind
+        hover = T.BRAND
+        rad = T.RADIUS_SMALL
 
         if kind == "wavy":
-            # Diagonal gradient to hint at waves
             mr, mg, mb = (r1+r2)//2, (g1+g2)//2, (b1+b2)//2
             return (
                 f"QPushButton {{ background: qlineargradient("
@@ -877,31 +897,28 @@ class EditorPanel(QWidget):
                 f"stop:0 rgb({r1},{g1},{b1}), "
                 f"stop:0.5 rgb({mr},{mg},{mb}), "
                 f"stop:1 rgb({r2},{g2},{b2})); "
-                f"border: 2px solid {border}; border-radius: 6px; }}"
-                f"QPushButton:hover {{ border-color: #8b5cf6; }}"
+                f"border: 2px solid {border}; border-radius: {rad}px; }}"
+                f"QPushButton:hover {{ border-color: {hover}; }}"
             )
         elif kind == "radial":
-            # Radial uses a circular feel — approximate with 4-stop gradient
             return (
                 f"QPushButton {{ background: qradialgradient("
                 f"cx:0.5, cy:0.5, radius:0.7, fx:0.5, fy:0.5, "
                 f"stop:0 rgb({r1},{g1},{b1}), "
                 f"stop:1 rgb({r2},{g2},{b2})); "
-                f"border: 2px solid {border}; border-radius: 6px; }}"
-                f"QPushButton:hover {{ border-color: #8b5cf6; }}"
+                f"border: 2px solid {border}; border-radius: {rad}px; }}"
+                f"QPushButton:hover {{ border-color: {hover}; }}"
             )
         elif kind == "spotlight":
-            # Off-centre radial glow
             return (
                 f"QPushButton {{ background: qradialgradient("
                 f"cx:0.8, cy:0.2, radius:0.9, fx:0.8, fy:0.2, "
                 f"stop:0 rgb({r1},{g1},{b1}), "
                 f"stop:1 rgb({r2},{g2},{b2})); "
-                f"border: 2px solid {border}; border-radius: 6px; }}"
-                f"QPushButton:hover {{ border-color: #8b5cf6; }}"
+                f"border: 2px solid {border}; border-radius: {rad}px; }}"
+                f"QPushButton:hover {{ border-color: {hover}; }}"
             )
         elif kind == "diagonal":
-            # Repeating stripe look
             return (
                 f"QPushButton {{ background: qlineargradient("
                 f"x1:0, y1:0, x2:1, y2:1, "
@@ -910,21 +927,19 @@ class EditorPanel(QWidget):
                 f"stop:0.5 rgb({r1},{g1},{b1}), "
                 f"stop:0.75 rgb({r2},{g2},{b2}), "
                 f"stop:1 rgb({r1},{g1},{b1})); "
-                f"border: 2px solid {border}; border-radius: 6px; }}"
-                f"QPushButton:hover {{ border-color: #8b5cf6; }}"
+                f"border: 2px solid {border}; border-radius: {rad}px; }}"
+                f"QPushButton:hover {{ border-color: {hover}; }}"
             )
         elif kind == "dots":
-            # Radial hint on dark bg
             return (
                 f"QPushButton {{ background: qradialgradient("
                 f"cx:0.3, cy:0.3, radius:0.4, fx:0.3, fy:0.3, "
                 f"stop:0 rgb({r1},{g1},{b1}), "
                 f"stop:1 rgb({r2},{g2},{b2})); "
-                f"border: 2px solid {border}; border-radius: 6px; }}"
-                f"QPushButton:hover {{ border-color: #8b5cf6; }}"
+                f"border: 2px solid {border}; border-radius: {rad}px; }}"
+                f"QPushButton:hover {{ border-color: {hover}; }}"
             )
         elif kind == "chevron":
-            # Zigzag hint with 5 alternating stops
             mr, mg, mb = (r1+r2)//2, (g1+g2)//2, (b1+b2)//2
             return (
                 f"QPushButton {{ background: qlineargradient("
@@ -934,11 +949,10 @@ class EditorPanel(QWidget):
                 f"stop:0.5 rgb({r2},{g2},{b2}), "
                 f"stop:0.7 rgb({r1},{g1},{b1}), "
                 f"stop:1 rgb({r2},{g2},{b2})); "
-                f"border: 2px solid {border}; border-radius: 6px; }}"
-                f"QPushButton:hover {{ border-color: #8b5cf6; }}"
+                f"border: 2px solid {border}; border-radius: {rad}px; }}"
+                f"QPushButton:hover {{ border-color: {hover}; }}"
             )
         elif kind == "rings":
-            # Concentric hint
             return (
                 f"QPushButton {{ background: qradialgradient("
                 f"cx:0.5, cy:0.5, radius:0.5, fx:0.5, fy:0.5, "
@@ -947,8 +961,8 @@ class EditorPanel(QWidget):
                 f"stop:0.6 rgb({r2},{g2},{b2}), "
                 f"stop:0.8 rgb({r1},{g1},{b1}), "
                 f"stop:1 rgb({r2},{g2},{b2})); "
-                f"border: 2px solid {border}; border-radius: 6px; }}"
-                f"QPushButton:hover {{ border-color: #8b5cf6; }}"
+                f"border: 2px solid {border}; border-radius: {rad}px; }}"
+                f"QPushButton:hover {{ border-color: {hover}; }}"
             )
         elif kind == "gradient":
             return (
@@ -956,14 +970,14 @@ class EditorPanel(QWidget):
                 f"x1:0, y1:0, x2:0, y2:1, "
                 f"stop:0 rgb({r1},{g1},{b1}), "
                 f"stop:1 rgb({r2},{g2},{b2})); "
-                f"border: 2px solid {border}; border-radius: 6px; }}"
-                f"QPushButton:hover {{ border-color: #8b5cf6; }}"
+                f"border: 2px solid {border}; border-radius: {rad}px; }}"
+                f"QPushButton:hover {{ border-color: {hover}; }}"
             )
         else:  # solid
             return (
                 f"QPushButton {{ background: rgb({r1},{g1},{b1}); "
-                f"border: 2px solid {border}; border-radius: 6px; }}"
-                f"QPushButton:hover {{ border-color: #8b5cf6; }}"
+                f"border: 2px solid {border}; border-radius: {rad}px; }}"
+                f"QPushButton:hover {{ border-color: {hover}; }}"
             )
 
     # ── public ──────────────────────────────────────────────────────
@@ -1186,21 +1200,22 @@ class EditorPanel(QWidget):
             f"<h3>FollowCursor v{__version__}</h3>"
             "<p>A Windows screen recorder with cinematic<br>"
             "cursor-following zoom and AI features.</p>"
-            '<p><a href="https://github.com/sabbour/followcursor" '
-            'style="color: #a78bfa;">GitHub Repository</a></p>'
-            '<p><a href="https://github.com/sabbour/followcursor/issues" '
-            'style="color: #a78bfa;">Report a Bug / Request a Feature</a></p>'
-            '<p style="color: #6c6890; font-size: 11px; margin-top: 8px;">'
+            f'<p><a href="https://github.com/sabbour/followcursor" '
+            f'style="color: {T.BRAND_ACTIVE};">GitHub Repository</a></p>'
+            f'<p><a href="https://github.com/sabbour/followcursor/issues" '
+            f'style="color: {T.BRAND_ACTIVE};">Report a Bug / Request a Feature</a></p>'
+            f'<p style="color: {T.FG_MUTED}; font-size: {T.FONT_SIZE_CAPTION}px; margin-top: {T.SPACE_XS}px;">'
             "MIT License<br>"
             "Copyright \u00a9 2026 Ahmed Sabbour</p>"
         )
         dlg.setStyleSheet(
-            "QMessageBox { background: #1b1a2e; }"
-            "QMessageBox QLabel { color: #e4e4ed; font-size: 13px; }"
-            "QPushButton { min-width: 80px; min-height: 28px;"
-            "  background: #28263e; color: #e4e4ed; border: 1px solid #3d3a58;"
-            "  border-radius: 6px; padding: 4px 16px; }"
-            "QPushButton:hover { background: #8b5cf6; }"
+            f"QMessageBox {{ background: {T.BG_SURFACE}; }}"
+            f"QMessageBox QLabel {{ color: {T.FG_PRIMARY}; font-size: {T.FONT_SIZE_BODY}px; }}"
+            f"QPushButton {{ min-width: 80px; min-height: 28px;"
+            f"  background: {T.BG_INTERACTIVE}; color: {T.FG_PRIMARY};"
+            f"  border: 1px solid {T.CARD_BORDER};"
+            f"  border-radius: {T.RADIUS_SMALL}px; padding: {T.SPACE_XXS}px {T.SPACE_MD}px; }}"
+            f"QPushButton:hover {{ background: {T.BRAND}; }}"
         )
         dlg.exec()
 
@@ -1356,7 +1371,8 @@ class EditorPanel(QWidget):
         # Create list item widget
         item_widget = QWidget()
         item_widget.setStyleSheet(
-            "QWidget { background: #28263e; border-radius: 4px; padding: 4px; }"
+            f"QWidget {{ background: {T.BG_INTERACTIVE};"
+            f"  border-radius: {T.RADIUS_SMALL}px; padding: {T.SPACE_XXS}px; }}"
         )
         item_layout = QHBoxLayout(item_widget)
         item_layout.setContentsMargins(6, 4, 6, 4)
@@ -1378,16 +1394,17 @@ class EditorPanel(QWidget):
 
         desc_label = QLabel(desc)
         desc_label.setObjectName("Secondary")
-        desc_label.setStyleSheet("color: #e4e4ed; font-size: 12px;")
+        desc_label.setStyleSheet(f"color: {T.FG_PRIMARY}; font-size: 12px;")
         item_layout.addWidget(desc_label, 1)
 
         # Delete button
         del_btn = QPushButton("×")
         del_btn.setFixedSize(24, 24)
         del_btn.setStyleSheet(
-            "QPushButton { background: transparent; color: #9c99b6; "
-            "border: none; font-size: 18px; font-weight: bold; }"
-            "QPushButton:hover { color: #ef4444; background: #3d3a58; border-radius: 4px; }"
+            f"QPushButton {{ background: transparent; color: {T.FG_SECONDARY}; "
+            f"border: none; font-size: 18px; font-weight: bold; }}"
+            f"QPushButton:hover {{ color: {T.DANGER}; background: {T.BORDER_MEDIUM};"
+            f"  border-radius: {T.RADIUS_SMALL}px; }}"
         )
         del_btn.clicked.connect(
             lambda: self._remove_annotation(annot_type, annotation.id, item_widget)

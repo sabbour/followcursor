@@ -17,7 +17,51 @@ QWidget {{
     font-size: {T.FONT_SIZE_BODY}px;
     border: none;
 }}
-QWidget:focus {{ outline: none; }}
+/* ── Default transparent border (prevents layout jump on focus) ── */
+QPushButton {{
+    border: {T.FOCUS_RING_WIDTH}px solid transparent;
+}}
+QComboBox {{
+    border: {T.FOCUS_RING_WIDTH}px solid transparent;
+}}
+QSpinBox {{
+    border: {T.FOCUS_RING_WIDTH}px solid transparent;
+}}
+QDoubleSpinBox {{
+    border: {T.FOCUS_RING_WIDTH}px solid transparent;
+}}
+QSlider {{
+    border: {T.FOCUS_RING_WIDTH}px solid transparent;
+}}
+
+/* ── Focus indicators (keyboard accessibility) ──── */
+QPushButton:focus {{
+    border: {T.FOCUS_RING_WIDTH}px solid {T.BRAND};
+}}
+QComboBox:focus {{
+    border: {T.FOCUS_RING_WIDTH}px solid {T.BRAND};
+}}
+QLineEdit:focus {{
+    border: {T.FOCUS_RING_WIDTH}px solid {T.BRAND};
+}}
+QTextEdit:focus {{
+    border: {T.FOCUS_RING_WIDTH}px solid {T.BRAND};
+}}
+QSpinBox:focus {{
+    border: {T.FOCUS_RING_WIDTH}px solid {T.BRAND};
+}}
+QDoubleSpinBox:focus {{
+    border: {T.FOCUS_RING_WIDTH}px solid {T.BRAND};
+}}
+QSlider:focus {{
+    border: {T.FOCUS_RING_WIDTH}px solid {T.BRAND};
+}}
+QCheckBox:focus {{
+    outline: none;
+}}
+QTabBar::tab:focus {{
+    border-bottom: {T.FOCUS_RING_WIDTH}px solid {T.BRAND};
+}}
 
 /* ── Title bar ──────────────────────────────────────── */
 #TitleBar {{
@@ -385,23 +429,61 @@ QPushButton#SaveBtn:disabled {{
     padding: {T.SPACE_XS}px;
 }}
 
-/* ── Scrollbar ──────────────────────────────────────── */
+/* ── Scrollbar (vertical) ───────────────────────────── */
 QScrollBar:vertical {{
-    width: 6px;
+    width: {T.SCROLLBAR_THIN}px;
     background: transparent;
+    margin: {T.SPACE_XXS}px 0;
+    border-radius: {T.RADIUS_SMALL}px;
+}}
+QScrollBar:vertical:hover {{
+    width: {T.SCROLLBAR_WIDE}px;
 }}
 QScrollBar::handle:vertical {{
     background: {T.BORDER_MEDIUM};
     border-radius: 3px;
-    min-height: 20px;
+    min-height: {T.SCROLLBAR_MIN_HEIGHT}px;
 }}
 QScrollBar::handle:vertical:hover {{
     background: {T.BORDER_STRONG};
+    border-radius: {T.RADIUS_SMALL}px;
+}}
+QScrollBar::handle:vertical:pressed {{
+    background: {T.FG_SECONDARY};
 }}
 QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{
     height: 0;
 }}
 QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {{
+    background: transparent;
+}}
+
+/* ── Scrollbar (horizontal) ────────────────────────── */
+QScrollBar:horizontal {{
+    height: {T.SCROLLBAR_THIN}px;
+    background: transparent;
+    margin: 0 {T.SPACE_XXS}px;
+    border-radius: {T.RADIUS_SMALL}px;
+}}
+QScrollBar:horizontal:hover {{
+    height: {T.SCROLLBAR_WIDE}px;
+}}
+QScrollBar::handle:horizontal {{
+    background: {T.BORDER_MEDIUM};
+    border-radius: 3px;
+    min-width: {T.SCROLLBAR_MIN_HEIGHT}px;
+}}
+QScrollBar::handle:horizontal:hover {{
+    background: {T.BORDER_STRONG};
+    border-radius: {T.RADIUS_SMALL}px;
+}}
+QScrollBar::handle:horizontal:pressed {{
+    background: {T.FG_SECONDARY};
+}}
+QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {{
+    width: 0;
+}}
+QScrollBar::add-page:horizontal, QScrollBar::sub-page:horizontal {{
     background: transparent;
 }}
 

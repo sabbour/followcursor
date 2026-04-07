@@ -49,6 +49,7 @@ from .project_file import PROJ_EXT
 from .backgrounds import PRESETS as BG_PRESETS
 from .frames import FRAME_PRESETS
 from .theme import DARK_THEME
+from .fluent_effects import apply_shadow, install_focus_ring
 from .widgets.title_bar import TitleBar
 from .widgets.source_picker import SourcePickerDialog
 from .widgets.preview_widget import PreviewWidget
@@ -867,6 +868,7 @@ class MainWindow(QMainWindow):
         # editor panel (hidden until edit mode)
         self._editor = EditorPanel()
         self._editor.setVisible(False)
+        apply_shadow(self._editor, level="subtle")  # Fluent 2 panel elevation
         self._editor.remove_keyframe.connect(self._on_remove_keyframe)
         self._editor.add_keyframe_at.connect(self._add_keyframe)
         self._editor.auto_keyframes_generated.connect(self._on_auto_keyframes)
@@ -1014,6 +1016,11 @@ class MainWindow(QMainWindow):
         for w in [self._btn_record_view, self._btn_edit_view, sep, self._btn_load, self._btn_save]:
             layout.addWidget(w, 0, Qt.AlignmentFlag.AlignHCenter)
 
+        # Fluent 2 — focus ring glow on sidebar navigation buttons
+        for btn in (self._btn_record_view, self._btn_edit_view,
+                    self._btn_load, self._btn_save):
+            install_focus_ring(btn)
+
         layout.addStretch()
         return sidebar
 
@@ -1090,6 +1097,10 @@ class MainWindow(QMainWindow):
         layout.addWidget(self._btn_record)
         layout.addWidget(self._btn_stop)
 
+        # Fluent 2 — keyboard focus glow on control buttons
+        for btn in (self._btn_change_source, self._btn_record, self._btn_stop):
+            install_focus_ring(btn)
+
         return bar
 
     def _build_status_bar(self) -> QWidget:
@@ -1131,6 +1142,9 @@ class MainWindow(QMainWindow):
         right = QLabel("Ctrl+Shift+R  Start / Stop Recording")
         right.setObjectName("StatusLabel")
         layout.addWidget(right)
+
+        # Fluent 2 — focus ring on status-bar button
+        install_focus_ring(self._btn_clipchamp)
 
         return bar
 

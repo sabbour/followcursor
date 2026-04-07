@@ -26,6 +26,7 @@ BG_SURFACE: str = "#1b1a2e"      # general widget background
 BG_ELEVATED: str = "#201f34"     # raised surfaces – cards, items, placeholder
 BG_INTERACTIVE: str = "#28263e"  # clickable surfaces – buttons, tooltips
 BG_HOVER: str = "#353350"        # hover state for interactive elements
+BG_HOVER_STRONG: str = "#3f3d5c"  # stronger hover (active drag, emphasis)
 
 # ── Border ─────────────────────────────────────────────────────────────
 BORDER_SUBTLE: str = "#2d2b45"   # low-contrast dividers
@@ -98,3 +99,12 @@ SHADOW_SUBTLE_COLOR: str = "rgba(0, 0, 0, 0.25)"
 SHADOW_MEDIUM_BLUR: int = 8
 SHADOW_MEDIUM_OFFSET: int = 4
 SHADOW_MEDIUM_COLOR: str = "rgba(0, 0, 0, 0.35)"
+
+# ── Focus ring ─────────────────────────────────────────────────────────
+FOCUS_RING_WIDTH: int = 2
+FOCUS_RING_OFFSET: int = 2
+
+# ── Scrollbar ──────────────────────────────────────────────────────────
+SCROLLBAR_THIN: int = 6         # default narrow width
+SCROLLBAR_WIDE: int = 12        # expanded width on hover
+SCROLLBAR_MIN_HEIGHT: int = 24  # minimum handle length
