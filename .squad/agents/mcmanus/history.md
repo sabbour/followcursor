@@ -2,6 +2,13 @@
 
 ## Recent Work
 
+## Issue #132 — Fluent icons in MkDocs (fix/132-fluent-icons)
+- Added docs/overrides/.icons/fluent/ with Fluent SVGs from app/icons/
+- Configured mkdocs.yml: custom_dir + pymdownx.emoji with twemoji+svg+custom_icons
+- Updated docs/index.md to use :fluent-*: shortcodes
+- Icon shortcode format: :fluent-{filename-without-ext}: where filename uses dashes not underscores
+- PR opened for #132
+
 ### 2026-04-07: Fixed PR #110 — Source Picker Icon Color State Management
 
 **Task:** Fix icon color inconsistencies in source picker dialog  
