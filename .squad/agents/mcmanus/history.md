@@ -37,6 +37,21 @@ Implemented complete annotation system for text, arrows, and highlights.
 
 ## Learnings
 
+### 2026-07-23: Complete Documentation Rewrite (PR #95)
+
+Rewrote all 5 docs pages + mkdocs.yml for the GitHub Pages site (mkdocs-material).
+
+**Files changed (8):**
+- `docs/index.md` — Landing page with feature grid (material card layout)
+- `docs/QUICKSTART.md` — Step-by-step getting started (install, record, edit, export)
+- `docs/USER_GUIDE.md` — Complete feature reference covering: recording, playback, zoom (auto/AI/manual/pan), click events, visual enhancements (backgrounds, frames, cursor, keystroke overlay, annotations), export (MP4/GIF), trimming, segments, undo/redo, AI (zoom + TTS voiceover), chapters, projects, settings, shortcuts
+- `docs/ARCHITECTURE.md` — System overview, data model, capture backends, zoom engine, activity analyzer, AI service, export pipeline, compositor, design system (tokens.py/Fluent 2), input tracking, UI architecture, threading model, component map
+- `docs/CONTRIBUTING.md` — Dev setup, coding conventions (tokens, QSS, signals), testing (359 tests, VS Code task), security, branching, versioning, CI/CD
+- `mkdocs.yml` — Updated site_url to https://sabbour.me/followcursor, added markdown extensions (admonitions, superfences, tabbed, attr_list, md_in_html, toc)
+- `README.md` + `followcursor/README.md` — Added docs site link
+
+**Key approach:** Read all source files (models.py, main_window.py, video_exporter.py, zoom_engine.py, activity_analyzer.py, ai_service.py, screen_recorder.py, cursor_renderer.py, keystroke_renderer.py, annotation_renderer.py, backgrounds.py, frames.py, project_file.py, credentials.py, tokens.py, fluent_effects.py) to build a complete feature inventory before writing. This ensured no features were missed (e.g., chapters, pan path points, keystroke overlay, DPAPI credentials, design tokens, VoiceoverSegment rate/volume).
+
 ### 2026-07-22: Fluent 2 Phase 2 — Visual Polish (Shadows, Animations, Focus)
 
 **fluent_effects.py** — New reusable effects module:
