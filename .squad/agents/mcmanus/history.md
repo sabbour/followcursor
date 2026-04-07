@@ -2,6 +2,61 @@
 
 ## Recent Work
 
+### 2026-04-07: Fluent 2 Typography, Shapes & Spacing (Issue #100)
+
+**Task:** Apply Fluent 2 typography, shapes, spacing, and motion tokens  
+**Outcome:** ✅ Complete — PR #105  
+**Branch:** feat/issue-100-fluent2-typography
+
+Implemented the complete Fluent 2 type ramp, shape system, spacing tokens, and motion tokens. This aligns FollowCursor's design system with Windows 11 and Microsoft's official Fluent 2 specifications.
+
+**Implementation:**
+- **Typography tokens** (`tokens.py`)
+  - Full Fluent 2 type ramp: Caption2 (10/14) through Display (68/92)
+  - Font family: Segoe UI Variable with fallback to Segoe UI for Windows 10
+  - Font weight constants: Regular (400), Medium (500), Semibold (600), Bold (700)
+  - Added line height tokens for each type level
+  - Legacy aliases (FONT_SIZE_CAPTION, FONT_SIZE_BODY, etc.) preserved for backward compat
+- **Spacing tokens** (`tokens.py`)
+  - Extended from 7 tokens to 13 Fluent 2 spacer levels
+  - New range: 2px (SPACE_XXS) to 64px (SPACE_64)
+  - Granular steps: 2, 4, 6, 8, 10, 12, 16, 20, 24, 32, 40, 48, 64
+  - Maps to Fluent 2 size20, size40, size60, size80, etc.
+- **Shape tokens** (`tokens.py`)
+  - RADIUS_NONE (0px) for edge-aligned elements
+  - RADIUS_SMALL (4px) for buttons, inputs
+  - RADIUS_MEDIUM (8px) for cards, panels
+  - RADIUS_LARGE (12px) for sheets, popovers
+  - RADIUS_XLARGE (16px) for extra-large containers
+  - RADIUS_CIRCULAR (9999px) for avatars, status dots
+- **Motion tokens** (`tokens.py`)
+  - 8 duration levels: DURATION_ULTRA_FAST (50ms) to DURATION_ULTRA_SLOW (500ms)
+  - 5 easing curves: CURVE_EASY_EASE, CURVE_DECELERATE, CURVE_ACCELERATE, CURVE_EASY_EASE_MAX, CURVE_LINEAR
+  - CSS cubic-bezier references for future web/HTML export
+- **Animation enhancements** (`fluent_effects.py`)
+  - Added configurable easing parameter to install_hover_animation()
+  - Updated default duration from DURATION_FAST (100ms) to DURATION_FASTER (100ms) for consistency
+  - Added helper functions: get_entering_curve(), get_exiting_curve(), get_default_curve()
+  - Maps Fluent 2 curves to Qt enums (OutQuad, InQuad, OutCubic)
+
+**Testing:**
+- ✅ All 375 tests pass
+- ✅ No breaking changes — theme.py QSS inherits updated tokens automatically
+- ✅ Legacy token aliases prevent any regression
+
+**Key learnings:**
+- Fluent 2 uses a 4px base grid but includes odd values (2, 6, 10) for icon alignment
+- Type ramp line heights are critical for vertical rhythm
+- Segoe UI Variable is Windows 11 only — fallbacks essential for Windows 10
+- Motion tokens distinguish entering (decelerate) vs. exiting (accelerate) vs. in-viewport (ease)
+- Qt easing curves map cleanly to Fluent 2 CSS bezier curves
+
+**References:**
+- https://fluent2.microsoft.design/typography
+- https://fluent2.microsoft.design/shapes
+- https://fluent2.microsoft.design/layout
+- https://fluent2.microsoft.design/motion
+
 ### 2026-04-07: Fluent UI System Icons Integration (Issue #99)
 
 **Task:** Replace all emoji icons with proper Fluent UI System Icons  
@@ -335,3 +390,23 @@ The annotation feature follows FollowCursor's established patterns:
 - Integration points: video exporter, compositor, project file, preview widget
 
 This organization ensures maintainability and consistency with the existing codebase.
+
+## Learnings
+
+### 2026-04-07: Fluent 2 Design Token Alignment
+
+**Context:** Issue #100 required adopting the full Fluent 2 typography, shapes, spacing, and motion specifications.
+
+**Key takeaways:**
+1. **Type ramp precision matters** — Fluent 2 uses specific font size/line height pairs (e.g., Body1 = 14/20, not 14/18). Line height ensures vertical rhythm.
+2. **Spacing granularity** — While the 4px grid is the base, Fluent 2 includes 2px, 6px, and 10px steps for tight icon/text alignment scenarios.
+3. **Shape token naming** — Fluent uses "Global-Corner-Radius-40" (4px), not "small". We aliased RADIUS_SMALL → 4px for readability but documented the official token names in comments.
+4. **Motion intent-based design** — Fluent 2 distinguishes entering (decelerate/slow in), exiting (accelerate/fast out), and in-viewport (ease). Helper functions (get_entering_curve, get_exiting_curve) make this explicit.
+5. **Windows 10 font fallback** — Segoe UI Variable is Windows 11 only. Always include "Segoe UI" as the first fallback.
+6. **Qt easing curve mapping** — Fluent 2's curveDecelerate = Qt's OutQuad, curveAccelerate = InQuad, curveEasyEase = OutCubic.
+7. **Backward compatibility strategy** — Legacy token names (FONT_SIZE_BODY, SPACE_XXS, etc.) preserved as aliases. This prevents breaking existing QSS/widget code while adopting the new spec.
+
+**Future work:**
+- Phase 4 (acrylic/mica materials) can now use MATERIAL_OVERLAY_ALPHA and MATERIAL_CARD_ALPHA tokens
+- Animation helpers (get_entering_curve, get_exiting_curve) ready for fade-in/fade-out widget transitions
+- Type ramp supports future UI scaling/accessibility features
