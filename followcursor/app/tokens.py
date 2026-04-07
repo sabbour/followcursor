@@ -14,6 +14,7 @@ Reference:
 # ── Spacing (Fluent 2 Spacer Tokens) ──────────────────────────────────
 # Based on https://fluent2.microsoft.design/layout
 # Uses 2px base unit with Fluent 2 spacer values (size20, size40, size80, etc.)
+SPACE_NONE: int = 0   # sizeNone
 SPACE_XXS: int = 2   # size20 — tight compact spacing
 SPACE_XS: int = 4    # size40 — minimal padding
 SPACE_SM: int = 8    # size80 — small controls, icons
@@ -27,7 +28,11 @@ SPACE_XXXL: int = 48 # size480 — major layout divisions
 SPACE_6: int = 6     # size60 — icon-text gap
 SPACE_10: int = 10   # size100 — list item padding
 SPACE_20: int = 20   # size200 — medium sections
+SPACE_28: int = 28   # size280 — extended section gaps
+SPACE_36: int = 36   # size360 — wide component spacing
 SPACE_40: int = 40   # size400 — large containers
+SPACE_52: int = 52   # size520 — extra-wide sections
+SPACE_56: int = 56   # size560 — jumbo component gaps
 SPACE_64: int = 64   # size640 — extra-large divisions
 
 # ── Corner Radius (Fluent 2 Shapes) ───────────────────────────────────

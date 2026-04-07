@@ -19,6 +19,7 @@ from PySide6.QtGui import QPixmap, QImage
 
 from .. import tokens as T
 from ..fluent_effects import apply_shadow
+from ..icon_loader import load_icon
 
 # ScreenRecorder imported lazily inside methods to avoid pulling in
 # cv2/numpy/mss at startup.
@@ -112,8 +113,8 @@ class _SourceCard(QFrame):
         self.setMaximumHeight(170)
 
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(6, 6, 6, 6)
-        layout.setSpacing(4)
+        layout.setContentsMargins(T.SPACE_6, T.SPACE_6, T.SPACE_6, T.SPACE_6)
+        layout.setSpacing(T.SPACE_XS)
 
         self._thumb_label = QLabel()
         self._thumb_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -183,34 +184,40 @@ class SourcePickerDialog(QDialog):
         self._mon_worker: _MonitorThumbWorker | None = None
         self._win_worker: _WindowThumbWorker | None = None
         self.chosen_source: dict = {}  # returned to caller
+        self._tab_icon_names = ["desktop", "window"]  # track icon names for state updates
 
         # Fluent 2 — medium elevation shadow on floating dialogs
         apply_shadow(self, level="medium")
 
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(32, 28, 32, 24)
-        layout.setSpacing(8)
+        layout.setContentsMargins(
+            T.SPACE_XXL, T.SPACE_XL, T.SPACE_XXL, T.SPACE_XL
+        )
+        layout.setSpacing(T.SPACE_SM)
 
         title = QLabel("Select Source")
         title.setStyleSheet(
-            f"font-size: {T.FONT_SIZE_HEADER}px; font-weight: 600;"
+            f"font-size: {T.FONT_SIZE_SUBTITLE_2}px;"
+            f" font-weight: {T.FONT_WEIGHT_SEMIBOLD};"
         )
         layout.addWidget(title)
 
         # Tabs: Screens | Windows
         self._tabs = QTabWidget()
-        self._tabs.setStyleSheet(
-            f"QTabWidget::pane {{ border: none; }}"
-            f"QTabBar::tab {{ background: {T.BG_SURFACE}; color: {T.FG_SECONDARY};"
-            f"  padding: {T.SPACE_XS}px 20px;"
-            f"  border: none; border-bottom: 2px solid transparent;"
-            f"  font-size: {T.FONT_SIZE_BODY}px; }}"
-            f"QTabBar::tab:selected {{ color: {T.FG_PRIMARY};"
-            f"  border-bottom: 2px solid {T.BRAND}; }}"
-            f"QTabBar::tab:hover {{ color: {T.FG_PRIMARY}; }}"
+        self._tabs.addTab(
+            self._build_screens_tab(),
+            load_icon("desktop", color=T.FG_2),
+            "Screens",
         )
-        self._tabs.addTab(self._build_screens_tab(), "\U0001f5a5  Screens")
-        self._tabs.addTab(self._build_windows_tab(), "\U0001fa9f  Windows")
+        self._tabs.addTab(
+            self._build_windows_tab(),
+            load_icon("window", color=T.FG_2),
+            "Windows",
+        )
+        # Connect tab change to update icon colors
+        self._tabs.currentChanged.connect(self._update_tab_icons)
+        # Set initial state
+        self._update_tab_icons(self._tabs.currentIndex())
         layout.addWidget(self._tabs, 1)
 
         # Action buttons
@@ -233,7 +240,7 @@ class SourcePickerDialog(QDialog):
         widget = QWidget()
         widget.setStyleSheet("background: transparent;")
         tab_layout = QVBoxLayout(widget)
-        tab_layout.setContentsMargins(0, 8, 0, 0)
+        tab_layout.setContentsMargins(0, T.SPACE_SM, 0, 0)
 
         subtitle = QLabel("Choose a monitor to record")
         subtitle.setObjectName("Secondary")
@@ -246,7 +253,7 @@ class SourcePickerDialog(QDialog):
         grid_widget = QWidget()
         grid_widget.setStyleSheet("background: transparent;")
         grid = QGridLayout(grid_widget)
-        grid.setSpacing(16)
+        grid.setSpacing(T.SPACE_LG)
 
         from ..screen_recorder import ScreenRecorder
         monitors = ScreenRecorder.get_monitors()
@@ -275,7 +282,7 @@ class SourcePickerDialog(QDialog):
         widget = QWidget()
         widget.setStyleSheet("background: transparent;")
         tab_layout = QVBoxLayout(widget)
-        tab_layout.setContentsMargins(0, 8, 0, 0)
+        tab_layout.setContentsMargins(0, T.SPACE_SM, 0, 0)
 
         top_row = QHBoxLayout()
         subtitle = QLabel("Choose a window to record")
@@ -283,9 +290,9 @@ class SourcePickerDialog(QDialog):
         top_row.addWidget(subtitle)
         top_row.addStretch()
 
-        refresh_btn = QPushButton("\u21bb  Refresh")
+        refresh_btn = QPushButton("Refresh")
+        refresh_btn.setIcon(load_icon("arrow_sync", color=T.FG_PRIMARY))
         refresh_btn.setObjectName("CtrlBtn")
-        refresh_btn.setFixedHeight(28)
         refresh_btn.clicked.connect(self._refresh_windows)
         top_row.addWidget(refresh_btn)
         tab_layout.addLayout(top_row)
@@ -297,7 +304,7 @@ class SourcePickerDialog(QDialog):
         self._win_grid_widget = QWidget()
         self._win_grid_widget.setStyleSheet("background: transparent;")
         self._win_grid = QGridLayout(self._win_grid_widget)
-        self._win_grid.setSpacing(16)
+        self._win_grid.setSpacing(T.SPACE_LG)
 
         scroll.setWidget(self._win_grid_widget)
         tab_layout.addWidget(scroll, 1)
@@ -374,6 +381,13 @@ class SourcePickerDialog(QDialog):
 
     def _confirm(self) -> None:
         self.accept()
+
+    def _update_tab_icons(self, index: int) -> None:
+        """Update tab icon colors to reflect selection state."""
+        for i in range(self._tabs.count()):
+            color = T.FG_PRIMARY if i == index else T.FG_2
+            icon_name = self._tab_icon_names[i]
+            self._tabs.setTabIcon(i, load_icon(icon_name, color=color))
 
     def done(self, result: int) -> None:
         """Stop background thumbnail workers before closing the dialog."""

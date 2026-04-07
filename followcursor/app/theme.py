@@ -835,6 +835,9 @@ QPushButton#SaveBtn:disabled {{
     border: 1px solid {T.STROKE_1};
     border-radius: {T.RADIUS_LARGE}px;
 }}
+#SourcePickerDialog QTabWidget::pane {{
+    background-color: transparent;
+}}
 
 /* ── Misc Labels ──── */
 QLabel {{ background: transparent; }}

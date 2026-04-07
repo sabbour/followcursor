@@ -112,13 +112,16 @@ def get_window_rect(hwnd: int) -> Optional[dict]:
 
 
 def capture_window_thumbnail(
-    hwnd: int, max_w: int = 400, max_h: int = 220,
+    hwnd: int, max_w: int = 800, max_h: int = 450,
 ) -> Optional[np.ndarray]:
     """Capture a thumbnail of a window using Win32 PrintWindow.
 
     Uses the window's own device context so overlapping windows don't bleed through.
     Qt sets PER_MONITOR_DPI_AWARE_V2, so GetWindowRect already returns physical pixels.
     Returns an RGB numpy array sized to fit within (max_w, max_h), or None.
+
+    The default 800×450 provides 2× pixel density over the ~400×200 display area,
+    producing sharp thumbnails even on high-DPI (4K) screens.
     """
     import cv2
 
@@ -135,7 +138,7 @@ def capture_window_thumbnail(
         return None
 
     # Scale down to thumbnail size before GDI allocation so the bitmap buffer
-    # stays small (≤ max_w × max_h × 4 bytes) regardless of window size.
+    # stays reasonable (≤ max_w × max_h × 4 bytes) regardless of window size.
     cap_scale = min(max_w / w, max_h / h, 1.0)
     cap_w = max(10, int(w * cap_scale))
     cap_h = max(10, int(h * cap_scale))
