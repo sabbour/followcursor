@@ -1,7 +1,16 @@
-"""Keyboard activity tracker — counts keystrokes via a Win32 low-level hook.
+"""Keyboard activity tracker — records key-down events via a Win32 low-level hook.
 
-Only records *timestamps* of key-down events (no key identity) for privacy.
-Runs the hook in a dedicated thread to avoid blocking the Qt event loop.
+Records VK codes alongside timestamps so keystroke visualisation can render
+human-readable overlays (e.g. "Ctrl+C").  Runs the hook in a dedicated thread
+to avoid blocking the Qt event loop.
+
+**Privacy note:** VK codes are stored in ``.fcproj`` project files via
+``KeyEvent.to_dict()``.  This means the key identity of every key pressed
+during a recording is persisted.  Keystroke recording is always active
+while the hook thread is running; filter modes (all / modifiers-only /
+shortcuts-only) are applied only at *render* time — the full event stream
+is still saved.  This is a known privacy consideration; a future option to
+strip VK codes on save could be added if required.
 """
 
 import logging
@@ -23,14 +32,11 @@ WM_KEYDOWN = 0x0100
 WM_SYSKEYDOWN = 0x0104
 WM_QUIT = 0x0012
 
-# Virtual key codes to ignore — modifier keys and app hotkey combos
-# don't represent actual "typing" and would inflate activity signals.
+# Virtual key codes to ignore — lock toggles and app hotkey combos that
+# would inflate activity signals.  Modifier VK codes (Shift, Ctrl, Alt,
+# Win) are intentionally *kept* so that keystroke visualization can
+# detect shortcuts like Ctrl+C and filter by mode (see keystroke_renderer).
 _IGNORE_VKS = frozenset((
-    0x10, 0x11, 0x12,          # Shift, Ctrl, Alt (generic)
-    0xA0, 0xA1,                # LShift, RShift
-    0xA2, 0xA3,                # LCtrl, RCtrl
-    0xA4, 0xA5,                # LAlt, RAlt
-    0x5B, 0x5C,                # LWin, RWin
     0x14, 0x90, 0x91,          # CapsLock, NumLock, ScrollLock
     0x52,                      # R  — part of Ctrl+Shift+R record toggle
     0xBB,                      # OEM_PLUS (= key) — part of zoom-in hotkey

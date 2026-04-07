@@ -6,9 +6,9 @@ Displays keystrokes as floating badges or text with configurable position,
 style, and duration.
 """
 
+import bisect
 import logging
-from typing import List, Optional, Tuple
-import ctypes.wintypes as wintypes
+from typing import List, Tuple
 
 import cv2
 import numpy as np
@@ -33,7 +33,7 @@ KEYSTROKE_BG_COLOR = (50, 45, 75)        # purple-gray badge background (RGB)
 KEYSTROKE_BG_COLOR_BGR = (75, 45, 50)   # purple-gray in BGR for OpenCV
 KEYSTROKE_TEXT_COLOR = (255, 255, 255)  # white text (RGB)
 KEYSTROKE_TEXT_COLOR_BGR = (255, 255, 255)  # white text in BGR
-KEYSTROKE_OPACITY = 0.9                  # badge opacity (0-1)
+_KEYSTROKE_OPACITY_UNUSED = 0.9           # retained for back-compat; use config.opacity
 
 # Windows virtual key code to display name mapping
 _VK_NAMES = {
@@ -114,8 +114,11 @@ def _group_keystrokes(
     Groups rapid successive keystrokes that occur within a short window
     into combo displays (e.g., "Ctrl+C" or "Alt+Tab").
     
+    Uses binary search to limit scanning to events within the visible
+    time window instead of iterating the full list.
+    
     Args:
-        key_events: All recorded key events
+        key_events: All recorded key events (sorted by timestamp)
         timestamp_ms: Current playback time
         display_duration_ms: How long keystrokes remain visible
         filter_mode: "all", "modifiers-only", or "shortcuts-only"
@@ -137,8 +140,18 @@ def _group_keystrokes(
     
     SHIFT_VKS = frozenset((0x10, 0xA0, 0xA1))  # Shift, LShift, RShift
     
+    # Binary search for the visible time window to avoid scanning entire list
+    window_start = timestamp_ms - display_duration_ms
+    lo = bisect.bisect_left(
+        key_events, window_start, key=lambda e: e.timestamp
+    )
+    hi = bisect.bisect_right(
+        key_events, timestamp_ms, key=lambda e: e.timestamp
+    )
+    window_events = key_events[lo:hi]
+    
     visible = []
-    for event in key_events:
+    for event in window_events:
         age = timestamp_ms - event.timestamp
         if age < 0 or age > display_duration_ms:
             continue
@@ -152,15 +165,8 @@ def _group_keystrokes(
         
         # Apply filter based on mode
         if filter_mode == "modifiers-only":
-            # Only show keystrokes that include Ctrl, Alt, or Win modifiers
-            # Single character presses are skipped
             if vk_code not in MODIFIER_VKS:
                 continue
-        elif filter_mode == "shortcuts-only":
-            # Only show modifier keys (Ctrl/Alt/Win) - character keys will be
-            # filtered out later when we check if group has a modifier
-            pass  # Will be filtered in grouping logic
-        # else: "all" mode - show everything
         
         visible.append((key_name, event.timestamp, age, vk_code))
     
@@ -228,7 +234,9 @@ def _should_show_group(
         # Single Shift+letter is NOT considered a shortcut
         return has_modifier
     
-    return True
+    # Unknown filter_mode — default to safe behavior (shortcuts-only)
+    logger.warning("Unknown keystroke filter_mode %r, defaulting to shortcuts-only", filter_mode)
+    return has_modifier
 
 
 def _compute_fade_alpha(age_ms: float, display_duration_ms: int) -> float:
@@ -296,9 +304,29 @@ def draw_keystrokes_qpainter(
         base_x = screen_rect_x + 40
         base_y = screen_rect_y + screen_rect_h - 40
     else:  # near-cursor (use last keystroke position if available)
-        # For simplicity in preview, default to bottom-center
-        base_x = screen_rect_x + screen_rect_w / 2
-        base_y = screen_rect_y + screen_rect_h - 40
+        # Near-cursor placement: use the last key event's cursor position
+        # if available; otherwise fall back to bottom-center.
+        placed_near = False
+        if key_events:
+            # Find most recent event with cursor position
+            for ev in reversed(key_events):
+                if ev.timestamp <= timestamp_ms and ev.x is not None and ev.y is not None:
+                    # Map screen coords to preview coords
+                    if monitor_rect:
+                        m_left = monitor_rect.get("left", 0)
+                        m_top = monitor_rect.get("top", 0)
+                        m_w = monitor_rect.get("width", 1)
+                        m_h = monitor_rect.get("height", 1)
+                        rel_x = (ev.x - m_left) / max(m_w, 1)
+                        rel_y = (ev.y - m_top) / max(m_h, 1)
+                        base_x = screen_rect_x + rel_x * screen_rect_w
+                        base_y = screen_rect_y + rel_y * screen_rect_h - 50
+                        placed_near = True
+                    break
+        if not placed_near:
+            logger.debug("near-cursor position: no cursor data available, falling back to bottom-center")
+            base_x = screen_rect_x + screen_rect_w / 2
+            base_y = screen_rect_y + screen_rect_h - 40
     
     painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
     
@@ -407,17 +435,32 @@ def draw_keystrokes_cv(
         base_x = 60
         base_y = fh - 60
     else:  # near-cursor
-        # Default to bottom-center for export
-        base_x = fw // 2
-        base_y = fh - 60
+        # Near-cursor placement: use last key event's cursor position
+        # if available; otherwise fall back to bottom-center.
+        placed_near = False
+        if key_events:
+            for ev in reversed(key_events):
+                if ev.timestamp <= timestamp_ms and ev.x is not None and ev.y is not None:
+                    # Map screen coords to frame coords
+                    rel_x = (ev.x - mon_left) / max(mon_w, 1)
+                    rel_y = (ev.y - mon_top) / max(mon_h, 1)
+                    base_x = int(rel_x * fw)
+                    base_y = int(rel_y * fh) - 50
+                    placed_near = True
+                    break
+        if not placed_near:
+            logger.debug("near-cursor position: no cursor data, falling back to bottom-center")
+            base_x = fw // 2
+            base_y = fh - 60
     
     # Font settings
     font = cv2.FONT_HERSHEY_SIMPLEX
     font_scale = config.font_size / 18.0  # Base scale
     font_thickness = max(1, int(font_scale * 2))
     
-    # Draw each visible keystroke group
+    # Draw each visible keystroke group using a single overlay copy
     y_offset = 0
+    overlay = None  # lazily allocated once per frame
     for text, _, age in grouped:
         alpha = _compute_fade_alpha(age, config.display_duration_ms)
         if alpha < 0.01:
@@ -445,13 +488,12 @@ def draw_keystrokes_cv(
         badge_x = max(10, min(badge_x, fw - badge_w - 10))
         badge_y = max(10, min(badge_y, fh - badge_h - 10))
         
-        # Create badge overlay
-        overlay = frame_bgr.copy()
+        # Allocate a single overlay copy for the entire frame
+        if overlay is None:
+            overlay = frame_bgr.copy()
         
         # Draw badge background
-        bg_alpha_val = int(alpha * config.opacity * 255)
         if config.style == "floating-badge":
-            # Rounded rectangle (approximate with ellipse corners)
             cv2.rectangle(
                 overlay,
                 (badge_x, badge_y),
@@ -460,7 +502,6 @@ def draw_keystrokes_cv(
                 -1,
             )
         elif config.style == "key-cap":
-            # Key-like appearance
             cv2.rectangle(
                 overlay,
                 (badge_x, badge_y),
@@ -470,16 +511,13 @@ def draw_keystrokes_cv(
             )
             # Inner highlight
             highlight_h = badge_h // 3
-            highlight_overlay = overlay.copy()
             cv2.rectangle(
-                highlight_overlay,
+                overlay,
                 (badge_x + 3, badge_y + 3),
                 (badge_x + badge_w - 3, badge_y + highlight_h),
                 (100, 90, 110),
                 -1,
             )
-            # Blend highlight
-            cv2.addWeighted(overlay, 0.9, highlight_overlay, 0.1, 0, overlay)
         else:  # minimal-text
             cv2.rectangle(
                 overlay,
@@ -489,7 +527,7 @@ def draw_keystrokes_cv(
                 -1,
             )
         
-        # Blend badge with frame using alpha
+        # Blend badge region with frame using alpha
         blend_alpha = alpha * config.opacity
         np.copyto(
             frame_bgr[badge_y:badge_y + badge_h, badge_x:badge_x + badge_w],

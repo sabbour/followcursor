@@ -140,6 +140,12 @@ def capture_window_thumbnail(
     cap_w = max(10, int(w * cap_scale))
     cap_h = max(10, int(h * cap_scale))
 
+    # Safety cap: prevent absurdly large GDI bitmap allocations from
+    # buggy window rects regardless of max_w/max_h caller values.
+    MAX_BITMAP_DIM = 8192
+    cap_w = min(cap_w, MAX_BITMAP_DIM)
+    cap_h = min(cap_h, MAX_BITMAP_DIM)
+
     try:
         gdi32 = ctypes.windll.gdi32
 

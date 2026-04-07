@@ -690,16 +690,25 @@ def detect_chapters(
         ys = [m.y for m in mouse_events]
         screen_w = max(xs) - min(xs) if xs else 1920
         screen_h = max(ys) - min(ys) if ys else 1080
-        diag = math.sqrt(screen_w**2 + screen_h**2)
-        jump_threshold_px = diag * JUMP_THRESHOLD
+        # Guard against zero diagonal when mouse covers a single point
+        if screen_w == 0 and screen_h == 0:
+            # All mouse positions are identical — no jump detection possible
+            pass
+        else:
+            if screen_w == 0:
+                screen_w = 1
+            if screen_h == 0:
+                screen_h = 1
+            diag = math.sqrt(screen_w**2 + screen_h**2)
+            jump_threshold_px = diag * JUMP_THRESHOLD
 
-        for i in range(1, len(mouse_events)):
-            prev = mouse_events[i - 1]
-            curr = mouse_events[i]
-            dist = math.sqrt((curr.x - prev.x)**2 + (curr.y - prev.y)**2)
-            if dist >= jump_threshold_px:
-                # Big jump — potential scene boundary
-                boundaries.append(int(curr.timestamp))
+            for i in range(1, len(mouse_events)):
+                prev = mouse_events[i - 1]
+                curr = mouse_events[i]
+                dist = math.sqrt((curr.x - prev.x)**2 + (curr.y - prev.y)**2)
+                if dist >= jump_threshold_px:
+                    # Big jump — potential scene boundary
+                    boundaries.append(int(curr.timestamp))
 
     # Deduplicate and sort boundaries
     boundaries = sorted(set(boundaries))
@@ -713,6 +722,9 @@ def detect_chapters(
     # Generate Chapter objects with auto-generated names
     chapters = []
     for i, ts in enumerate(filtered):
+        # Clamp chapter timestamp to video duration if known
+        if duration_ms > 0 and ts > duration_ms:
+            continue
         chapters.append(
             Chapter(
                 timestamp_ms=ts,

@@ -149,10 +149,19 @@ def _stop_ffmpeg_writer(proc: Optional[subprocess.Popen]) -> None:
             proc.kill()
             proc.wait(timeout=5)
             logger.info("ffmpeg killed after timeout (pid=%s)", proc.pid)
+        except subprocess.TimeoutExpired:
+            logger.error("ffmpeg still alive after kill+5s (pid=%s)", proc.pid)
         except Exception as e:
             logger.error("Failed to kill ffmpeg (pid=%s): %s", proc.pid, e)
     except Exception as e:
         logger.error("Error waiting for ffmpeg (pid=%s): %s", proc.pid, e)
+        # Ensure process is killed even on unexpected errors
+        if proc.poll() is None:
+            try:
+                proc.kill()
+                proc.wait(timeout=5)
+            except Exception:
+                logger.error("Failed to kill ffmpeg after wait error (pid=%s)", proc.pid)
     
     # Log non-zero exit codes
     if proc.returncode and proc.returncode != 0:
