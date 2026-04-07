@@ -1,34 +1,63 @@
 name: Squad Release
-# python project — configure build, test, and release commands below
+# Creates a git tag from version.py when code lands on main.
+# The tag push then triggers build.yml's release job which builds
+# artifacts (PyInstaller + MSIX) and publishes a GitHub Release.
+# This avoids duplicating the build/release logic.
 
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - '**/*.md'
+      - '.squad/**'
+      - '.ai-team/**'
 
 permissions:
   contents: write
 
 jobs:
-  release:
-    runs-on: ubuntu-latest
+  tag:
+    runs-on: windows-latest
+
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Build and test
-        run: |
-          # TODO: Add your python build/test commands here
-          # Go:            go test ./...
-          # Python:        pip install -r requirements.txt && pytest
-          # .NET:          dotnet test
-          # Java (Maven):  mvn test
-          # Java (Gradle): ./gradlew test
-          echo "No build commands configured — update squad-release.yml"
+      - name: Set up Python 3.13
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
 
-      - name: Create release
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Extract version
+        id: version
+        working-directory: followcursor
+        shell: pwsh
         run: |
-          # TODO: Add your release commands here (e.g., git tag, gh release create)
-          echo "No release commands configured — update squad-release.yml"
+          $ver = python -c "exec(open('app/version.py').read()); print(__version__)"
+          echo "APP_VERSION=$ver" >> $env:GITHUB_OUTPUT
+
+      - name: Check if tag already exists
+        id: check_tag
+        shell: pwsh
+        run: |
+          $tag = "v${{ steps.version.outputs.APP_VERSION }}"
+          $exists = git tag -l $tag
+          if ($exists) {
+            echo "TAG_EXISTS=true" >> $env:GITHUB_OUTPUT
+            Write-Host "ℹ️ Tag $tag already exists — skipping"
+          } else {
+            echo "TAG_EXISTS=false" >> $env:GITHUB_OUTPUT
+            Write-Host "🏷️ Tag $tag does not exist — will create"
+          }
+
+      - name: Create and push tag
+        if: steps.check_tag.outputs.TAG_EXISTS == 'false'
+        shell: pwsh
+        run: |
+          $tag = "v${{ steps.version.outputs.APP_VERSION }}"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -a $tag -m "Release $tag"
+          git push origin $tag
+          Write-Host "✅ Created and pushed tag $tag — build.yml will handle the release"

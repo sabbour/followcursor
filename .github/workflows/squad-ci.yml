@@ -1,9 +1,10 @@
 name: Squad CI
-# python project — configure build/test commands below
+# Fast lint + test for Squad workflow branches (no PyInstaller build).
+# PRs to main are handled by build.yml which includes the full build pipeline.
 
 on:
   pull_request:
-    branches: [dev, preview, main, insider]
+    branches: [dev, preview, insider]
     types: [opened, synchronize, reopened]
   push:
     branches: [dev, insider]
@@ -13,16 +14,24 @@ permissions:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
+
     steps:
       - uses: actions/checkout@v4
 
-      - name: Build and test
+      - name: Set up Python 3.13
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: followcursor/requirements.txt
+
+      - name: Install dependencies
+        working-directory: followcursor
         run: |
-          # TODO: Add your python build/test commands here
-          # Go:            go test ./...
-          # Python:        pip install -r requirements.txt && pytest
-          # .NET:          dotnet test
-          # Java (Maven):  mvn test
-          # Java (Gradle): ./gradlew test
-          echo "No build commands configured — update squad-ci.yml"
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run tests
+        working-directory: followcursor
+        run: python -m pytest tests/ -x -v --ignore=tests/test_ai_service.py
