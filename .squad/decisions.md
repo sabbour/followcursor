@@ -283,3 +283,154 @@ These workflows complete the Squad branch promotion pipeline: dev → (squad-ci)
 
 ---
 *Complete as of 2026-07-18*
+
+## User Directive: gh CLI Auth Switching
+
+**Status:** Captured | **Date:** 2026-04-07T11:31:00Z | **By:** Ahmed Sabbour (via Copilot)
+
+The `gh` CLI default auth is an EMU account (`asabbour_microsoft`) that cannot write to the personal `sabbour/followcursor` repo. All agents performing GitHub write operations (PR comments, thread resolution, issue edits, merges) MUST run `gh auth switch --user sabbour` first, then switch back afterward. Read `.squad/skills/gh-auth-switching/SKILL.md` for full details.
+
+**Rationale:** EMU accounts are restricted from writing to personal/public repos. Agents were failing silently on PR comment/resolve operations until this was diagnosed.
+
+---
+*Captured as of 2026-04-07T11:31:00Z*
+
+## User Directive: Automated Release on Milestone Completion
+
+**Status:** Captured | **Date:** 2026-04-07T11:38:00Z | **By:** Ahmed Sabbour (via Copilot)
+
+When all issues in a milestone are closed, Ralph should bump the version in `followcursor/app/version.py`, update `CHANGELOG.md`, commit, tag the release (`git tag vX.Y.Z`), push the tag, and create a GitHub release. Follow the release checklist in `.github/instructions/` and use the `release` skill if available.
+
+**Rationale:** User request — releases should be automated as part of the Ralph work loop, not a separate manual step.
+
+---
+*Captured as of 2026-04-07T11:38:00Z*
+
+## Fluent 2 Typography, Shapes, Spacing & Motion Token Adoption
+
+**Status:** Implemented — PR #105 | **Author:** McManus (UI Dev) | **Date:** 2026-04-07 | **Issue:** #100
+
+### Context
+
+FollowCursor's Phase 1 token system (created Jan 2026) introduced semantic color names and basic spacing (4px grid), but typography and spacing used simplified values that didn't match Microsoft's official Fluent 2 specifications. Issue #100 required full alignment with Fluent 2's type ramp, shape system, spacing tokens, and motion design.
+
+### Research Summary
+
+#### Official Fluent 2 Specifications
+
+1. **Typography** (https://fluent2.microsoft.design/typography)
+   - Type ramp: Caption2 (10/14) → Display (68/92)
+   - Font family: Segoe UI Variable (Windows 11), fallback to Segoe UI (Windows 10)
+   - Font weights: Regular (400), Medium (500), Semibold (600), Bold (700)
+   - Line heights critical for vertical rhythm (e.g., Body1 = 14px / 20px)
+
+2. **Shapes** (https://fluent2.microsoft.design/shapes)
+   - Global-Corner-Radius tokens: None (0px), 20 (2px), 40 (4px), 80 (8px), 120 (12px), Circular (9999px)
+   - Default: 4px for most elements, 8px for large surfaces, 0px for edge-aligned UI
+
+3. **Spacing** (https://fluent2.microsoft.design/layout)
+   - 4px base grid with granular steps: 2, 4, 6, 8, 10, 12, 16, 20, 24, 32, 40, 48, 64
+   - Odd values (2, 6, 10) for tight icon/text alignment
+   - Size tokens: size20, size40, size60, size80, size100, size120, size160, etc.
+
+4. **Motion** (https://fluent2.microsoft.design/motion)
+   - 8 duration levels: Ultra Fast (50ms) → Ultra Slow (500ms)
+   - 5 easing curves: EasyEase, EasyEaseMax, Decelerate (entering), Accelerate (exiting), Linear
+   - Intent-based: use Decelerate for elements appearing, Accelerate for elements disappearing
+
+### Design Decisions
+
+#### 1. Complete Type Ramp with Line Heights
+
+**Decision:** Implement all 10 Fluent 2 type levels (Caption2, Caption1, Body1, Body2, Subtitle2, Subtitle1, Title3, Title2, Title1, Display) with paired line heights.
+
+**Rationale:**
+- Fluent 2's type ramp is designed for hierarchy and scannability
+- Line heights ensure proper vertical rhythm and readability
+- Having the full ramp available supports future UI scaling and accessibility features
+
+**Implementation:**
+- Added 10 FONT_SIZE_* and 10 FONT_LINE_HEIGHT_* constants
+- Legacy aliases (FONT_SIZE_BODY = FONT_SIZE_BODY_1) preserve backward compat
+
+#### 2. Extended Spacing Tokens (13 levels)
+
+**Decision:** Expand from 7 spacing tokens to 13, covering the full Fluent 2 spacer ramp (2px to 64px).
+
+**Rationale:**
+- Fluent 2's 4px grid includes odd values (2, 6, 10) for precision alignment
+- More granular steps enable tighter control without hardcoded pixel values
+- Maps 1:1 to Fluent 2 size tokens (size20, size40, size60, etc.)
+
+**Trade-off:**
+- SPACE_XXS changed from 4px → 2px (very tight spacing)
+- Existing QSS using SPACE_XXS now gets 2px instead of 4px
+- Risk: layouts may be too tight
+- Mitigation: Reviewed all 8 usages in theme.py — all appropriate for 2px (status dot margins, small padding)
+
+#### 3. Shape Token Naming and Aliases
+
+**Decision:** Use human-readable names (RADIUS_SMALL, RADIUS_MEDIUM, RADIUS_LARGE) with Fluent 2 token references in comments.
+
+**Rationale:**
+- RADIUS_SMALL is clearer than GLOBAL_CORNER_RADIUS_40 in Python code
+- Comments document the official Fluent 2 mapping (e.g., "Global-Corner-Radius-40")
+- Developers can cross-reference the spec when needed
+
+**Implementation:**
+- 6 shape tokens: RADIUS_NONE (0), RADIUS_SMALL (4), RADIUS_MEDIUM (8), RADIUS_LARGE (12), RADIUS_XLARGE (16), RADIUS_CIRCULAR (9999)
+
+#### 4. Motion Token Organization
+
+**Decision:** Expose both duration constants and easing curve strings, with Qt helper functions for widget animations.
+
+**Rationale:**
+- Duration tokens (DURATION_ULTRA_FAST, DURATION_FASTER, etc.) are integers for Qt animations
+- Easing curve strings (CURVE_EASY_EASE, etc.) are CSS cubic-bezier for future HTML/web export
+- Helper functions (get_entering_curve, get_exiting_curve) abstract the Qt enum mapping
+
+**Implementation:**
+- 8 DURATION_* constants (50ms to 500ms)
+- 5 CURVE_* string constants (cubic-bezier values)
+- 3 helper functions in fluent_effects.py returning QEasingCurve.Type enums
+
+#### 5. Animation API Enhancement
+
+**Decision:** Add optional `easing` parameter to `install_hover_animation()` and `install_hover_bg_animation()`, defaulting to OutCubic (Fluent 2's curveEasyEase).
+
+**Rationale:**
+- Existing code can pass custom easing curves for entering/exiting animations
+- Default remains OutCubic (smooth, general-purpose) for backward compat
+- Enables intent-based motion: pass `get_entering_curve()` for fade-ins, `get_exiting_curve()` for fade-outs
+
+**Backward compatibility:**
+- Existing calls without `easing` param continue to work unchanged
+- Default duration updated from DURATION_FAST (was 100ms) to DURATION_FASTER (100ms) — no change in value, just token rename for consistency
+
+#### 6. Font Family Fallback Strategy
+
+**Decision:** Use `"Segoe UI Variable", "Segoe UI", -apple-system, BlinkMacSystemFont, sans-serif` as the font stack.
+
+**Rationale:**
+- Segoe UI Variable is Windows 11 only (variable font with optical sizing)
+- Windows 10 systems fall back to Segoe UI (static font)
+- Cross-platform fallback (-apple-system, BlinkMacSystemFont) for potential future macOS support
+- sans-serif ensures a readable fallback on any system
+
+### Impact
+
+- **No breaking changes** — all legacy token names preserved as aliases
+- **375 tests pass** — no regressions in existing functionality
+- **Theme.py inherits updates** — all QSS rules using token references automatically get new values
+- **Foundation for Phase 4** — material effects (acrylic, mica) and advanced animations can now use motion tokens
+
+### References
+
+- [Fluent 2 Typography](https://fluent2.microsoft.design/typography)
+- [Fluent 2 Shapes](https://fluent2.microsoft.design/shapes)
+- [Fluent 2 Layout](https://fluent2.microsoft.design/layout)
+- [Fluent 2 Motion](https://fluent2.microsoft.design/motion)
+- [Qt QEasingCurve Documentation](https://doc.qt.io/qt-6/qeasingcurve.html)
+
+---
+*Applied as of 2026-04-07, PR #105*
