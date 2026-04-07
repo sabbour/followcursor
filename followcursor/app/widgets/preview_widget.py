@@ -21,7 +21,10 @@ from PySide6.QtCore import Qt, QTimer, Signal, QPointF, QRectF
 from PySide6.QtGui import QImage, QPainter, QColor, QFont, QPen
 from PySide6.QtWidgets import QWidget, QMenu
 
-from ..models import MousePosition, ClickEvent, ZoomKeyframe
+from ..models import (
+    MousePosition, ClickEvent, ZoomKeyframe,
+    TextAnnotation, ArrowAnnotation, HighlightBox, AnnotationCollection,
+)
 from ..zoom_engine import speed_at_time
 from ..icon_loader import load_icon
 from .. import tokens as T
@@ -44,6 +47,8 @@ class PreviewWidget(QWidget):
     centroid_picked = Signal(float, float)
     # Signal: (kf_id, pan_x, pan_y) — emitted while dragging a centroid marker
     centroid_dragged = Signal(str, float, float)
+    # Signal: (annotation_type, annotation_id, new_x, new_y) — emitted when annotation dragged
+    annotation_dragged = Signal(str, str, float, float)
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -89,6 +94,12 @@ class PreviewWidget(QWidget):
         # centroid drag state (overlay markers)
         self._centroid_drag_kf_id: str = ""  # keyframe being dragged
         self._centroid_drag_undo_pushed: bool = False
+
+        # annotation drag state
+        self._annot_drag_type: str = ""     # "text", "arrow", "highlight"
+        self._annot_drag_id: str = ""       # annotation id being dragged
+        self._annot_drag_offset_x: float = 0.0  # click offset from position
+        self._annot_drag_offset_y: float = 0.0
 
         # Enable mouse tracking for hover cursor changes
         self.setMouseTracking(True)
@@ -237,6 +248,17 @@ class PreviewWidget(QWidget):
                     self._centroid_drag_undo_pushed = False
                     self.setCursor(Qt.CursorShape.ClosedHandCursor)
                     return
+            # Check if click hits an annotation
+            hit = self._annotation_hit_test(
+                event.position().x(), event.position().y()
+            )
+            if hit:
+                self._annot_drag_type = hit[0]
+                self._annot_drag_id = hit[1]
+                self._annot_drag_offset_x = hit[2]
+                self._annot_drag_offset_y = hit[3]
+                self.setCursor(Qt.CursorShape.ClosedHandCursor)
+                return
         super().mousePressEvent(event)
 
     def mouseMoveEvent(self, event) -> None:  # type: ignore[override]
@@ -249,12 +271,33 @@ class PreviewWidget(QWidget):
                     self._centroid_drag_kf_id, pan_x, pan_y
                 )
             return
+        # Annotation drag in progress
+        if self._annot_drag_id:
+            pan_x, pan_y = self._click_to_pan(
+                event.position().x(), event.position().y()
+            )
+            if pan_x >= 0:
+                new_x = max(0.0, min(1.0, pan_x - self._annot_drag_offset_x))
+                new_y = max(0.0, min(1.0, pan_y - self._annot_drag_offset_y))
+                self.annotation_dragged.emit(
+                    self._annot_drag_type, self._annot_drag_id, new_x, new_y
+                )
+            return
         # Hover cursor: show open hand when over a centroid marker
         if self._debug_overlay and self._debug_keyframes:
             hit_id = self._centroid_hit_test(
                 event.position().x(), event.position().y()
             )
             if hit_id:
+                self.setCursor(Qt.CursorShape.OpenHandCursor)
+            elif not self._centroid_pick_mode:
+                self.unsetCursor()
+        # Hover cursor: show open hand when over a draggable annotation
+        elif self._annotations is not None:
+            hit = self._annotation_hit_test(
+                event.position().x(), event.position().y()
+            )
+            if hit:
                 self.setCursor(Qt.CursorShape.OpenHandCursor)
             elif not self._centroid_pick_mode:
                 self.unsetCursor()
@@ -267,6 +310,16 @@ class PreviewWidget(QWidget):
         ):
             self._centroid_drag_kf_id = ""
             self._centroid_drag_undo_pushed = False
+            self.unsetCursor()
+            return
+        if (
+            event.button() == Qt.MouseButton.LeftButton
+            and self._annot_drag_id
+        ):
+            self._annot_drag_type = ""
+            self._annot_drag_id = ""
+            self._annot_drag_offset_x = 0.0
+            self._annot_drag_offset_y = 0.0
             self.unsetCursor()
             return
         super().mouseReleaseEvent(event)
@@ -681,6 +734,89 @@ class PreviewWidget(QWidget):
         return ""
 
     # \u2500\u2500 painting \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+
+    def _annotation_hit_test(
+        self, wx: float, wy: float
+    ) -> tuple[str, str, float, float] | None:
+        """Check if widget position (wx, wy) hits a visible annotation.
+
+        Returns ``(type, id, offset_x, offset_y)`` where offset is the
+        normalized distance from the click to the annotation's anchor
+        position, or ``None`` if nothing was hit.
+
+        Check order: text (topmost) -> arrows -> highlights (bottommost).
+        """
+        if self._annotations is None:
+            return None
+
+        cx, cy, W, H, scr_x, scr_y, scr_w, scr_h = self._screen_geometry()
+        if W <= 0 or scr_w <= 0:
+            return None
+
+        # Normalized click position via _click_to_pan (handles zoom correction)
+        nx, ny = self._click_to_pan(wx, wy)
+        if nx < 0:
+            return None
+
+        t = self._current_time_ms
+        HIT_RADIUS_NORM = 10.0 / max(scr_w, 1)  # ~10px in normalized space
+
+        # Text annotations (front layer -- checked first)
+        if self._annotations.texts:
+            for text_ann in reversed(self._annotations.texts):
+                if not (text_ann.start_ms <= t <= text_ann.end_ms):
+                    continue
+                # Badge size approximation: ~80x30px in screen space
+                half_w = 40.0 / max(scr_w, 1)
+                half_h = 15.0 / max(scr_h, 1)
+                if (abs(nx - text_ann.x) <= half_w
+                        and abs(ny - text_ann.y) <= half_h):
+                    return ("text", text_ann.id,
+                            nx - text_ann.x, ny - text_ann.y)
+
+        # Arrow annotations (middle layer)
+        if self._annotations.arrows:
+            for arrow in reversed(self._annotations.arrows):
+                if not (arrow.start_ms <= t <= arrow.end_ms):
+                    continue
+                # Point-to-segment distance in normalized space
+                dist = self._point_to_segment_dist(
+                    nx, ny, arrow.x1, arrow.y1, arrow.x2, arrow.y2
+                )
+                if dist <= HIT_RADIUS_NORM:
+                    mid_x = (arrow.x1 + arrow.x2) / 2
+                    mid_y = (arrow.y1 + arrow.y2) / 2
+                    return ("arrow", arrow.id,
+                            nx - mid_x, ny - mid_y)
+
+        # Highlight annotations (back layer -- checked last)
+        if self._annotations.highlights:
+            for hl in reversed(self._annotations.highlights):
+                if not (hl.start_ms <= t <= hl.end_ms):
+                    continue
+                if (hl.x <= nx <= hl.x + hl.width
+                        and hl.y <= ny <= hl.y + hl.height):
+                    return ("highlight", hl.id,
+                            nx - hl.x, ny - hl.y)
+
+        return None
+
+    @staticmethod
+    def _point_to_segment_dist(
+        px: float, py: float,
+        x1: float, y1: float,
+        x2: float, y2: float,
+    ) -> float:
+        """Return the shortest distance from point (px, py) to segment (x1,y1)-(x2,y2)."""
+        dx = x2 - x1
+        dy = y2 - y1
+        len_sq = dx * dx + dy * dy
+        if len_sq < 1e-12:
+            return ((px - x1) ** 2 + (py - y1) ** 2) ** 0.5
+        t = max(0.0, min(1.0, ((px - x1) * dx + (py - y1) * dy) / len_sq))
+        proj_x = x1 + t * dx
+        proj_y = y1 + t * dy
+        return ((px - proj_x) ** 2 + (py - proj_y) ** 2) ** 0.5
 
     def paintEvent(self, event) -> None:  # type: ignore[override]
         from ..compositor import compose_scene, draw_empty_bg

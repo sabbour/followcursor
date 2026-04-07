@@ -851,6 +851,7 @@ class MainWindow(QMainWindow):
         self._preview.pan_point_requested.connect(self._on_preview_pan_point)
         self._preview.centroid_picked.connect(self._on_centroid_picked)
         self._preview.centroid_dragged.connect(self._on_centroid_dragged)
+        self._preview.annotation_dragged.connect(self._on_annotation_dragged)
 
         # Keyframe whose centroid is being repositioned via preview click
         self._centroid_target_kf_id: str = ""
@@ -1816,6 +1817,37 @@ class MainWindow(QMainWindow):
         self._preview.set_annotations(self._annotations)
         self._mark_dirty()
         logger.info("Annotation updated: %s", annot_type)
+
+    def _on_annotation_dragged(self, annot_type: str, annot_id: str, new_x: float, new_y: float) -> None:
+        """Handle annotation dragged in the preview widget."""
+        if self._annotations is None:
+            return
+
+        if annot_type == "text" and self._annotations.texts:
+            for a in self._annotations.texts:
+                if a.id == annot_id:
+                    a.x = new_x
+                    a.y = new_y
+                    break
+        elif annot_type == "arrow" and self._annotations.arrows:
+            for a in self._annotations.arrows:
+                if a.id == annot_id:
+                    dx = new_x - a.x1
+                    dy = new_y - a.y1
+                    a.x1 = new_x
+                    a.y1 = new_y
+                    a.x2 = max(0.0, min(1.0, a.x2 + dx))
+                    a.y2 = max(0.0, min(1.0, a.y2 + dy))
+                    break
+        elif annot_type == "highlight" and self._annotations.highlights:
+            for a in self._annotations.highlights:
+                if a.id == annot_id:
+                    a.x = new_x
+                    a.y = new_y
+                    break
+
+        self._preview.set_annotations(self._annotations)
+        self._mark_dirty()
 
     def _on_auto_detect_chapters(self) -> None:
         """Handle auto-detect chapters request from editor panel."""
