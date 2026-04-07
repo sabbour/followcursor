@@ -121,3 +121,36 @@ This creates a feedback loop: users see the security implication RIGHT as they c
 - Added 8 missing features to README: AI Smart Zoom, Voiceover/TTS, Chapters, Annotations, Keystroke Overlay, Click Effects, Pan Path Points, Segment Deletion
 - Fixed architecture table Recording Pipe entry
 - PR opened for #133
+
+## Issue #133 — README Accuracy (2026-04-07)
+
+**Branch:** fix/133-readme-accuracy  
+**PR:** #139
+
+### Summary
+
+Fenster identified and corrected multiple README inaccuracies:
+
+1. **Added 8 missing features** with user-facing language:
+   - Segment deletion
+   - Keystroke overlay
+   - Chapters
+   - Annotations
+   - Pan/zoom scripting (pan path points)
+   - Multiple background presets
+   - Multiple device frames
+   - Zoom activity analysis
+
+2. **Fixed architecture table** — Updated HuffYuv reference to H.264 (actual codec used in export)
+
+3. **Fixed docstring** — Corrected return type documentation in `screen_recorder.py`
+
+### Outcome
+
+✅ PR #139 opened — Ready for review. No merge conflicts expected with active branches (#138, #140).
+
+### Notes
+
+- README now reflects current complete feature set
+- Maintains user-facing language (no jargon, "you" focus)
+- Tech stack table remains accurate

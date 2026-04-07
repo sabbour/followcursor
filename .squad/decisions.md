@@ -470,3 +470,13 @@ Ralph should always trigger a release at the end of milestone work — defined a
 - This ensures milestone work naturally concludes with a versioned release for users
 
 **Rationale:** User request — provides a clear handoff point between milestone completion and release, enabling automated release workflow.
+
+## User Directive: Squad State Separation (asabbour, 2026-04-07)
+
+**Status:** Captured | **Type:** Development Workflow — Commit Organization
+
+### Directive
+
+Never mix `.squad/` state/history changes with feature or code changes in the same commit or PR. Squad-internal file updates (history.md, decisions.md, orchestration-log/, log/) must be committed separately from any code, documentation, or config changes.
+
+**Rationale:** User request — mixing squad state with feature commits trips up reviewers who can't distinguish squad bookkeeping from real change content. Keeps squad bookkeeping separate and transparent.

@@ -8,6 +8,12 @@
 - Updated docs/index.md to use :fluent-*: shortcodes
 - Icon shortcode format: :fluent-{filename-without-ext}: where shortcodes use underscores matching SVG filename (e.g. :fluent-arrow_upload_20_regular:)
 - PR opened for #132
+## Issue #134 — User Guide restructure (feat/134-user-guide-restructure)
+- Split USER_GUIDE.md into 8 pages under docs/user-guide/
+- Each page: one-sentence lead, "you" language, no jargon, tables for options, numbered steps
+- Updated mkdocs.yml nav to per-feature structure
+- Updated index.md feature cards to cover previously missing features (Annotations, Chapters, Keystroke Overlay, Segment Deletion, Pan Path Points)
+- PR opened: #140
 
 ### 2026-04-07: Fixed PR #110 — Source Picker Icon Color State Management
 
@@ -608,3 +614,95 @@ Copilot review found PR #122 only removed CSS `text-transform: uppercase` but le
 
 Now the visible UI text will actually display in sentence case per Fluent 2 typography guidelines.
 
+
+## Issue #132 — Fluent Icons in Docs (2026-04-07)
+
+**Branch:** fix/132-fluent-icons  
+**PR:** #138
+
+### Summary
+
+McManus set up Fluent SVG icon system for documentation:
+
+1. **Copied Fluent SVG set** to `docs/overrides/.icons/fluent/`
+   - Full 100+ icon set available for mkdocs emoji shortcodes
+
+2. **Configured mkdocs.yml**
+   - Added `custom_dir: docs/overrides`
+   - Enabled `pymdownx.emoji` plugin
+   - Configured twemoji provider with Fluent fallback
+
+3. **Updated docs/index.md**
+   - Replaced ASCII emoji with Fluent icon shortcodes
+   - Consistent visual branding across documentation
+
+### Outcome
+
+✅ PR #138 opened — Ready for review. Icons now available across all documentation pages.
+
+### Notes
+
+- Self-hosted Fluent icons (no external CDN dependency)
+- mkdocs emoji plugin enables shortcode syntax (e.g., `:fluent-settings:`)
+- Maintains visual consistency with app UI design system
+- Foundation for emoji usage in future docs
+
+---
+
+## Issue #134 — User Guide Restructure (2026-04-07)
+
+**Branch:** feat/134-user-guide-restructure  
+**PR:** #140
+
+### Summary
+
+McManus restructured 600+ line USER_GUIDE.md into modular per-topic pages:
+
+1. **Split into 8 feature pages** under `docs/user-guide/`
+   - Each page: one-sentence lead, "you" language, no jargon
+   - Numbered steps for workflows
+   - Tables for options/settings
+
+2. **Updated mkdocs.yml nav**
+   - Restructured navigation to per-feature organization
+   - Improves discoverability and scannability
+
+3. **Enhanced index.md feature cards**
+   - Added previously missing features:
+     - Annotations
+     - Chapters
+     - Keystroke Overlay
+     - Segment Deletion
+     - Pan Path Points
+   - Each card now links to dedicated guide page
+
+4. **Updated QUICKSTART.md**
+   - Updated all internal links to point to new guide structure
+   - Maintains workflow focus
+
+5. **Removed original USER_GUIDE.md**
+   - Functionality distributed to per-topic pages
+   - Monolithic doc replaced with modular structure
+
+### Outcome
+
+✅ PR #140 opened — Ready for review. Documentation now more discoverable and task-focused.
+
+### Learnings
+
+**Information Architecture**
+- Splitting long docs (600+ lines) into per-feature pages improves both desktop scannability and mobile experience
+- Index cards as entry points enable users to find features without reading a comprehensive guide
+- Per-feature pages allow for independent maintenance — changes to "Annotations" don't risk disrupting "Chapters" docs
+
+**Navigation Structure**
+- mkdocs nav hierarchy should mirror feature grouping in UI, not arbitrary alphabetical ordering
+- Breadcrumbs and prev/next nav in mkdocs theme (via plugins) become critical when splitting monolithic docs
+- Link updates across docs (especially in QUICKSTART) are error-prone — consider future automation
+
+### Notes
+
+- All features now documented and discoverable via index cards
+- Better information hierarchy for new users
+- Easier to maintain (changes isolated to single feature file)
+- Foundation for future internationalization (per-feature translation)
