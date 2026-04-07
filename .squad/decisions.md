@@ -103,3 +103,33 @@ Create branches and worktrees before major work. All significant changes should 
 **Rationale:** User request — established to maintain clean main branch and enable parallel development.
 
 *Updated: 2026-04-07T07:33:49Z*
+
+## Fluent 2 Phase 1 — Design Token Architecture (McManus, 2026-04-07)
+
+**Status:** Applied | **Implementation:** Complete
+
+### Context
+
+FollowCursor's theme.py used hardcoded hex colors, inconsistent spacing (2–28px, not on grid), and mixed corner radii (3–18px). Phase 1 of the Fluent 2 alignment creates a token-based architecture.
+
+### Decisions
+
+1. **Token module at `followcursor/app/tokens.py`** — all design constants live here, imported as `T` by theme.py. No other module should hardcode color hex or spacing values.
+
+2. **Spacing normalized to 4px grid** — named tokens: XXS=4, XS=8, SM=12, MD=16, LG=24, XL=32, XXL=48. Padding/margin values that were off-grid (2, 6, 10, 14, 18px) snapped to the nearest token.
+
+3. **Corner radii unified** — RADIUS_SMALL=4px for buttons/inputs, RADIUS_MEDIUM=8px for containers/dialogs. Circular elements (status dots, scrollbar) keep half-width radius since those are shapes, not corners.
+
+4. **Warning (#f59e0b) and Info (#3b82f6) status colors added** — with hover variants. Status dot QSS rules added so widgets can use `#StatusDotWarning` / `#StatusDotInfo`.
+
+5. **Disabled states added** — ExportBtn, DiscardBtn, CtrlBtn, PlayBtn now have `:disabled` QSS rules using `BRAND_DISABLED`/`FG_DISABLED` tokens.
+
+### Impact
+
+- Theme refactor only — no widget code changes, no behavioral changes
+- All 334 tests pass unchanged
+- Future theme work should modify `tokens.py` values, not hardcode in QSS
+- Branch: `feat/fluent2-phase1`
+
+---
+*All decisions applied as of 2026-04-07T07:49:22Z*

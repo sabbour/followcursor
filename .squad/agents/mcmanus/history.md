@@ -37,6 +37,29 @@ Implemented complete annotation system for text, arrows, and highlights.
 
 ## Learnings
 
+### 2026-07-22: Fluent 2 Phase 1 — Design Tokens & Theme Normalization
+
+**tokens.py** — New centralized design token module:
+- Spacing tokens on 4px grid (XXS=4 through XXL=48)
+- Corner radius: RADIUS_SMALL=4 (controls), RADIUS_MEDIUM=8 (containers)
+- Full semantic color palette: 5 background layers, 3 border tiers, 4 foreground levels
+- Brand/accent: BRAND, BRAND_HOVER, BRAND_ACTIVE + translucent variants
+- Status colors: SUCCESS, DANGER (with 6 variants), WARNING (#f59e0b), INFO (#3b82f6)
+- Special surfaces: dialog, card, overlay, close button, discard button
+- Typography: FONT_FAMILY, 5 size tokens (caption 11 → header 20)
+- Animation durations: FAST=100ms, NORMAL=200ms, SLOW=300ms
+- Shadow parameters for 2 elevation levels
+
+**theme.py** — Refactored to use token system:
+- Converted from static string to f-string with `from . import tokens as T` references
+- All QSS `{`/`}` escaped as `{{`/`}}` for f-string compatibility
+- Normalized all padding/margin to 4px grid: 2→4, 6→8, 10→8, 14→16, 18→16
+- Unified corner radii: eliminated 6px, 10px, 12px, 18px → 4px or 8px only (circles at 3px preserved)
+- Added Warning/Info status dot styles (#StatusDotWarning, #StatusDotInfo)
+- Added :disabled states for ExportBtn, DiscardBtn, CtrlBtn, PlayBtn
+
+**Testing**: All 334 existing tests pass.
+
 ### 2026-01-20: Fluent 2 / Windows 11 Design Research
 
 **Windows 11 Design System:**
