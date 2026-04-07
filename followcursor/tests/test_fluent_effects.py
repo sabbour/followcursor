@@ -71,10 +71,10 @@ class TestShadowLevels:
         assert cfg["blur"] == T.SHADOW_MEDIUM_BLUR
         assert cfg["offset"] == T.SHADOW_MEDIUM_OFFSET
 
-    def test_fluent2_seven_layers(self) -> None:
-        """Verify Fluent 2 7-layer elevation system (layer0-6) exists."""
+    def test_fluent2_five_layers(self) -> None:
+        """Verify Fluent 2 5-layer elevation system (layer0-4) exists."""
         assert set(_SHADOW_LEVELS.keys()) == {
-            "layer0", "layer1", "layer2", "layer3", "layer4", "layer5", "layer6",
+            "layer0", "layer1", "layer2", "layer3", "layer4",
             "subtle", "medium",  # legacy aliases
         }
 
@@ -107,18 +107,6 @@ class TestShadowLevels:
         cfg = _SHADOW_LEVELS["layer4"]
         assert cfg["blur"] == 16
         assert cfg["offset"] == 8
-
-    def test_layer5_modals(self) -> None:
-        """Layer 5 (Shadow28) — modals, dialogs."""
-        cfg = _SHADOW_LEVELS["layer5"]
-        assert cfg["blur"] == 28
-        assert cfg["offset"] == 14
-
-    def test_layer6_high_z_flyouts(self) -> None:
-        """Layer 6 (Shadow64) — high z-index flyouts."""
-        cfg = _SHADOW_LEVELS["layer6"]
-        assert cfg["blur"] == 64
-        assert cfg["offset"] == 32
 
 
 # ── apply_shadow ────────────────────────────────────────────────────

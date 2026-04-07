@@ -2,6 +2,49 @@
 
 ## Recent Work
 
+### 2026-04-07: Fixed PR #110 — Source Picker Icon Color State Management
+
+**Task:** Fix icon color inconsistencies in source picker dialog  
+**Outcome:** ✅ Complete — Commit 466dd80  
+**Branch:** fix/source-picker-fluent2
+
+Addressed Copilot review feedback on PR #110 (Source Picker Fluent 2 alignment). Fixed two icon color issues:
+
+1. **Refresh button icon** — Changed from `T.FG_2` to `T.FG_PRIMARY` to match the `CtrlBtn` QSS text color
+2. **Tab icons** — Connected `currentChanged` signal to `_update_tab_icons()` method that dynamically updates icon colors: selected tab uses `T.FG_PRIMARY`, deselected tabs use `T.FG_2`, matching QSS tab text color behavior
+
+This ensures icon colors are state-aware and consistent with the Fluent 2 design system's foreground color hierarchy.
+
+### 2026-04-07: Fixed PR #123 — Added Missing SPACE_NONE Token
+
+**Task:** Complete Fluent 2 spacing token implementation by adding SPACE_NONE = 0  
+**Outcome:** ✅ Complete — Commit 2a889cb  
+**Branch:** feat/issue-118-spacing-tokens
+
+Copilot review found that PR #123 added spacing tokens SPACE_28, SPACE_36, SPACE_52, SPACE_56 but was missing the Fluent 2 `sizeNone = 0` token. Added `SPACE_NONE: int = 0` at the start of the spacing section to complete the token set and allow consumers to express "no spacing" via the shared design token system rather than using raw 0 values.
+
+Issue #118 is now fully addressed.
+
+### 2026-04-07: Fixed PR #121 — Missing Fluent 2 Token Updates
+
+**Task:** Add missing Fluent 2 BG_LAYER token updates to tokens.py for PR #121  
+**Outcome:** ✅ Complete — Commit ac9dbcb  
+**Branch:** fix/issue-113-dark-theme-calibration
+
+Copilot review found PR #121 only contained `.squad/agents/*/history.md` changes with no actual code changes. Added the missing token value updates to `followcursor/app/tokens.py`:
+
+**Changes:**
+- BG_LAYER_1: #141414 → #242424 (grey[14])
+- BG_LAYER_2: #1f1f1f → #2c2c2c (grey[16])
+- BG_LAYER_3: #292929 → #363636 (grey[20])
+- BG_LAYER_4: #333333 → #3d3d3d (grey[24])
+- BG_LAYER_5: #3d3d3d → #484848 (grey[28])
+- BG_SUBTLE_HOVER: #383838 → rgba(255,255,255,0.06)
+- BG_CARD: #333333 → #3d3d3d (grey[24])
+- BG_CARD_HOVER: #3d3d3d → #454545 (grey[26])
+
+These align the dark theme with official Fluent 2 colorNeutralBackground values from the Microsoft design spec.
+
 ### 2026-04-07: Fluent 2 Typography, Shapes & Spacing (Issue #100)
 
 **Task:** Apply Fluent 2 typography, shapes, spacing, and motion tokens  
@@ -536,13 +579,25 @@ Restyled all widgets to match official Microsoft Fluent 2 component patterns. Th
 **Reference:**
 - https://fluent2.microsoft.design/components/web/react/
 
-### 2026-07-25: Source Picker Fluent 2 Alignment
 
-**Context:** The source picker dialog was the last widget not fully aligned with the Fluent 2 migration (PRs #98–#107).
+### 2026-04-07: Fixed PR #122 — Hardcoded ALL-CAPS Section Titles
 
-**Key takeaways:**
-1. **Inline QSS is a Fluent 2 anti-pattern** — The dialog had 11 lines of inline `setStyleSheet()` on the tab widget that overrode the global Fluent 2 tab styles with legacy values (wrong background, missing hover state, legacy font size). Removing inline QSS and relying on the global theme fixed all inconsistencies at once.
-2. **Scoped QSS for container overrides** — When a dialog needs its tab pane background to be transparent (rather than the global `BG_LAYER_1`), add a scoped `#SourcePickerDialog QTabWidget::pane` rule in theme.py — don't use inline styles.
-3. **Legacy token drift** — The dialog title used `FONT_SIZE_HEADER` (legacy 20px alias) and hardcoded weight `600`. While the values happened to match, using the Fluent 2 tokens (`FONT_SIZE_SUBTITLE_2`, `FONT_WEIGHT_SEMIBOLD`) is correct for consistency and future-proofing.
-4. **Non-standard control heights** — The Refresh button had `setFixedHeight(28)` which doesn't match any Fluent 2 control height. Removing it lets the `CtrlBtn` QSS (36px) apply, consistent with all other secondary buttons.
+**Task:** Update hardcoded section title strings to sentence case in editor_panel.py  
+**Outcome:** ✅ Complete — Commit 5661d1f  
+**Branch:** fix/issue-111-uppercase-labels
+
+Copilot review found PR #122 only removed CSS `text-transform: uppercase` but left hardcoded ALL-CAPS string literals unchanged. Updated all 9 `_CollapsibleSection` title strings to sentence case:
+
+**Changes:**
+- "SMART ZOOM" → "Smart zoom"
+- "CHAPTERS" → "Chapters"
+- "VOICEOVER" → "Voiceover"
+- "KEYSTROKES" → "Keystrokes"
+- "BACKGROUND" → "Background"
+- "DEVICE FRAME" → "Device frame"
+- "CLICK EFFECTS" → "Click effects"
+- "ANNOTATIONS" → "Annotations"
+- "OUTPUT SIZE" → "Output size"
+
+Now the visible UI text will actually display in sentence case per Fluent 2 typography guidelines.
 

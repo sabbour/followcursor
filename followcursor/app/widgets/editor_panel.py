@@ -87,8 +87,8 @@ class _CollapsibleSection(QWidget):
         self._btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self._btn.setStyleSheet(
             f"QPushButton {{ background: {T.BG_ELEVATED}; color: {T.FG_SECONDARY};"
-            f"  font-size: {T.FONT_SIZE_BODY_1}px;"
-            f"  font-weight: {T.FONT_WEIGHT_SEMIBOLD}; border: none;"
+            f"  font-size: {T.FONT_SIZE_CAPTION}px;"
+            f"  font-weight: 600; letter-spacing: 1px; border: none;"
             f"  border-bottom: 1px solid {T.BORDER_SUBTLE}; text-align: left;"
             f"  padding: 0 {T.SPACE_MD}px; }}"
             f"QPushButton:hover {{ background: {T.BG_INTERACTIVE}; color: {T.FG_PRIMARY}; }}"
@@ -143,7 +143,7 @@ class _AISettingsDialog(QDialog):
         apply_shadow(self, level="medium")
 
         layout = QVBoxLayout(self)
-        layout.setSpacing(T.SPACE_MD)
+        layout.setSpacing(12)
 
         info = QLabel(
             "Configure your Azure AI Foundry credentials.\n"
@@ -155,7 +155,7 @@ class _AISettingsDialog(QDialog):
         layout.addWidget(info)
 
         form = QFormLayout()
-        form.setSpacing(T.SPACE_SM)
+        form.setSpacing(8)
 
         self._endpoint = QLineEdit(current_settings.endpoint)
         self._endpoint.setPlaceholderText("https://models.inference.ai.azure.com")
@@ -243,7 +243,7 @@ class EditorPanel(QWidget):
         )
         scroll_content = QWidget()
         self._container = QVBoxLayout(scroll_content)
-        self._container.setContentsMargins(0, T.SPACE_SM, 0, T.SPACE_SM)
+        self._container.setContentsMargins(0, 8, 0, 8)
         self._container.setSpacing(0)
         scroll.setWidget(scroll_content)
         outer.addWidget(scroll, 1)
@@ -257,8 +257,8 @@ class EditorPanel(QWidget):
         # ── Smart Zoom (collapsible) ─────────────────────────────────
         zoom_body = QWidget()
         zoom_lay = QVBoxLayout(zoom_body)
-        zoom_lay.setContentsMargins(T.SPACE_LG, T.SPACE_SM, T.SPACE_LG, T.SPACE_SM)
-        zoom_lay.setSpacing(T.SPACE_SM)
+        zoom_lay.setContentsMargins(16, 6, 16, 8)
+        zoom_lay.setSpacing(6)
 
         qa_desc = QLabel("Analyze activity to auto-generate zoom keyframes.")
         qa_desc.setObjectName("Secondary")
@@ -266,7 +266,7 @@ class EditorPanel(QWidget):
         zoom_lay.addWidget(qa_desc)
 
         sens_row = QHBoxLayout()
-        sens_row.setSpacing(T.SPACE_SM)
+        sens_row.setSpacing(8)
         sens_label = QLabel("Sensitivity")
         sens_label.setObjectName("Secondary")
         sens_label.setFixedWidth(65)
@@ -299,7 +299,7 @@ class EditorPanel(QWidget):
 
         # "or" separator
         or_row = QHBoxLayout()
-        or_row.setSpacing(T.SPACE_SM)
+        or_row.setSpacing(8)
         or_line_l = QFrame()
         or_line_l.setFrameShape(QFrame.Shape.HLine)
         or_line_l.setStyleSheet(f"background-color: {T.BORDER_SUBTLE}; max-height: 1px;")
@@ -328,13 +328,13 @@ class EditorPanel(QWidget):
         self._ai_zoom_status.setVisible(False)
         zoom_lay.addWidget(self._ai_zoom_status)
 
-        self._container.addWidget(_CollapsibleSection("Smart zoom", zoom_body))
+        self._container.addWidget(_CollapsibleSection("SMART ZOOM", zoom_body))
 
         # ── Chapters (collapsible) ───────────────────────────────────
         chapters_body = QWidget()
         chapters_lay = QVBoxLayout(chapters_body)
-        chapters_lay.setContentsMargins(T.SPACE_LG, T.SPACE_SM, T.SPACE_LG, T.SPACE_SM)
-        chapters_lay.setSpacing(T.SPACE_SM)
+        chapters_lay.setContentsMargins(16, 6, 16, 8)
+        chapters_lay.setSpacing(6)
 
         chapters_desc = QLabel("Add chapter markers for navigation\nin long recordings.")
         chapters_desc.setObjectName("Secondary")
@@ -362,13 +362,13 @@ class EditorPanel(QWidget):
         self._chapters_status.setVisible(False)
         chapters_lay.addWidget(self._chapters_status)
 
-        self._container.addWidget(_CollapsibleSection("Chapters", chapters_body, collapsed=True))
+        self._container.addWidget(_CollapsibleSection("CHAPTERS", chapters_body, collapsed=True))
 
         # ── Voiceover (collapsible) ──────────────────────────────────
         vo_body = QWidget()
         vo_lay = QVBoxLayout(vo_body)
-        vo_lay.setContentsMargins(T.SPACE_LG, T.SPACE_SM, T.SPACE_LG, T.SPACE_SM)
-        vo_lay.setSpacing(T.SPACE_SM)
+        vo_lay.setContentsMargins(16, 6, 16, 8)
+        vo_lay.setSpacing(6)
 
         vo_desc = QLabel("Add text-to-speech voiceover segments\nat specific points in the timeline.")
         vo_desc.setObjectName("Secondary")
@@ -388,13 +388,13 @@ class EditorPanel(QWidget):
         self._vo_status.setVisible(False)
         vo_lay.addWidget(self._vo_status)
 
-        self._container.addWidget(_CollapsibleSection("Voiceover", vo_body))
+        self._container.addWidget(_CollapsibleSection("VOICEOVER", vo_body))
 
         # ── Keystroke Overlay (collapsible) ──────────────────────────
         keystroke_body = QWidget()
         keystroke_lay = QVBoxLayout(keystroke_body)
-        keystroke_lay.setContentsMargins(T.SPACE_LG, T.SPACE_SM, T.SPACE_LG, T.SPACE_SM)
-        keystroke_lay.setSpacing(T.SPACE_SM)
+        keystroke_lay.setContentsMargins(16, 6, 16, 8)
+        keystroke_lay.setSpacing(6)
 
         keystroke_desc = QLabel("Show keystrokes as floating overlays\nfor tutorial and demo recordings.")
         keystroke_desc.setObjectName("Secondary")
@@ -416,7 +416,7 @@ class EditorPanel(QWidget):
 
         # Position dropdown
         position_row = QHBoxLayout()
-        position_row.setSpacing(T.SPACE_SM)
+        position_row.setSpacing(8)
         position_label = QLabel("Position")
         position_label.setObjectName("Secondary")
         position_label.setFixedWidth(65)
@@ -434,7 +434,7 @@ class EditorPanel(QWidget):
 
         # Style dropdown
         style_row = QHBoxLayout()
-        style_row.setSpacing(T.SPACE_SM)
+        style_row.setSpacing(8)
         style_label = QLabel("Style")
         style_label.setObjectName("Secondary")
         style_label.setFixedWidth(65)
@@ -452,7 +452,7 @@ class EditorPanel(QWidget):
 
         # Filter mode dropdown
         filter_row = QHBoxLayout()
-        filter_row.setSpacing(T.SPACE_SM)
+        filter_row.setSpacing(8)
         filter_label = QLabel("Filter")
         filter_label.setObjectName("Secondary")
         filter_label.setFixedWidth(65)
@@ -474,13 +474,13 @@ class EditorPanel(QWidget):
         filter_row.addWidget(self._keystroke_filter_combo, 1)
         keystroke_lay.addLayout(filter_row)
 
-        self._container.addWidget(_CollapsibleSection("Keystrokes", keystroke_body, collapsed=True))
+        self._container.addWidget(_CollapsibleSection("KEYSTROKES", keystroke_body, collapsed=True))
 
         # ── Background picker (collapsible) ──────────────────────────
         bg_body = QWidget()
         bg_lay = QVBoxLayout(bg_body)
-        bg_lay.setContentsMargins(T.SPACE_LG, T.SPACE_SM, T.SPACE_LG, T.SPACE_SM)
-        bg_lay.setSpacing(T.SPACE_SM)
+        bg_lay.setContentsMargins(16, 6, 16, 8)
+        bg_lay.setSpacing(6)
 
         self._bg_category_combo = QComboBox()
         self._bg_category_combo.setObjectName("DepthCombo")
@@ -508,13 +508,13 @@ class EditorPanel(QWidget):
         bg_lay.addWidget(self._bg_stack)
         self._current_bg_preset = DEFAULT_PRESET
 
-        self._container.addWidget(_CollapsibleSection("Background", bg_body, collapsed=True))
+        self._container.addWidget(_CollapsibleSection("BACKGROUND", bg_body, collapsed=True))
 
         # ── Frame picker (collapsible) ───────────────────────────────
         fr_body = QWidget()
         fr_lay = QVBoxLayout(fr_body)
-        fr_lay.setContentsMargins(T.SPACE_LG, T.SPACE_SM, T.SPACE_LG, T.SPACE_SM)
-        fr_lay.setSpacing(T.SPACE_SM)
+        fr_lay.setContentsMargins(16, 6, 16, 8)
+        fr_lay.setSpacing(6)
 
         self._frame_combo = QComboBox()
         self._frame_combo.setObjectName("DepthCombo")
@@ -526,13 +526,13 @@ class EditorPanel(QWidget):
         fr_lay.addWidget(self._frame_combo)
         self._current_frame_preset = DEFAULT_FRAME
 
-        self._container.addWidget(_CollapsibleSection("Device frame", fr_body, collapsed=True))
+        self._container.addWidget(_CollapsibleSection("DEVICE FRAME", fr_body, collapsed=True))
 
         # ── Click effect picker (collapsible) ────────────────────────
         click_body = QWidget()
         click_lay = QVBoxLayout(click_body)
-        click_lay.setContentsMargins(T.SPACE_LG, T.SPACE_SM, T.SPACE_LG, T.SPACE_SM)
-        click_lay.setSpacing(T.SPACE_SM)
+        click_lay.setContentsMargins(16, 6, 16, 8)
+        click_lay.setSpacing(6)
 
         self._click_combo = QComboBox()
         self._click_combo.setObjectName("DepthCombo")
@@ -544,13 +544,13 @@ class EditorPanel(QWidget):
         click_lay.addWidget(self._click_combo)
         self._current_click_preset = DEFAULT_CLICK_EFFECT
 
-        self._container.addWidget(_CollapsibleSection("Click effects", click_body, collapsed=True))
+        self._container.addWidget(_CollapsibleSection("CLICK EFFECTS", click_body, collapsed=True))
 
         # ── Annotations (collapsible) ────────────────────────────────
         annot_body = QWidget()
         annot_lay = QVBoxLayout(annot_body)
-        annot_lay.setContentsMargins(T.SPACE_LG, T.SPACE_SM, T.SPACE_LG, T.SPACE_SM)
-        annot_lay.setSpacing(T.SPACE_SM)
+        annot_lay.setContentsMargins(16, 6, 16, 8)
+        annot_lay.setSpacing(6)
 
         annot_desc = QLabel("Add text, arrows, and highlights to emphasize key moments.")
         annot_desc.setObjectName("Secondary")
@@ -559,7 +559,7 @@ class EditorPanel(QWidget):
 
         # Add annotation buttons
         btn_row = QHBoxLayout()
-        btn_row.setSpacing(T.SPACE_SM)
+        btn_row.setSpacing(6)
         
         btn_text = QPushButton("+ Text")
         btn_text.setObjectName("CtrlBtn")
@@ -593,20 +593,20 @@ class EditorPanel(QWidget):
         
         self._annotations_list_widget = QWidget()
         self._annotations_list_layout = QVBoxLayout(self._annotations_list_widget)
-        self._annotations_list_layout.setContentsMargins(T.SPACE_SM, T.SPACE_SM, T.SPACE_SM, T.SPACE_SM)
-        self._annotations_list_layout.setSpacing(T.SPACE_XS)
+        self._annotations_list_layout.setContentsMargins(6, 6, 6, 6)
+        self._annotations_list_layout.setSpacing(4)
         self._annotations_list_layout.addStretch()
         
         list_scroll.setWidget(self._annotations_list_widget)
         annot_lay.addWidget(list_scroll)
 
-        self._container.addWidget(_CollapsibleSection("Annotations", annot_body, collapsed=True))
+        self._container.addWidget(_CollapsibleSection("ANNOTATIONS", annot_body, collapsed=True))
 
         # ── Output dimensions (collapsible) ──────────────────────────
         dim_body = QWidget()
         dim_lay = QVBoxLayout(dim_body)
-        dim_lay.setContentsMargins(T.SPACE_LG, T.SPACE_SM, T.SPACE_LG, T.SPACE_SM)
-        dim_lay.setSpacing(T.SPACE_SM)
+        dim_lay.setContentsMargins(16, 6, 16, 8)
+        dim_lay.setSpacing(6)
 
         self._dim_combo = QComboBox()
         self._dim_combo.setObjectName("DepthCombo")
@@ -622,7 +622,7 @@ class EditorPanel(QWidget):
         dim_lay.addWidget(self._dim_combo)
 
         self._current_output_dim = "auto"
-        self._container.addWidget(_CollapsibleSection("Output size", dim_body, collapsed=True))
+        self._container.addWidget(_CollapsibleSection("OUTPUT SIZE", dim_body, collapsed=True))
 
         # End of scrollable content
         self._container.addStretch()
@@ -633,12 +633,12 @@ class EditorPanel(QWidget):
             f"background: {T.BG_SURFACE}; border-top: 1px solid {T.BORDER_SUBTLE};"
         )
         bottom_layout = QVBoxLayout(bottom_bar)
-        bottom_layout.setContentsMargins(T.SPACE_LG, T.SPACE_SM, T.SPACE_LG, T.SPACE_SM)
-        bottom_layout.setSpacing(T.SPACE_XS)
+        bottom_layout.setContentsMargins(16, 6, 16, 6)
+        bottom_layout.setSpacing(4)
 
         # Undo / Redo row
         undo_redo_row = QHBoxLayout()
-        undo_redo_row.setSpacing(T.SPACE_XS)
+        undo_redo_row.setSpacing(4)
         self._btn_undo = QPushButton("↩ Undo")
         self._btn_undo.setObjectName("CtrlBtn")
         self._btn_undo.setFixedHeight(28)
@@ -656,7 +656,7 @@ class EditorPanel(QWidget):
 
         # Info + settings row
         info_row = QHBoxLayout()
-        info_row.setSpacing(T.SPACE_SM)
+        info_row.setSpacing(6)
 
         self._info_label = QLabel("ℹ️")
         self._info_label.setObjectName("Secondary")
@@ -845,8 +845,8 @@ class EditorPanel(QWidget):
         """Build a grid of colour-swatch buttons for one category."""
         from PySide6.QtWidgets import QGridLayout
         grid = QGridLayout()
-        grid.setSpacing(T.SPACE_XS)
-        grid.setContentsMargins(0, T.SPACE_XS, 0, T.SPACE_XS)
+        grid.setSpacing(5)
+        grid.setContentsMargins(0, 4, 0, 4)
 
         # Patterns get larger, fewer-per-row swatches so the pattern is visible
         if category == CAT_PATTERN:
@@ -1379,8 +1379,8 @@ class EditorPanel(QWidget):
             f"  border-radius: {T.RADIUS_SMALL}px; padding: {T.SPACE_XXS}px; }}"
         )
         item_layout = QHBoxLayout(item_widget)
-        item_layout.setContentsMargins(T.SPACE_SM, T.SPACE_XS, T.SPACE_SM, T.SPACE_XS)
-        item_layout.setSpacing(T.SPACE_SM)
+        item_layout.setContentsMargins(6, 4, 6, 4)
+        item_layout.setSpacing(8)
 
         # Type icon
         icon_map = {"text": "📝", "arrow": "➡️", "highlight": "🔆"}

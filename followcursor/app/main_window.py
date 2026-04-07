@@ -10,7 +10,7 @@ from typing import Optional, List
 logger = logging.getLogger(__name__)
 
 from PySide6.QtCore import Qt, QTimer, QSettings, QByteArray, QEvent, QThread, Signal as CoreSignal, QSize
-from PySide6.QtGui import QIcon
+from PySide6.QtGui import QIcon, QShortcut, QKeySequence
 from PySide6.QtWidgets import (
     QMainWindow,
     QWidget,
@@ -50,7 +50,8 @@ from .global_hotkeys import GlobalHotkeys
 from .project_file import PROJ_EXT
 from .backgrounds import PRESETS as BG_PRESETS
 from .frames import FRAME_PRESETS
-from .theme import DARK_THEME
+from .theme import get_theme
+from .icon_loader import clear_cache as clear_icon_cache
 from .fluent_effects import apply_shadow, install_focus_ring
 from .widgets.title_bar import TitleBar
 from .widgets.source_picker import SourcePickerDialog
@@ -697,18 +698,16 @@ class MainWindow(QMainWindow):
         self.setMinimumSize(900, 600)
         self.resize(1200, 800)
         self.setWindowFlags(Qt.WindowType.FramelessWindowHint)
-        self.setStyleSheet(DARK_THEME)
-        
+
         # Enable Mica backdrop on Windows 11 Build 22621+
         hwnd = int(self.winId())
         if is_mica_supported():
             success = enable_mica(hwnd, dark_mode=True)
             if success:
-                # Set transparent background for Mica to be visible
                 self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
                 logger.info("Mica backdrop enabled with transparent background")
 
-                def _apply_mica_transparency():
+                def _apply_mica_transparency() -> None:
                     self.setObjectName("micaHostWindow")
                     central = self.centralWidget()
                     if central:
@@ -723,6 +722,9 @@ class MainWindow(QMainWindow):
 
         # ── persistent settings ─────────────────────────────────────
         self._settings = QSettings("FollowCursor", "FollowCursor")
+        self._dark_mode: bool = self._settings.value("appearance/darkMode", True, type=bool)
+        self._apply_theme()
+        
         self._last_export_dir: str = self._settings.value("lastExportDir", "")
         self._last_project_dir: str = self._settings.value("lastProjectDir", "")
         self._restore_geometry()
@@ -809,6 +811,8 @@ class MainWindow(QMainWindow):
         self._title_bar = TitleBar(self)
         self._title_bar.export_clicked.connect(self._save_recording)
         self._title_bar.discard_clicked.connect(self._discard_recording)
+        self._title_bar.theme_toggle_clicked.connect(self._toggle_theme)
+        QShortcut(QKeySequence("Ctrl+T"), self).activated.connect(self._toggle_theme)
         root.addWidget(self._title_bar)
 
         # main content row
@@ -3617,7 +3621,7 @@ class MainWindow(QMainWindow):
             QEvent.Type.WindowStateChange,
         ):
             # Re-apply stylesheet so font-size values are recalculated for new DPI
-            QTimer.singleShot(0, lambda: self.setStyleSheet(DARK_THEME))
+            QTimer.singleShot(0, self._apply_theme)
 
     def closeEvent(self, event) -> None:  # type: ignore[override]
         """Handle window close — prompt to save, persist settings, clean up."""
@@ -3717,6 +3721,31 @@ class MainWindow(QMainWindow):
         # Force quit — ensures the process exits even with leftover threads
         import os
         os._exit(0)
+
+    def _apply_theme(self) -> None:
+        """Apply the current theme (dark or light) to the application."""
+        theme_stylesheet = get_theme(dark=self._dark_mode)
+        self.setStyleSheet(theme_stylesheet)
+        clear_icon_cache()
+        self._refresh_icons()
+        logger.info(f"Applied {'dark' if self._dark_mode else 'light'} theme")
+
+    def _refresh_icons(self) -> None:
+        """Reload all widget icons with colours matching the active theme."""
+        self._title_bar.refresh_icons(dark=self._dark_mode)
+        fg = T.FG_PRIMARY if self._dark_mode else T.LIGHT_FG_1
+        self._btn_edit_view.setIcon(load_icon("play", color=fg))
+        self._btn_load.setIcon(load_icon("folder_open", color=fg))
+        self._btn_save.setIcon(load_icon("save", color=fg))
+        self._btn_change_source.setIcon(load_icon("desktop", color=fg))
+        self._btn_clipchamp.setIcon(load_icon("folder_open", color=fg))
+
+    def _toggle_theme(self) -> None:
+        """Toggle between dark and light themes."""
+        self._dark_mode = not self._dark_mode
+        self._settings.setValue("appearance/darkMode", self._dark_mode)
+        self._apply_theme()
+        logger.info(f"Toggled to {'dark' if self._dark_mode else 'light'} theme")
 
     def _restore_geometry(self) -> None:
         """Restore window size/position from saved settings."""

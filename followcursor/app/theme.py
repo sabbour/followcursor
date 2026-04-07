@@ -10,6 +10,74 @@ Reference: https://fluent2.microsoft.design/components/web/react/
 
 from . import tokens as T
 
+
+# ══════════════════════════════════════════════════════════════════════════
+# LIGHT THEME — helper for building the light-mode QSS
+# ══════════════════════════════════════════════════════════════════════════
+
+def _build_light_theme() -> str:
+    """Build the light-theme QSS from the dark theme via a sentinel mapping.
+
+    A two-pass approach is used so that no substitution can accidentally alter
+    a value already written by an earlier one:
+
+    Pass 1: replace every dark token value with a unique ``%%NAME%%`` sentinel.
+    Pass 2: replace each sentinel with its corresponding light token value.
+
+    When multiple dark tokens share the same hex value (e.g. ``BG_LAYER_4``,
+    ``BG_CARD``, and ``BG_SUBTLE_SELECTED`` all equal ``"#333333"``) only the
+    first sentinel wins and all occurrences receive the same light value — a
+    known limitation documented inline below.
+    """
+    # (sentinel_name, dark_value, light_value)
+    # Longer / more specific dark values are listed first to avoid partial
+    # substring matches during pass 1 (e.g. rgba strings before hex strings).
+    SUBSTITUTIONS = [
+        # ── Brand translucent (rgba strings — must come before bare hex) ───
+        ("BRAND_TRANSLUCENT_STRONG",  T.BRAND_TRANSLUCENT_STRONG,  T.LIGHT_BRAND_TRANSLUCENT_STRONG),
+        ("BRAND_TRANSLUCENT_HOVER",   T.BRAND_TRANSLUCENT_HOVER,   T.LIGHT_BRAND_TRANSLUCENT_HOVER),
+        ("BRAND_TRANSLUCENT",         T.BRAND_TRANSLUCENT,         T.LIGHT_BRAND_TRANSLUCENT),
+        # ── Foreground / text ───────────────────────────────────────────────
+        # NOTE: FG_3 == STROKE_ACCESSIBLE == "#adadad"; one sentinel handles both.
+        ("FG_PRIMARY",    T.FG_PRIMARY,    T.LIGHT_FG_1),
+        ("FG_2",          T.FG_2,          T.LIGHT_FG_2),
+        ("FG_3",          T.FG_3,          T.LIGHT_FG_3),
+        ("FG_4",          T.FG_4,          T.LIGHT_FG_4),
+        ("FG_DISABLED",   T.FG_DISABLED,   "#a6a6a6"),
+        # ── Backgrounds ─────────────────────────────────────────────────────
+        ("BG_LAYER_1",        T.BG_LAYER_1,        T.LIGHT_BG_2),
+        ("BG_LAYER_2",        T.BG_LAYER_2,        T.LIGHT_BG_3),
+        # BG_LAYER_3 == BG_SURFACE == "#292929"; both become LIGHT_BG_1.
+        ("BG_LAYER_3",        T.BG_LAYER_3,        T.LIGHT_BG_1),
+        # BG_LAYER_4 == BG_CARD == BG_SUBTLE_SELECTED == "#333333".
+        # All share the same dark value so they receive a single light value.
+        ("BG_LAYER_4",        T.BG_LAYER_4,        T.LIGHT_BG_3),
+        # BG_LAYER_5 == BG_CARD_HOVER == "#3d3d3d"; one sentinel handles both.
+        ("BG_LAYER_5",        T.BG_LAYER_5,        T.LIGHT_BG_4),
+        ("BG_SUBTLE_HOVER",   T.BG_SUBTLE_HOVER,   T.LIGHT_BG_SUBTLE_HOVER),
+        ("BG_SUBTLE_PRESSED", T.BG_SUBTLE_PRESSED, T.LIGHT_BG_SUBTLE_PRESSED),
+        # ── Borders ─────────────────────────────────────────────────────────
+        ("STROKE_1",      T.STROKE_1,      T.LIGHT_STROKE_1),
+        ("STROKE_2",      T.STROKE_2,      T.LIGHT_STROKE_2),
+        # STROKE_ACCESSIBLE shares its value with FG_3; already handled above.
+        # ── Brand ────────────────────────────────────────────────────────────
+        # BRAND_HOVER must precede BRAND to avoid matching the shared prefix.
+        ("BRAND_HOVER",   T.BRAND_HOVER,   T.LIGHT_BRAND_BG_HOVER),
+        ("BRAND_ACTIVE",  T.BRAND_ACTIVE,  T.LIGHT_BRAND_BG_PRESSED),
+        # LIGHT_BRAND_BG == BRAND == "#8b5cf6" (purple preserved in light mode),
+        # so this substitution is a no-op and is included only for clarity.
+        ("BRAND",         T.BRAND,         T.LIGHT_BRAND_BG),
+    ]
+
+    qss = DARK_THEME
+    # Pass 1 — replace dark values with sentinels
+    for name, dark_val, _ in SUBSTITUTIONS:
+        qss = qss.replace(dark_val, f"%%{name}%%")
+    # Pass 2 — replace sentinels with light values
+    for name, _, light_val in SUBSTITUTIONS:
+        qss = qss.replace(f"%%{name}%%", light_val)
+    return qss
+
 DARK_THEME = f"""
 /* ══════════════════════════════════════════════════════════════
    GLOBAL BASE
@@ -58,13 +126,6 @@ QPushButton:focus {{
     border: 2px solid {T.BRAND};
     padding: {T.SPACE_XS - 1}px {T.SPACE_SM - 1}px;
 }}
-/* FluentButton — suppress QSS hover snap so the animated overlay takes over */
-QPushButton[fluentAnimated="true"]:hover {{
-    background-color: transparent;
-}}
-QPushButton[fluentAnimated="true"]:pressed {{
-    background-color: transparent;
-}}
 
 /* ══════════════════════════════════════════════════════════════
    INPUTS — Fluent 2 Input & Textarea Patterns
@@ -73,26 +134,25 @@ QPushButton[fluentAnimated="true"]:pressed {{
 QLineEdit, QTextEdit {{
     background-color: {T.BG_LAYER_2};
     color: {T.FG_PRIMARY};
-    border: none;
-    border-bottom: 1px solid {T.STROKE_1};
-    border-radius: 0px;
-    padding: {T.SPACE_6}px {T.SPACE_MD}px;
+    border: 1px solid {T.STROKE_1};
+    border-radius: {T.RADIUS_SMALL}px;
+    padding: {T.SPACE_6}px {T.SPACE_SM}px;
     font-size: {T.FONT_SIZE_BODY_1}px;
     selection-background-color: {T.BRAND};
     selection-color: {T.FG_PRIMARY};
-    min-height: 32px;
 }}
 QLineEdit:hover, QTextEdit:hover {{
-    border-bottom-color: {T.STROKE_ACCESSIBLE};
+    border-color: {T.STROKE_ACCESSIBLE};
 }}
 QLineEdit:focus, QTextEdit:focus {{
-    border-bottom: 2px solid {T.BRAND};
-    padding-bottom: {T.SPACE_6 - 1}px;
+    outline: {T.FOCUS_RING_WIDTH}px solid {T.BRAND};
+    outline-offset: {T.FOCUS_RING_OFFSET}px;
+    border-color: {T.BRAND};
 }}
 QLineEdit:disabled, QTextEdit:disabled {{
     background-color: {T.BG_LAYER_1};
     color: {T.FG_DISABLED};
-    border-bottom-color: {T.STROKE_2};
+    border-color: {T.STROKE_2};
 }}
 
 /* ══════════════════════════════════════════════════════════════
@@ -104,7 +164,7 @@ QComboBox {{
     color: {T.FG_PRIMARY};
     border: 1px solid {T.STROKE_1};
     border-radius: {T.RADIUS_SMALL}px;
-    padding: 0px {T.SPACE_MD}px;
+    padding: {T.SPACE_6}px {T.SPACE_SM}px;
     font-size: {T.FONT_SIZE_BODY_1}px;
     min-height: 32px;
 }}
@@ -127,9 +187,9 @@ QComboBox::drop-down {{
 }}
 QComboBox::down-arrow {{
     image: none;
-    border-left: 3px solid transparent;
-    border-right: 3px solid transparent;
-    border-top: 4px solid {T.FG_2};
+    border-left: 4px solid transparent;
+    border-right: 4px solid transparent;
+    border-top: 5px solid {T.FG_2};
     margin-right: {T.SPACE_XS}px;
 }}
 QComboBox QAbstractItemView {{
@@ -201,9 +261,9 @@ QCheckBox {{
     font-size: {T.FONT_SIZE_BODY_1}px;
 }}
 QCheckBox::indicator {{
-    width: 20px;
-    height: 20px;
-    border: 2px solid {T.STROKE_1};
+    width: 16px;
+    height: 16px;
+    border: 1px solid {T.STROKE_1};
     border-radius: {T.RADIUS_SMALL}px;
     background-color: {T.BG_LAYER_2};
 }}
@@ -217,7 +277,6 @@ QCheckBox::indicator:checked {{
 }}
 QCheckBox::indicator:checked:hover {{
     background-color: {T.BRAND_HOVER};
-    border-color: {T.BRAND_HOVER};
 }}
 QCheckBox::indicator:disabled {{
     background-color: {T.BG_LAYER_1};
@@ -227,92 +286,6 @@ QCheckBox::indicator:focus {{
     border: 2px solid {T.BRAND};
 }}
 QCheckBox::indicator:checked:focus {{
-    border: 2px solid {T.BRAND};
-    background-color: {T.BRAND};
-}}
-QCheckBox::indicator:indeterminate {{
-    border-color: {T.BRAND};
-    background-color: qlineargradient(
-        x1: 0, y1: 0, x2: 0, y2: 1,
-        stop: 0 {T.BRAND},
-        stop: 0.38 {T.BRAND},
-        stop: 0.38 {T.BG_LAYER_2},
-        stop: 0.62 {T.BG_LAYER_2},
-        stop: 0.62 {T.BRAND},
-        stop: 1 {T.BRAND}
-    );
-}}
-QCheckBox::indicator:indeterminate:hover {{
-    border-color: {T.BRAND_HOVER};
-    background-color: qlineargradient(
-        x1: 0, y1: 0, x2: 0, y2: 1,
-        stop: 0 {T.BRAND_HOVER},
-        stop: 0.38 {T.BRAND_HOVER},
-        stop: 0.38 {T.BG_LAYER_2},
-        stop: 0.62 {T.BG_LAYER_2},
-        stop: 0.62 {T.BRAND_HOVER},
-        stop: 1 {T.BRAND_HOVER}
-    );
-}}
-QCheckBox::indicator:indeterminate:disabled {{
-    border-color: {T.STROKE_2};
-    background-color: qlineargradient(
-        x1: 0, y1: 0, x2: 0, y2: 1,
-        stop: 0 {T.BG_LAYER_1},
-        stop: 0.38 {T.BG_LAYER_1},
-        stop: 0.38 {T.STROKE_2},
-        stop: 0.62 {T.STROKE_2},
-        stop: 0.62 {T.BG_LAYER_1},
-        stop: 1 {T.BG_LAYER_1}
-    );
-}}
-
-/* ══════════════════════════════════════════════════════════════
-   RADIOBUTTON — Fluent 2 Radio Pattern
-   https://fluent2.microsoft.design/components/web/react/core/radio/usage
-   ══════════════════════════════════════════════════════════════ */
-QRadioButton {{
-    spacing: {T.SPACE_SM}px;
-    color: {T.FG_PRIMARY};
-    font-size: {T.FONT_SIZE_BODY_1}px;
-}}
-QRadioButton::indicator {{
-    width: 20px;
-    height: 20px;
-    border: 2px solid {T.STROKE_1};
-    border-radius: 10px;
-    background-color: {T.BG_LAYER_2};
-}}
-QRadioButton::indicator:hover {{
-    border-color: {T.STROKE_ACCESSIBLE};
-    background-color: {T.BG_LAYER_3};
-}}
-QRadioButton::indicator:checked {{
-    background-color: qradialgradient(cx: 0.5, cy: 0.5, radius: 0.5,
-        fx: 0.5, fy: 0.5,
-        stop: 0 {T.BRAND},
-        stop: 0.35 {T.BRAND},
-        stop: 0.36 {T.BG_LAYER_2},
-        stop: 1 {T.BG_LAYER_2});
-    border-color: {T.BRAND};
-}}
-QRadioButton::indicator:checked:hover {{
-    background-color: qradialgradient(cx: 0.5, cy: 0.5, radius: 0.5,
-        fx: 0.5, fy: 0.5,
-        stop: 0 {T.BRAND},
-        stop: 0.35 {T.BRAND},
-        stop: 0.36 {T.BG_SUBTLE_HOVER},
-        stop: 1 {T.BG_SUBTLE_HOVER});
-    border-color: {T.BRAND};
-}}
-QRadioButton::indicator:disabled {{
-    background-color: {T.BG_LAYER_1};
-    border-color: {T.STROKE_2};
-}}
-QRadioButton::indicator:focus {{
-    border: 2px solid {T.BRAND};
-}}
-QRadioButton::indicator:checked:focus {{
     border: 2px solid {T.BRAND};
     background-color: {T.BRAND};
 }}
@@ -330,26 +303,20 @@ QSlider::groove:horizontal {{
     border-radius: 2px;
 }}
 QSlider::handle:horizontal {{
-    background: {T.FG_1};
-    border: none;
-    width: 20px;
-    height: 20px;
+    background: {T.BG_LAYER_5};
+    border: 2px solid {T.BRAND};
+    width: 16px;
+    height: 16px;
     margin: -8px 0;
-    border-radius: 10px;
+    border-radius: 8px;
 }}
 QSlider::handle:horizontal:hover {{
-    background: {T.FG_1};
-    width: 22px;
-    height: 22px;
-    margin: -9px 0;
-    border-radius: 11px;
+    background: {T.BRAND_HOVER};
+    border-color: {T.BRAND_HOVER};
 }}
 QSlider::handle:horizontal:pressed {{
-    background: #f0f0f0;
-    width: 18px;
-    height: 18px;
-    margin: -7px 0;
-    border-radius: 9px;
+    background: {T.BRAND_ACTIVE};
+    border-color: {T.BRAND_ACTIVE};
 }}
 QSlider::sub-page:horizontal {{
     background: {T.BRAND};
@@ -396,10 +363,6 @@ QTabBar::tab:selected {{
 QTabBar::tab:focus {{
     outline: {T.FOCUS_RING_WIDTH}px solid {T.BRAND};
     outline-offset: {T.FOCUS_RING_OFFSET}px;
-}}
-/* FluentTabBar — suppress QSS hover snap so the animated overlay takes over */
-QTabBar[fluentAnimated="true"]::tab:hover {{
-    background-color: transparent;
 }}
 
 /* ══════════════════════════════════════════════════════════════
@@ -496,7 +459,7 @@ QScrollBar:vertical:hover {{
 }}
 QScrollBar::handle:vertical {{
     background: {T.STROKE_1};
-    border-radius: 3px;
+    border-radius: {T.RADIUS_SMALL}px;
     min-height: {T.SCROLLBAR_MIN_HEIGHT}px;
 }}
 QScrollBar::handle:vertical:hover {{
@@ -522,7 +485,7 @@ QScrollBar:horizontal:hover {{
 }}
 QScrollBar::handle:horizontal {{
     background: {T.STROKE_1};
-    border-radius: 3px;
+    border-radius: {T.RADIUS_SMALL}px;
     min-width: {T.SCROLLBAR_MIN_HEIGHT}px;
 }}
 QScrollBar::handle:horizontal:hover {{
@@ -543,35 +506,12 @@ QScrollBar::add-page:horizontal, QScrollBar::sub-page:horizontal {{
    https://fluent2.microsoft.design/components/web/react/core/tooltip/usage
    ══════════════════════════════════════════════════════════════ */
 QToolTip {{
-    background-color: {T.BG_LAYER_4};
-    color: {T.FG_PRIMARY};
-    border: 1px solid {T.STROKE_1};
-    border-radius: {T.RADIUS_SMALL}px;
-    padding: {T.SPACE_6}px {T.SPACE_SM}px;
-    font-size: {T.FONT_SIZE_CAPTION_1}px;
-    max-width: 240px;
-}}
-
-/* ══════════════════════════════════════════════════════════════
-   GROUPBOX — Fluent 2 Card Container Pattern
-   https://fluent2.microsoft.design/components/web/react/core/card/usage
-   ══════════════════════════════════════════════════════════════ */
-QGroupBox {{
-    background-color: {T.BG_CARD};
+    background-color: {T.BG_LAYER_5};
     color: {T.FG_PRIMARY};
     border: 1px solid {T.STROKE_1};
     border-radius: {T.RADIUS_MEDIUM}px;
-    padding: {T.SPACE_LG}px;
-    margin-top: {T.SPACE_SM}px;
-    font-size: {T.FONT_SIZE_BODY_1}px;
-    font-weight: {T.FONT_WEIGHT_MEDIUM};
-}}
-QGroupBox::title {{
-    subcontrol-origin: margin;
-    subcontrol-position: top left;
-    padding: 0 {T.SPACE_XS}px;
-    color: {T.FG_PRIMARY};
-    background-color: transparent;
+    padding: {T.SPACE_6}px {T.SPACE_SM}px;
+    font-size: {T.FONT_SIZE_CAPTION_1}px;
 }}
 
 /* ══════════════════════════════════════════════════════════════
@@ -832,8 +772,10 @@ QPushButton#SaveBtn:disabled {{
 }}
 #EditorTitle {{
     color: {T.FG_2};
-    font-size: {T.FONT_SIZE_BODY_1}px;
+    font-size: {T.FONT_SIZE_CAPTION_1}px;
     font-weight: {T.FONT_WEIGHT_SEMIBOLD};
+    text-transform: uppercase;
+    letter-spacing: 1px;
     background: transparent;
 }}
 /* Keyframe item card */
@@ -963,15 +905,9 @@ QPushButton#SaveBtn:disabled {{
     border: 1px solid {T.STROKE_1};
     border-radius: {T.RADIUS_LARGE}px;
 }}
-#SourcePickerDialog QTabWidget::pane {{
-    background-color: transparent;
-}}
 
 /* ── Misc Labels ──── */
-QLabel {{
-    background: transparent;
-    font-size: {T.FONT_SIZE_BODY_1}px;
-}}
+QLabel {{ background: transparent; }}
 QLabel#Muted {{ color: {T.FG_3}; font-size: {T.FONT_SIZE_CAPTION_1}px; }}
 QLabel#Secondary {{ color: {T.FG_2}; font-size: {T.FONT_SIZE_CAPTION_1}px; }}
 
@@ -1037,3 +973,21 @@ QLabel#Secondary {{ color: {T.FG_2}; font-size: {T.FONT_SIZE_CAPTION_1}px; }}
     padding: {T.SPACE_XS}px;
 }}
 """
+
+# ══════════════════════════════════════════════════════════════════════════
+# LIGHT THEME — Fluent 2 Light Mode
+# ══════════════════════════════════════════════════════════════════════════
+
+LIGHT_THEME = _build_light_theme()
+
+
+def get_theme(dark: bool = True) -> str:
+    """Return the appropriate QSS stylesheet based on theme preference.
+    
+    Args:
+        dark: If True, return DARK_THEME. If False, return LIGHT_THEME.
+        
+    Returns:
+        QSS stylesheet string
+    """
+    return DARK_THEME if dark else LIGHT_THEME
