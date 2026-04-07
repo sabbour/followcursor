@@ -224,6 +224,23 @@ Implemented complete annotation system for text, arrows, and highlights.
 
 **Branch**: `feat/issue-98-fluent2-colors`  
 **PR**: #102
+### 2026-04-07: Documentation Quality Pass (Issue #97)
+
+Performed comprehensive quality audit on the mkdocs documentation site. Key findings:
+
+**Test suite growth**: Since the last docs rewrite (PR #95), the test suite grew from 359 to 386 tests — a 7.5% increase across 14 test files. This required updating CONTRIBUTING.md to reflect the accurate current count.
+
+**Code block formatting**: Found 7 ASCII diagram blocks in ARCHITECTURE.md that lacked language hints. Added `text` as the language specifier to enable proper syntax highlighting in the rendered docs. MkDocs/Material requires explicit language hints on all fenced code blocks.
+
+**Component map completeness**: The ARCHITECTURE.md component map was missing `app/utils.py` — a helper module for video/image processing utilities. Added it to maintain an accurate file inventory for contributors.
+
+**Documentation accuracy verification strategy**: Rather than relying on memory, verified feature descriptions by running Python snippets against the live codebase (e.g., `from app.backgrounds import PRESETS; len(PRESETS)`). This confirmed all quantitative claims (84 backgrounds, 5 frames, 386 tests) match v0.9.0 reality.
+
+**Cross-reference validation**: Used grep to extract all internal anchor links (`#ai-smart-zoom`, `#live-zoom-during-recording`) and verified matching headers exist. All `.md` links in the nav structure resolve correctly.
+
+**No formatting artifacts found**: No double-apostrophe glyphs, control characters, or single-backtick multi-line blocks discovered. The original rewrite (PR #95) was already high-quality — this pass was primarily about version drift corrections.
+
+**Takeaway**: Documentation should be treated as code — verify claims against the source of truth (the actual codebase), not assumptions. Periodic audits catch version drift before it becomes stale.
 
 ### 2026-07-23: Complete Documentation Rewrite (PR #95)
 
