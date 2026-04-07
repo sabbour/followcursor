@@ -34,7 +34,7 @@ Record your screen or any individual window, then export a polished MP4 video wh
 ### 🔍 Zoom & Pan
 
 - **Smart Auto-Zoom** — Automatically detects mouse settlements, typing bursts, and click clusters to generate zoom keyframes with configurable sensitivity (Low / Medium / High). Spatial-aware clustering merges nearby same-area events into sustained zooms, and consecutive clusters are chained together (up to 4 per chain) — the camera stays zoomed in and pans smoothly between them instead of zooming out and back in
-- **AI Smart Zoom** — Let AI analyze your recording and automatically generate zoom keyframes for the most important moments — no manual setup required
+- **AI Smart Zoom** — Let AI analyze your recording and automatically generate zoom keyframes for the most important moments — requires Azure AI Foundry chat credentials to be configured
 - **Manual Zoom Keyframes** — Right-click the timeline or preview to add zoom points; drag segments to reposition them
 - **Zoom Depth Control** — Right-click a zoom segment to set depth (Subtle 1.25×, Medium 1.5×, Close 2×, Detail 2.5×)
 - **Centroid Editing** — Reposition the pan center of any zoom keyframe by clicking "Set centroid" on a zoom segment, then clicking the target point on the preview
@@ -45,7 +45,7 @@ Record your screen or any individual window, then export a polished MP4 video wh
 - **Timeline Editor** — Visual timeline with mouse-speed heatmap, gradient-styled zoom segments, draggable edges, and click-to-seek
 - **Trimming** — Drag trim handles on the timeline edges to cut unwanted content from the start or end of your recording; export respects the trimmed range
 - **Click Selection & Deletion** — Select individual click events on the timeline and delete unwanted ones
-- **Segment Deletion** — Delete any zoom segment from the timeline with a ripple delete that shifts subsequent segments; fully undo-able
+- **Segment Deletion** — Delete a segment of your recording from the timeline with a ripple delete that shifts subsequent segments; fully undo-able
 - **Undo & Redo** — Full undo/redo for all zoom keyframe changes (Ctrl+Z / Ctrl+Shift+Z / Ctrl+Y), up to 50 levels deep
 
 ### 🎨 Visual Customization
@@ -66,7 +66,7 @@ Record your screen or any individual window, then export a polished MP4 video wh
 
 - **Project Files** — Save/load `.fcproj` bundles (ZIP with metadata + raw video) to resume editing later. Ctrl+S re-saves to the current file. Title bar shows project name and unsaved-changes indicator (●)
 - **Chapter Markers** — Automatically detected or manually placed chapter markers are embedded as MP4 chapter metadata so viewers can jump between sections in any compatible player
-- **Voiceover / Text-to-Speech** — Record or generate a voiceover narration using 6 AI voices, place voiceover segments on the timeline, and export with audio baked in
+- **Voiceover / Text-to-Speech** — Generate text-to-speech voiceovers using available AI voices, place voiceover segments on the timeline, and export with audio baked in
 - **Close Confirmation** — Prompts to save unsaved changes before closing the app
 - **Frameless Dark UI** — Custom title bar, dark theme with purple accents
 - **Debug Overlay** — Per-time zoom marker overlay on the preview for fine-tuning keyframes (toggle via ⚙ settings menu)
