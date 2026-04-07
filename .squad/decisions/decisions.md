@@ -8,7 +8,7 @@
 
 Never force merge PRs just to get things done. Always wait for CI builds to pass AND address all pending review comments, especially those from Copilot code review, before merging.
 
-### 2026-04-07: Squad files must be in separate PRs from feature changes
+### 2026-04-07T20:26:00Z: Squad files must be in separate PRs from feature changes
 
 **By:** Ahmed Sabbour
 
