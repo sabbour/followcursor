@@ -128,12 +128,10 @@ def _group_keystrokes(
     
     # Use bisect to find the time window efficiently
     start_time = timestamp_ms - display_duration_ms
-    # Compute timestamps list once for both bisect calls
-    timestamps = [e.timestamp for e in key_events]
     # Binary search for first event in visible range
-    start_idx = bisect.bisect_left(timestamps, start_time)
+    start_idx = bisect.bisect_left(key_events, start_time, key=lambda event: event.timestamp)
     # Binary search for last event in visible range (exclusive)
-    end_idx = bisect.bisect_right(timestamps, timestamp_ms)
+    end_idx = bisect.bisect_right(key_events, timestamp_ms, key=lambda event: event.timestamp)
     
     # Only process events in the visible time window
     visible_events = key_events[start_idx:end_idx]
@@ -442,9 +440,7 @@ def draw_keystrokes_cv(
     elif config.position == "near-cursor":
         # Find mouse position at current timestamp
         if mouse_track:
-            import bisect
-            timestamps = [m.timestamp for m in mouse_track]
-            idx = bisect.bisect_right(timestamps, timestamp_ms)
+            idx = bisect.bisect_right(mouse_track, timestamp_ms, key=lambda m: m.timestamp)
             if idx > 0:
                 idx -= 1
             if idx < len(mouse_track):
@@ -524,18 +520,21 @@ def draw_keystrokes_cv(
                 KEYSTROKE_BG_COLOR_BGR,
                 -1,
             )
-            # Inner highlight
+            # Inner highlight - only copy/blend the ROI
             highlight_h = badge_h // 3
-            highlight_overlay = overlay.copy()
+            pad = 3
+            x1, y1 = max(0, badge_x), max(0, badge_y)
+            x2, y2 = min(fh, badge_x + badge_w), min(fh, badge_y + highlight_h + pad)
+            roi = overlay[y1:y2, x1:x2].copy()
             cv2.rectangle(
-                highlight_overlay,
-                (badge_x + 3, badge_y + 3),
-                (badge_x + badge_w - 3, badge_y + highlight_h),
+                roi,
+                (badge_x - x1 + pad, badge_y - y1 + pad),
+                (badge_x - x1 + badge_w - pad, badge_y - y1 + highlight_h),
                 (100, 90, 110),
                 -1,
             )
-            # Blend highlight
-            cv2.addWeighted(overlay, 0.9, highlight_overlay, 0.1, 0, overlay)
+            # Blend highlight back to overlay ROI
+            cv2.addWeighted(overlay[y1:y2, x1:x2], 0.9, roi, 0.1, 0, overlay[y1:y2, x1:x2])
         else:  # minimal-text
             cv2.rectangle(
                 overlay,

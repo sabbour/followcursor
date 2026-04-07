@@ -267,7 +267,7 @@ def render_annotations_cv(
     if annotations.texts:
         for text in annotations.texts:
             if text.start_ms <= timestamp_ms <= text.end_ms:
-                overlay = frame_bgr.copy()
+                overlay = frame_bgr.copy() if text.background_color is not None else frame_bgr
                 _draw_text_cv(frame_bgr, text, fw, fh, overlay)
 
 

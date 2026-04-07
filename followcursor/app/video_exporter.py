@@ -1265,17 +1265,18 @@ class VideoExporter(QObject):
                             t_ms = video_end_ms + ((ei + 1) / fps) * 1000.0
                             zoom, px, py = engine.compute_at(t_ms)
                             fc = last_f.copy()
+                            
+                            # Draw annotations first (background layer)
+                            if annotations:
+                                render_annotations_cv(
+                                    fc, annotations, t_ms, m_w, m_h
+                                )
+                            
                             if _has_cursor:
                                 draw_cursor_cv(
                                     fc, mouse_track, t_ms,
                                     m_left, m_top, m_w, m_h,
                                     c_bgr, c_alpha,
-                                )
-                            
-                            # Draw annotations before cursor/clicks/keystrokes
-                            if annotations:
-                                render_annotations_cv(
-                                    fc, annotations, t_ms, m_w, m_h
                                 )
                             
                             if _has_clicks:

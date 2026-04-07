@@ -29,13 +29,13 @@ WM_QUIT = 0x0012
 # renderer can filter them properly.
 _IGNORE_VKS = frozenset((
     0x14, 0x90, 0x91,          # CapsLock, NumLock, ScrollLock
-    0xBD,                      # OEM_MINUS (- key) — part of zoom-out hotkey
 ))
 
 # Hotkey virtual keys — only ignored when Ctrl+Shift are both pressed
 _HOTKEY_VKS = frozenset((
     0x52,   # R  — part of Ctrl+Shift+R record toggle
     0xBB,   # OEM_PLUS (= key) — part of zoom-in hotkey
+    0xBD,   # OEM_MINUS (- key) — part of zoom-out hotkey
 ))
 
 # Modifier virtual keys for hotkey detection
