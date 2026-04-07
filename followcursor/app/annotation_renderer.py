@@ -250,13 +250,11 @@ def render_annotations_cv(
     
     fh, fw = frame_bgr.shape[:2]
     
-    # Allocate a single shared overlay for all annotations requiring alpha blending
-    overlay = frame_bgr.copy()
-    
     # Render highlights first (back layer)
     if annotations.highlights:
         for highlight in annotations.highlights:
             if highlight.start_ms <= timestamp_ms <= highlight.end_ms:
+                overlay = frame_bgr.copy()
                 _draw_highlight_cv(frame_bgr, highlight, fw, fh, overlay)
     
     # Render arrows (middle layer) - no overlay needed
@@ -269,6 +267,7 @@ def render_annotations_cv(
     if annotations.texts:
         for text in annotations.texts:
             if text.start_ms <= timestamp_ms <= text.end_ms:
+                overlay = frame_bgr.copy()
                 _draw_text_cv(frame_bgr, text, fw, fh, overlay)
 
 

@@ -1006,12 +1006,15 @@ class VideoExporter(QObject):
                         cmd += ["-i", _merged_audio_path]
                     # Add chapter metadata if available
                     if _chapters_metadata_path:
-                        cmd += ["-i", _chapters_metadata_path]
-                        # Map metadata to output
-                        cmd += ["-map_metadata", "2" if _has_audio else "1"]
+                        cmd += ["-f", "ffmetadata", "-i", _chapters_metadata_path]
                     cmd += enc_args
                     if _has_audio:
                         cmd += ["-c:a", "aac", "-b:a", "192k"]
+                    # Map chapters from metadata input
+                    if _chapters_metadata_path:
+                        # Compute chapters input index: 0=video, 1=audio (if present), next=chapters
+                        chapters_idx = 2 if _has_audio else 1
+                        cmd += ["-map_chapters", str(chapters_idx)]
                     cmd += [output_path]
                     logger.info("Launching ffmpeg with encoder %s: %s", enc_id, " ".join(cmd))
                 return subprocess.Popen(
@@ -1202,6 +1205,12 @@ class VideoExporter(QObject):
 
                     zoom, px, py = engine.compute_at(t_ms)
 
+                    # Draw annotations first (background layer)
+                    if annotations:
+                        render_annotations_cv(
+                            frame, annotations, t_ms, m_w, m_h
+                        )
+                    
                     if _has_cursor:
                         draw_cursor_cv(
                             frame, mouse_track, t_ms,
@@ -1220,12 +1229,7 @@ class VideoExporter(QObject):
                         draw_keystrokes_cv(
                             frame, key_events, t_ms, keystroke_config,
                             m_left, m_top, m_w, m_h,
-                        )
-                    
-                    # Draw annotations if present
-                    if annotations:
-                        render_annotations_cv(
-                            frame, annotations, t_ms, m_w, m_h
+                            mouse_track,
                         )
 
                     composed = _compose_cv(
@@ -1286,6 +1290,7 @@ class VideoExporter(QObject):
                                 draw_keystrokes_cv(
                                     fc, key_events, t_ms, keystroke_config,
                                     m_left, m_top, m_w, m_h,
+                                    mouse_track,
                                 )
                             
                             composed = _compose_cv(

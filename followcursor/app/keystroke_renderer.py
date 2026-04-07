@@ -128,10 +128,12 @@ def _group_keystrokes(
     
     # Use bisect to find the time window efficiently
     start_time = timestamp_ms - display_duration_ms
+    # Compute timestamps list once for both bisect calls
+    timestamps = [e.timestamp for e in key_events]
     # Binary search for first event in visible range
-    start_idx = bisect.bisect_left([e.timestamp for e in key_events], start_time)
+    start_idx = bisect.bisect_left(timestamps, start_time)
     # Binary search for last event in visible range (exclusive)
-    end_idx = bisect.bisect_right([e.timestamp for e in key_events], timestamp_ms)
+    end_idx = bisect.bisect_right(timestamps, timestamp_ms)
     
     # Only process events in the visible time window
     visible_events = key_events[start_idx:end_idx]
@@ -160,18 +162,8 @@ def _group_keystrokes(
         vk_code = event.vk_code
         key_name = _format_key_event(vk_code)
         
-        # Apply filter based on mode
-        if filter_mode == "modifiers-only":
-            # Only show keystrokes that include Ctrl, Alt, or Win modifiers
-            # Single character presses are skipped
-            if vk_code not in MODIFIER_VKS:
-                continue
-        elif filter_mode == "shortcuts-only":
-            # Only show modifier keys (Ctrl/Alt/Win) - character keys will be
-            # filtered out later when we check if group has a modifier
-            pass  # Will be filtered in grouping logic
-        # else: "all" mode - show everything
-        
+        # Do NOT filter individual events by modifier status here
+        # Filtering happens at group-level in _should_show_group
         visible.append((key_name, event.timestamp, age, vk_code))
     
     # Group keystrokes that are close together (within 100ms)
@@ -225,18 +217,16 @@ def _should_show_group(
     if filter_mode == "all":
         return True
     
-    # For modifiers-only and shortcuts-only modes:
-    # Only show if group contains at least one Ctrl/Alt/Win modifier
     has_modifier = any(vk in modifier_vks for vk in vk_codes)
+    has_non_modifier = any(vk not in modifier_vks and vk not in shift_vks for vk in vk_codes)
     
     if filter_mode == "modifiers-only":
-        # Only show if it has a Ctrl/Alt/Win modifier
+        # Show if it has a Ctrl/Alt/Win modifier (may or may not have non-modifier keys)
         return has_modifier
     
     if filter_mode == "shortcuts-only":
-        # Only show if it has a Ctrl/Alt/Win modifier
-        # Single Shift+letter is NOT considered a shortcut
-        return has_modifier
+        # Show only if it has BOTH a modifier AND a non-modifier key (e.g. Ctrl+C, Alt+Tab)
+        return has_modifier and has_non_modifier
     
     return False
 
