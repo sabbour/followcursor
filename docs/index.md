@@ -8,41 +8,41 @@ Record your screen or any individual window, then export a polished MP4 or GIF w
 
 ---
 
-## :fluent-arrow-upload-20-regular: Key Features
+## :fluent-arrow_upload_20_regular: Key Features
 
 <div class="grid cards" markdown>
 
--   :fluent-record-20-regular: **Screen & Window Recording**
+-   :fluent-record_20_regular: **Screen & Window Recording**
 
     ---
 
     Capture any monitor via hardware-accelerated Windows Graphics Capture, or record individual windows without bleed-through.
 
--   :fluent-search-20-regular: **Smart Zoom**
+-   :fluent-search_20_regular: **Smart Zoom**
 
     ---
 
     Auto-detect typing bursts and click clusters to generate cinematic zoom keyframes — or let AI analyze your recording like a professional cameraman.
 
--   :fluent-mic-20-regular: **AI Voiceover**
+-   :fluent-mic_20_regular: **AI Voiceover**
 
     ---
 
     Add text-to-speech narration at any point in your timeline with Azure AI Foundry TTS. Six voice options, adjustable rate and volume.
 
--   :fluent-brightness-high-20-regular: **Visual Polish**
+-   :fluent-brightness_high_20_regular: **Visual Polish**
 
     ---
 
     84 background presets, 5 device frame styles, annotations (text, arrows, highlights), click effects, and keystroke overlays.
 
--   :fluent-video-20-regular: **Cinematic Export**
+-   :fluent-video_20_regular: **Cinematic Export**
 
     ---
 
     H.264 MP4 with GPU acceleration (NVENC, QuickSync, AMF) or GIF with palette-based encoding. Cursor, click ripples, and voiceover baked in.
 
--   :fluent-save-20-regular: **Project Files**
+-   :fluent-save_20_regular: **Project Files**
 
     ---
 

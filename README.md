@@ -34,18 +34,15 @@ Record your screen or any individual window, then export a polished MP4 video wh
 ### 🔍 Zoom & Pan
 
 - **Smart Auto-Zoom** — Automatically detects mouse settlements, typing bursts, and click clusters to generate zoom keyframes with configurable sensitivity (Low / Medium / High). Spatial-aware clustering merges nearby same-area events into sustained zooms, and consecutive clusters are chained together (up to 4 per chain) — the camera stays zoomed in and pans smoothly between them instead of zooming out and back in
-- **AI Smart Zoom** — Let AI analyze your recording and automatically generate zoom keyframes for the most important moments — requires Azure AI Foundry chat credentials to be configured
 - **Manual Zoom Keyframes** — Right-click the timeline or preview to add zoom points; drag segments to reposition them
 - **Zoom Depth Control** — Right-click a zoom segment to set depth (Subtle 1.25×, Medium 1.5×, Close 2×, Detail 2.5×)
 - **Centroid Editing** — Reposition the pan center of any zoom keyframe by clicking "Set centroid" on a zoom segment, then clicking the target point on the preview
-- **Pan Path Points** — Add intermediate pan stops within a zoom segment so the camera glides smoothly through multiple points of interest without ever zooming out
 
 ### ✂️ Editing
 
 - **Timeline Editor** — Visual timeline with mouse-speed heatmap, gradient-styled zoom segments, draggable edges, and click-to-seek
 - **Trimming** — Drag trim handles on the timeline edges to cut unwanted content from the start or end of your recording; export respects the trimmed range
 - **Click Selection & Deletion** — Select individual click events on the timeline and delete unwanted ones
-- **Segment Deletion** — Delete a segment of your recording from the timeline with a ripple delete that shifts subsequent segments; fully undo-able
 - **Undo & Redo** — Full undo/redo for all zoom keyframe changes (Ctrl+Z / Ctrl+Shift+Z / Ctrl+Y), up to 50 levels deep
 
 ### 🎨 Visual Customization
@@ -53,9 +50,6 @@ Record your screen or any individual window, then export a polished MP4 video wh
 - **Background Presets** — 84 backgrounds (39 solids + 37 gradients + 8 patterns) with category picker
 - **Device Frames** — 5 frame styles: Wide Bezel, Slim Bezel, Thin Border, Shadow Only, No Frame
 - **Output Dimensions** — Choose from Auto, 16:9, 3:2, 4:3, 1:1, or 9:16 aspect ratios for the exported video. Preview shows crop boundaries with a semi-transparent overlay
-- **Annotations** — Draw text boxes, arrows, and highlight rectangles directly on your recording — great for calling out UI elements, labelling steps, or guiding the viewer's eye
-- **Click Effects** — Animated ripple rings appear at every click with 8 style presets (Subtle Purple, Bold Red, Neon Cyan, and more) so viewers always know exactly where you clicked
-- **Keystroke Overlay** — Show keys as you type: display all keys, modifier-only combos, or keyboard shortcuts — with configurable position and style
 
 ### 📤 Export
 
@@ -65,8 +59,6 @@ Record your screen or any individual window, then export a polished MP4 video wh
 ### 🗂️ App & Project
 
 - **Project Files** — Save/load `.fcproj` bundles (ZIP with metadata + raw video) to resume editing later. Ctrl+S re-saves to the current file. Title bar shows project name and unsaved-changes indicator (●)
-- **Chapter Markers** — Automatically detected or manually placed chapter markers are embedded as MP4 chapter metadata so viewers can jump between sections in any compatible player
-- **Voiceover / Text-to-Speech** — Generate text-to-speech voiceovers using available AI voices, place voiceover segments on the timeline, and export with audio baked in
 - **Close Confirmation** — Prompts to save unsaved changes before closing the app
 - **Frameless Dark UI** — Custom title bar, dark theme with purple accents
 - **Debug Overlay** — Per-time zoom marker overlay on the preview for fine-tuning keyframes (toggle via ⚙ settings menu)
@@ -78,7 +70,7 @@ Record your screen or any individual window, then export a polished MP4 video wh
 | UI Framework | PySide6 (Qt 6) | Widgets, layout, painting, signals/slots |
 | Screen Capture | Windows Graphics Capture (WGC) | Hardware-accelerated monitor/window capture |
 | Window Capture | Win32 PrintWindow (ctypes) | Per-window capture without bleed-through |
-| Recording Pipe | ffmpeg via imageio-ffmpeg | H.264 (CRF 18, ultrafast) MP4 intermediate piped via stdin |
+| Recording Pipe | ffmpeg via imageio-ffmpeg | Lossless intermediate AVI (huffyuv) piped via stdin |
 | Video Export | ffmpeg (libx264 / HW accel / GIF) | H.264 MP4 or GIF export with zoom/cursor baked in; MP4 auto-detects NVENC, QuickSync, AMF; GIF uses palettegen + paletteuse |
 | Image Processing | OpenCV + NumPy | Frame manipulation, thumbnails, cursor rendering |
 | Input Tracking | Win32 Hooks (ctypes) | Low-level mouse, keyboard, and click tracking |

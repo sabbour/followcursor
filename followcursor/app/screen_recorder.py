@@ -3,7 +3,7 @@
 Captures a monitor or individual window at up to 60 fps using
 Windows Graphics Capture (hardware-accelerated) with a GDI/mss
 fallback.  During recording, raw BGRA frames are piped to ffmpeg
-for H.264 CRF 18 ultrafast MP4 encoding.  Non-recording mode emits QImage preview
+for lossless AVI encoding.  Non-recording mode emits QImage preview
 frames via the ``frame_ready`` signal.
 """
 
