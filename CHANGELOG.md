@@ -4,6 +4,23 @@ All notable changes to FollowCursor are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.9.0] — 2026-04-07
+
+### Added
+
+- **Fluent 2 design system** — centralized design tokens (`tokens.py`) with 4px spacing grid, unified corner radii (4px controls / 8px containers), and status colors; `theme.py` refactored to reference tokens instead of hardcoded values
+- **Fluent 2 visual polish** — depth shadows via `QGraphicsDropShadowEffect`, smooth expand/collapse animations, hover glow transitions, and keyboard focus rings across all interactive controls
+- **SVG-based cursor** — replaced polygon cursor with compound-path SVG pointer icon with shadow depth; both QPainter (preview) and OpenCV (export) pipelines updated
+
+### Changed
+
+- **CI/CD workflows** — GitHub Actions workflows for automated build, test, and release; squad workflow placeholders filled with real CI/CD content
+
+### Fixed
+
+- **PySide6 warning** — use separate `findChildren` calls to avoid `qt_isinstance` deprecation warning
+- **PR review fixes (PRs 42–65)** — input validation for keystroke filter modes, ZeroDivisionError guard in activity analyzer, chapter end-time fixes, annotation z-order in export, process leak in screen recorder, subprocess timeout after kill
+
 ## [0.8.0] — 2026-04-06
 
 ### Added
