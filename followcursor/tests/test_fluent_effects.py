@@ -51,11 +51,11 @@ class TestParseRgba:
     def test_shadow_subtle_color(self) -> None:
         c = _parse_rgba(T.SHADOW_SUBTLE_COLOR)
         assert c.red() == 0
-        assert c.alpha() == 63
+        assert c.alpha() == 71  # int(0.28 * 255) — Fluent 2 dark theme
 
     def test_shadow_medium_color(self) -> None:
         c = _parse_rgba(T.SHADOW_MEDIUM_COLOR)
-        assert c.alpha() == 89  # int(0.35 * 255)
+        assert c.alpha() == 71  # int(0.28 * 255) — Fluent 2 dark theme
 
 
 # ── Shadow level config ─────────────────────────────────────────────
@@ -71,8 +71,42 @@ class TestShadowLevels:
         assert cfg["blur"] == T.SHADOW_MEDIUM_BLUR
         assert cfg["offset"] == T.SHADOW_MEDIUM_OFFSET
 
-    def test_only_two_levels(self) -> None:
-        assert set(_SHADOW_LEVELS.keys()) == {"subtle", "medium"}
+    def test_fluent2_five_layers(self) -> None:
+        """Verify Fluent 2 5-layer elevation system (layer0-4) exists."""
+        assert set(_SHADOW_LEVELS.keys()) == {
+            "layer0", "layer1", "layer2", "layer3", "layer4",
+            "subtle", "medium",  # legacy aliases
+        }
+
+    def test_layer0_flat(self) -> None:
+        """Layer 0 should have no shadow (flat surface)."""
+        cfg = _SHADOW_LEVELS["layer0"]
+        assert cfg["blur"] == 0
+        assert cfg["offset"] == 0
+
+    def test_layer1_minimal(self) -> None:
+        """Layer 1 (Shadow2) — minimal depth."""
+        cfg = _SHADOW_LEVELS["layer1"]
+        assert cfg["blur"] == 2
+        assert cfg["offset"] == 1
+
+    def test_layer2_cards(self) -> None:
+        """Layer 2 (Shadow4) — cards, list items."""
+        cfg = _SHADOW_LEVELS["layer2"]
+        assert cfg["blur"] == 4
+        assert cfg["offset"] == 2
+
+    def test_layer3_command_bars(self) -> None:
+        """Layer 3 (Shadow8) — command bars, tooltips."""
+        cfg = _SHADOW_LEVELS["layer3"]
+        assert cfg["blur"] == 8
+        assert cfg["offset"] == 4
+
+    def test_layer4_dialogs(self) -> None:
+        """Layer 4 (Shadow16) — dialogs, flyouts."""
+        cfg = _SHADOW_LEVELS["layer4"]
+        assert cfg["blur"] == 16
+        assert cfg["offset"] == 8
 
 
 # ── apply_shadow ────────────────────────────────────────────────────

@@ -25,17 +25,49 @@ from . import tokens as T
 logger = logging.getLogger(__name__)
 
 # ── Drop Shadows ────────────────────────────────────────────────────────
+# Fluent 2 elevation system with 5 layers (0-4) matching official spec
 
 _SHADOW_LEVELS = {
+    # Layer 0: No shadow (flat surfaces)
+    "layer0": {
+        "blur": T.SHADOW_LAYER_0_BLUR,
+        "offset": T.SHADOW_LAYER_0_OFFSET_Y,
+        "color": T.SHADOW_LAYER_0_KEY,
+    },
+    # Layer 1 (Shadow2): Minimal depth — buttons at rest, subtle cards
+    "layer1": {
+        "blur": T.SHADOW_LAYER_1_BLUR,
+        "offset": T.SHADOW_LAYER_1_OFFSET_Y,
+        "color": T.SHADOW_LAYER_1_KEY,
+    },
+    # Layer 2 (Shadow4): Cards, grid items, list items
+    "layer2": {
+        "blur": T.SHADOW_LAYER_2_BLUR,
+        "offset": T.SHADOW_LAYER_2_OFFSET_Y,
+        "color": T.SHADOW_LAYER_2_KEY,
+    },
+    # Layer 3 (Shadow8): Command bars, tooltips, dropdowns
+    "layer3": {
+        "blur": T.SHADOW_LAYER_3_BLUR,
+        "offset": T.SHADOW_LAYER_3_OFFSET_Y,
+        "color": T.SHADOW_LAYER_3_KEY,
+    },
+    # Layer 4 (Shadow16): Dialogs, callouts, flyouts
+    "layer4": {
+        "blur": T.SHADOW_LAYER_4_BLUR,
+        "offset": T.SHADOW_LAYER_4_OFFSET_Y,
+        "color": T.SHADOW_LAYER_4_KEY,
+    },
+    # Legacy aliases for backward compatibility
     "subtle": {
-        "blur": T.SHADOW_SUBTLE_BLUR,
-        "offset": T.SHADOW_SUBTLE_OFFSET,
-        "color": T.SHADOW_SUBTLE_COLOR,
+        "blur": T.SHADOW_LAYER_2_BLUR,
+        "offset": T.SHADOW_LAYER_2_OFFSET_Y,
+        "color": T.SHADOW_LAYER_2_KEY,
     },
     "medium": {
-        "blur": T.SHADOW_MEDIUM_BLUR,
-        "offset": T.SHADOW_MEDIUM_OFFSET,
-        "color": T.SHADOW_MEDIUM_COLOR,
+        "blur": T.SHADOW_LAYER_3_BLUR,
+        "offset": T.SHADOW_LAYER_3_OFFSET_Y,
+        "color": T.SHADOW_LAYER_3_KEY,
     },
 }
 
@@ -48,7 +80,7 @@ def _parse_rgba(rgba_str: str) -> QColor:
                   int(float(parts[3]) * 255))
 
 
-def apply_shadow(widget: QWidget, level: str = "subtle") -> None:
+def apply_shadow(widget: QWidget, level: str = "layer2") -> None:
     """Apply a Fluent 2 drop shadow to *widget*.
 
     Parameters
@@ -57,8 +89,14 @@ def apply_shadow(widget: QWidget, level: str = "subtle") -> None:
         The target widget.  An existing ``QGraphicsDropShadowEffect`` is
         replaced if present.
     level:
-        Shadow intensity — ``'subtle'`` (default) for cards / list items,
-        ``'medium'`` for floating dialogs and overlays.
+        Shadow elevation layer — one of:
+        - ``'layer0'``: No shadow (flat)
+        - ``'layer1'``: Minimal depth (buttons at rest, subtle cards)
+        - ``'layer2'`` (default): Cards, grid items, list items
+        - ``'layer3'``: Command bars, tooltips, dropdowns
+        - ``'layer4'``: Dialogs, callouts, flyouts
+        - ``'subtle'``: Legacy alias for layer2
+        - ``'medium'``: Legacy alias for layer3
     """
     cfg = _SHADOW_LEVELS.get(level)
     if cfg is None:
