@@ -8,7 +8,7 @@ Produces the PNG files required by AppxManifest.xml:
   - StoreLogo.png          (50×50)
   - SplashScreen.png       (620×300)
 
-Run from the followcursor/ directory (same level as main.py).
+Can be run from any working directory; paths are resolved relative to this file.
 Output goes to msix/Assets/.
 
 Requires only Pillow (no Qt/PySide6 needed).
@@ -34,12 +34,12 @@ SIZES = {
 
 def _load_largest_icon() -> Image.Image:
     """Load the highest-resolution frame from the .ico file."""
-    ico = Image.open(ICO_PATH)
-    sizes = ico.info.get("sizes", [(ico.width, ico.height)])
-    largest = max(sizes, key=lambda s: s[0] * s[1])
-    ico.size = largest  # type: ignore[assignment]
-    ico.load()
-    return ico.convert("RGBA")
+    with Image.open(ICO_PATH) as ico:
+        sizes = ico.info.get("sizes", [(ico.width, ico.height)])
+        largest = max(sizes, key=lambda s: s[0] * s[1])
+        ico.size = largest  # type: ignore[assignment]
+        ico.load()
+        return ico.convert("RGBA")
 
 
 def main() -> None:
