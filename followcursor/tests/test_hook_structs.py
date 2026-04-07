@@ -17,6 +17,7 @@ import pytest
 @pytest.mark.skipif(sys.platform != "win32", reason="Win32-only structs")
 class TestKBDLLHOOKSTRUCT:
     def test_dwExtraInfo_is_pointer_sized(self) -> None:
+        pytest.importorskip("PySide6")
         from app.keyboard_tracker import KBDLLHOOKSTRUCT
 
         field_map = {name: ftype for name, ftype in KBDLLHOOKSTRUCT._fields_}
@@ -26,6 +27,7 @@ class TestKBDLLHOOKSTRUCT:
         )
 
     def test_struct_size_matches_win32(self) -> None:
+        pytest.importorskip("PySide6")
         from app.keyboard_tracker import KBDLLHOOKSTRUCT
 
         # KBDLLHOOKSTRUCT: vkCode(4) + scanCode(4) + flags(4) + time(4) + dwExtraInfo(ptr)
@@ -67,6 +69,7 @@ class TestIgnoreVKs:
 @pytest.mark.skipif(sys.platform != "win32", reason="Win32-only structs")
 class TestMSLLHOOKSTRUCT:
     def test_dwExtraInfo_is_pointer_sized(self) -> None:
+        pytest.importorskip("PySide6")
         from app.click_tracker import MSLLHOOKSTRUCT
 
         field_map = {name: ftype for name, ftype in MSLLHOOKSTRUCT._fields_}
@@ -76,6 +79,7 @@ class TestMSLLHOOKSTRUCT:
         )
 
     def test_struct_size_matches_win32(self) -> None:
+        pytest.importorskip("PySide6")
         from app.click_tracker import MSLLHOOKSTRUCT
 
         # Use the actual field offset to account for any alignment padding inserted
