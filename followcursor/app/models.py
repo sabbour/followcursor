@@ -473,9 +473,14 @@ class ClickEffectPreset:
     @staticmethod
     def from_dict(d: dict) -> "ClickEffectPreset":
         try:
+            raw_color = list(d["color"])
+            # Coerce to 4 RGBA ints clamped to 0-255
+            while len(raw_color) < 4:
+                raw_color.append(255)
+            color = tuple(max(0, min(255, int(c))) for c in raw_color[:4])
             return ClickEffectPreset(
                 name=d["name"],
-                color=tuple(d["color"]),
+                color=color,
                 style=d.get("style", "ripple"),
                 duration_ms=d.get("durationMs", 400),
                 radius=d.get("radius", 24),

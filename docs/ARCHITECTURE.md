@@ -470,7 +470,18 @@ Two compositor implementations exist for different contexts:
 | `compositor.py` | QPainter (Qt) | Live preview widget |
 | `video_exporter.py` (inline) | NumPy + OpenCV | Video export |
 
-Both produce identical output: gradient background → device bezel (rounded rect with edge highlights) → screen content (zoomed/panned) → cursor + click effects.
+Both produce identical output: gradient background → device bezel (rounded rect with edge highlights) → screen content (zoomed/panned) → annotations → cursor → click effects → keystroke overlay.
+
+### Overlay z-order
+
+Overlays are composited in this order (back to front):
+
+1. **Annotations** (highlight boxes, arrows, text labels)
+2. **Mouse cursor** (arrow shape from recorded track)
+3. **Click effects** (ripple, burst, or highlight style)
+4. **Keystroke badges** (keyboard shortcut display)
+
+This ensures the cursor remains visible on top of annotations, and keystroke badges don't obscure click feedback.
 
 Zoom behavior is **conditional on the active frame preset**:
 
@@ -500,6 +511,36 @@ The preview widget sizes its canvas based on the selected output dimensions. The
 - **Non-auto presets** (e.g., 1:1, 4:3, 9:16): The compositor renders at the target aspect ratio with the device frame fitted and centered within it, giving an accurate preview of the export result.
 
 This replaces the previous scrim-overlay approach where the full scene was rendered at widget size and a semi-transparent dark overlay was drawn over margin areas.
+
+---
+
+## Annotations
+
+`annotation_renderer.py` provides dual QPainter (preview) and OpenCV (export) renderers for three annotation types:
+
+| Type | Visual | Rendering |
+| ---- | ------ | --------- |
+| **HighlightBox** | Filled rectangle with opacity + border | Alpha-blended using single shared overlay per frame |
+| **ArrowAnnotation** | Line with arrowhead | `head_size` controls arrowhead proportions in both renderers |
+| **TextAnnotation** | Text badge with optional background | Font size scaled to frame dimensions |
+
+All annotations use normalized coordinates (0.0–1.0) and are timeline-aware via `start_ms`/`end_ms`. The `opacity` field takes precedence over any alpha channel in the `color` tuple.
+
+## Keystroke Overlay
+
+`keystroke_renderer.py` renders keyboard shortcut badges during playback and export. Events are grouped by temporal proximity and filtered by `filter_mode`:
+
+| Mode | Shows |
+| ---- | ----- |
+| `shortcuts-only` (default) | Only combos involving Ctrl/Alt/Win modifiers |
+| `modifiers-only` | Only modifier key presses |
+| `all` | Every keystroke (security warning in UI) |
+
+The safe default (`shortcuts-only`) prevents accidental exposure of typed passwords in tutorial recordings.
+
+## Scene Chapters
+
+`activity_analyzer.detect_chapters()` uses heuristics (idle gaps ≥ 3 s and major position jumps) to detect scene boundaries. Chapters are rendered as flag markers on the timeline and can be embedded as MP4 chapter metadata for YouTube.
 
 ---
 

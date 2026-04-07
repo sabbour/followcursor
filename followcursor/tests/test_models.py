@@ -608,6 +608,28 @@ class TestChapterRoundtrip:
         assert ch2.auto_detected is True  # default is True (heuristic-generated)
 
 
+class TestRecordingSessionChaptersRoundtrip:
+    def test_json_roundtrip_chapters(self) -> None:
+        """RecordingSession with chapters survives to_json → from_json."""
+        chapters = [
+            Chapter(timestamp_ms=0, name="Intro", auto_detected=False),
+            Chapter(timestamp_ms=5000, name="Demo", auto_detected=True),
+        ]
+        session = RecordingSession(
+            id="ch-rt", start_time=0, duration=10000,
+            mouse_track=[MousePosition(0, 0, 0)],
+            keyframes=[],
+            chapters=chapters,
+        )
+        s2 = RecordingSession.from_json(session.to_json())
+        assert s2.chapters is not None
+        assert len(s2.chapters) == 2
+        assert s2.chapters[0].name == "Intro"
+        assert s2.chapters[0].auto_detected is False
+        assert s2.chapters[1].timestamp_ms == 5000
+        assert s2.chapters[1].auto_detected is True
+
+
 # ── ClickEffectPreset roundtrip ─────────────────────────────────
 
 

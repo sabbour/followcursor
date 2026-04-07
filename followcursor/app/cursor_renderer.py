@@ -6,6 +6,7 @@ Also renders click ripple effects at recorded click positions.
 """
 
 import logging
+import math
 from typing import List, Optional, Tuple
 
 import cv2
@@ -272,10 +273,12 @@ def draw_clicks_qpainter(
     screen_rect_h: float,
     preset: Optional[ClickEffectPreset] = None,
 ) -> None:
-    """Draw expanding ripple effects for recent clicks on the preview.
+    """Draw click effects for recent clicks on the preview.
 
-    Note: Only the "ripple" style is currently implemented. The preset's
-    ``style`` field ("burst", "highlight") is accepted but renders as ripple.
+    Supported styles:
+    - ``"ripple"`` (default): expanding ring + solid inner dot.
+    - ``"burst"``: radiating lines from click point.
+    - ``"highlight"``: filled circle that fades out.
     """
     if not click_events:
         return
@@ -292,8 +295,9 @@ def draw_clicks_qpainter(
     mon_left = monitor_rect.get("left", 0)
     mon_top = monitor_rect.get("top", 0)
 
-    # Scale ripple radius with preview size
+    # Scale radius with preview size
     max_r = max(preset.radius, screen_rect_h * 0.025)
+    style = preset.style if preset.style in ("ripple", "burst", "highlight") else "ripple"
 
     for click in click_events:
         age = time_ms - click.timestamp
@@ -308,23 +312,72 @@ def draw_clicks_qpainter(
         px = screen_rect_x + nx * screen_rect_w
         py = screen_rect_y + ny * screen_rect_h
 
-        # Expanding ring with fade
-        radius = max_r * (0.3 + 0.7 * t)
-        ring_alpha = int(preset.color[3] * (1.0 - t))
-        if ring_alpha > 0:
-            color = QColor(preset.color[0], preset.color[1], preset.color[2], ring_alpha)
-            pen_w = max(2.0, 3.0 * (1.0 - t))
-            painter.setPen(QPen(color, pen_w))
-            painter.setBrush(Qt.BrushStyle.NoBrush)
-            painter.drawEllipse(QPointF(px, py), radius, radius)
+        if style == "burst":
+            _draw_burst_qpainter(painter, px, py, t, max_r, preset)
+        elif style == "highlight":
+            _draw_highlight_qpainter(painter, px, py, t, max_r, preset)
+        else:
+            _draw_ripple_qpainter(painter, px, py, t, max_r, preset)
 
-        # Inner solid dot (fades faster)
-        dot_alpha = int(preset.color[3] * 0.9 * max(0.0, 1.0 - t * 1.8))
-        if dot_alpha > 0:
-            painter.setPen(Qt.PenStyle.NoPen)
-            painter.setBrush(QColor(preset.color[0], preset.color[1], preset.color[2], dot_alpha))
-            dot_r = max(3.0, 5.0 * (1.0 - t * 0.5))
-            painter.drawEllipse(QPointF(px, py), dot_r, dot_r)
+
+
+def _draw_ripple_qpainter(
+    painter: QPainter, px: float, py: float, t: float,
+    max_r: float, preset: "ClickEffectPreset",
+) -> None:
+    """Expanding ring + inner dot (default click style)."""
+    radius = max_r * (0.3 + 0.7 * t)
+    ring_alpha = int(preset.color[3] * (1.0 - t))
+    if ring_alpha > 0:
+        color = QColor(preset.color[0], preset.color[1], preset.color[2], ring_alpha)
+        pen_w = max(2.0, 3.0 * (1.0 - t))
+        painter.setPen(QPen(color, pen_w))
+        painter.setBrush(Qt.BrushStyle.NoBrush)
+        painter.drawEllipse(QPointF(px, py), radius, radius)
+    dot_alpha = int(preset.color[3] * 0.9 * max(0.0, 1.0 - t * 1.8))
+    if dot_alpha > 0:
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.setBrush(QColor(preset.color[0], preset.color[1], preset.color[2], dot_alpha))
+        dot_r = max(3.0, 5.0 * (1.0 - t * 0.5))
+        painter.drawEllipse(QPointF(px, py), dot_r, dot_r)
+
+
+def _draw_burst_qpainter(
+    painter: QPainter, px: float, py: float, t: float,
+    max_r: float, preset: "ClickEffectPreset",
+) -> None:
+    """Radiating lines from click point."""
+    num_rays = 8
+    ray_alpha = int(preset.color[3] * (1.0 - t))
+    if ray_alpha <= 0:
+        return
+    color = QColor(preset.color[0], preset.color[1], preset.color[2], ray_alpha)
+    pen_w = max(1.5, 2.5 * (1.0 - t))
+    painter.setPen(QPen(color, pen_w))
+    inner_r = max_r * 0.2 * (1.0 + t)
+    outer_r = max_r * (0.4 + 0.8 * t)
+    for i in range(num_rays):
+        angle = 2.0 * math.pi * i / num_rays
+        x1 = px + math.cos(angle) * inner_r
+        y1 = py + math.sin(angle) * inner_r
+        x2 = px + math.cos(angle) * outer_r
+        y2 = py + math.sin(angle) * outer_r
+        painter.drawLine(QPointF(x1, y1), QPointF(x2, y2))
+
+
+def _draw_highlight_qpainter(
+    painter: QPainter, px: float, py: float, t: float,
+    max_r: float, preset: "ClickEffectPreset",
+) -> None:
+    """Filled circle that fades out."""
+    radius = max_r * 0.8
+    fill_alpha = int(preset.color[3] * 0.5 * (1.0 - t))
+    if fill_alpha <= 0:
+        return
+    color = QColor(preset.color[0], preset.color[1], preset.color[2], fill_alpha)
+    painter.setPen(Qt.PenStyle.NoPen)
+    painter.setBrush(color)
+    painter.drawEllipse(QPointF(px, py), radius, radius)
 
 
 # ── OpenCV/numpy-based click effects (for export) ──────────────────
@@ -340,10 +393,12 @@ def draw_clicks_cv(
     mon_h: int,
     preset: Optional[ClickEffectPreset] = None,
 ) -> None:
-    """Draw expanding ripple effects for recent clicks onto *frame_bgr* in-place.
+    """Draw click effects onto *frame_bgr* in-place.
 
-    Note: Only the "ripple" style is currently implemented. The preset's
-    ``style`` field ("burst", "highlight") is accepted but renders as ripple.
+    Supported styles:
+    - ``"ripple"`` (default): expanding ring + solid inner dot.
+    - ``"burst"``: radiating lines from click point.
+    - ``"highlight"``: filled circle that fades out.
     """
     if not click_events:
         return
@@ -361,6 +416,7 @@ def draw_clicks_cv(
     # Convert RGB to BGR for OpenCV
     color_bgr = (preset.color[2], preset.color[1], preset.color[0])
     base_alpha = preset.color[3] / 255.0
+    style = preset.style if preset.style in ("ripple", "burst", "highlight") else "ripple"
 
     for click in click_events:
         age = time_ms - click.timestamp
@@ -373,18 +429,62 @@ def draw_clicks_cv(
         px = int((click.x - mon_left) / max(mon_w, 1) * fw)
         py = int((click.y - mon_top) / max(mon_h, 1) * fh)
 
-        # Expanding ring with fade
-        radius = int(max_r * (0.3 + 0.7 * t))
-        ring_alpha = base_alpha * (1.0 - t)
-        if ring_alpha > 0.05:
-            thickness = max(1, int(3.0 * (1.0 - t)))
-            # Draw directly — small visual element, no need for alpha blending
-            color_scaled = tuple(int(c * ring_alpha * 0.85) for c in color_bgr)
-            cv2.circle(frame_bgr, (px, py), radius, color_scaled, thickness, cv2.LINE_AA)
+        if style == "burst":
+            _draw_burst_cv(frame_bgr, px, py, t, max_r, color_bgr, base_alpha)
+        elif style == "highlight":
+            _draw_highlight_cv(frame_bgr, px, py, t, max_r, color_bgr, base_alpha)
+        else:
+            _draw_ripple_cv(frame_bgr, px, py, t, max_r, color_bgr, base_alpha)
 
-        # Inner solid dot
-        dot_alpha = base_alpha * max(0.0, 1.0 - t * 1.8)
-        if dot_alpha > 0.05:
-            dot_r = max(2, int(5.0 * (1.0 - t * 0.5)))
-            color_dot = tuple(int(c * dot_alpha * 0.8) for c in color_bgr)
-            cv2.circle(frame_bgr, (px, py), dot_r, color_dot, -1, cv2.LINE_AA)
+
+def _draw_ripple_cv(
+    frame_bgr: np.ndarray, px: int, py: int, t: float,
+    max_r: int, color_bgr: tuple, base_alpha: float,
+) -> None:
+    """Expanding ring + inner dot (default click style)."""
+    radius = int(max_r * (0.3 + 0.7 * t))
+    ring_alpha = base_alpha * (1.0 - t)
+    if ring_alpha > 0.05:
+        thickness = max(1, int(3.0 * (1.0 - t)))
+        color_scaled = tuple(int(c * ring_alpha * 0.85) for c in color_bgr)
+        cv2.circle(frame_bgr, (px, py), radius, color_scaled, thickness, cv2.LINE_AA)
+    dot_alpha = base_alpha * max(0.0, 1.0 - t * 1.8)
+    if dot_alpha > 0.05:
+        dot_r = max(2, int(5.0 * (1.0 - t * 0.5)))
+        color_dot = tuple(int(c * dot_alpha * 0.8) for c in color_bgr)
+        cv2.circle(frame_bgr, (px, py), dot_r, color_dot, -1, cv2.LINE_AA)
+
+
+def _draw_burst_cv(
+    frame_bgr: np.ndarray, px: int, py: int, t: float,
+    max_r: int, color_bgr: tuple, base_alpha: float,
+) -> None:
+    """Radiating lines from click point."""
+    num_rays = 8
+    ray_alpha = base_alpha * (1.0 - t)
+    if ray_alpha < 0.05:
+        return
+    thickness = max(1, int(2.5 * (1.0 - t)))
+    color_scaled = tuple(int(c * ray_alpha * 0.85) for c in color_bgr)
+    inner_r = max_r * 0.2 * (1.0 + t)
+    outer_r = max_r * (0.4 + 0.8 * t)
+    for i in range(num_rays):
+        angle = 2.0 * math.pi * i / num_rays
+        x1 = int(px + math.cos(angle) * inner_r)
+        y1 = int(py + math.sin(angle) * inner_r)
+        x2 = int(px + math.cos(angle) * outer_r)
+        y2 = int(py + math.sin(angle) * outer_r)
+        cv2.line(frame_bgr, (x1, y1), (x2, y2), color_scaled, thickness, cv2.LINE_AA)
+
+
+def _draw_highlight_cv(
+    frame_bgr: np.ndarray, px: int, py: int, t: float,
+    max_r: int, color_bgr: tuple, base_alpha: float,
+) -> None:
+    """Filled circle that fades out."""
+    radius = int(max_r * 0.8)
+    fill_alpha = base_alpha * 0.5 * (1.0 - t)
+    if fill_alpha < 0.05:
+        return
+    color_scaled = tuple(int(c * fill_alpha) for c in color_bgr)
+    cv2.circle(frame_bgr, (px, py), radius, color_scaled, -1, cv2.LINE_AA)

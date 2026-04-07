@@ -276,7 +276,9 @@ followcursor/
 │   ├── window_utils.py              # Win32 window enumeration & PrintWindow
 │   ├── video_exporter.py            # H.264 MP4 export with zoom & cursor
 │   ├── compositor.py                # QPainter compositing (frame + background)
-│   ├── cursor_renderer.py           # Arrow cursor + click ripple rendering
+│   ├── cursor_renderer.py           # Arrow cursor + click effect rendering (ripple/burst/highlight)
+│   ├── annotation_renderer.py       # Text, arrow, and highlight annotation rendering
+│   ├── keystroke_renderer.py        # Keystroke badge overlay for preview and export
 │   ├── global_hotkeys.py            # Win32 RegisterHotKey via QThread
 │   ├── backgrounds.py               # 84 background presets (solids, gradients, patterns)
 │   ├── frames.py                    # 5 device frame presets
@@ -288,8 +290,9 @@ followcursor/
 │       ├── title_bar.py             # Custom frameless title bar
 │       ├── source_picker.py         # Screen/Window selection dialog (tabbed)
 │       ├── preview_widget.py        # Live / playback preview with zoom/pan
-│       ├── timeline_widget.py       # QPainter timeline with heatmap & keyframes
-│       ├── editor_panel.py          # Collapsible sections: zoom, voiceover, background, frame, output
+│       ├── timeline_widget.py       # QPainter timeline with heatmap, keyframes, & chapters
+│       ├── timeline_math.py        # Pixel↔time conversion helpers for timeline
+│       ├── editor_panel.py          # Collapsible sections: zoom, voiceover, background, frame, click effects, keystroke overlay, annotations, chapters, output
 │       ├── countdown_overlay.py     # 3-2-1 countdown animation
 │       ├── processing_overlay.py    # Pulsing banner while finishing recording
 │       └── recording_border.py      # Red border during recording

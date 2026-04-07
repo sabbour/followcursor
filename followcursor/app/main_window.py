@@ -877,7 +877,7 @@ class MainWindow(QMainWindow):
         self._editor.annotation_added.connect(self._on_annotation_added)
         self._editor.annotation_removed.connect(self._on_annotation_removed)
         self._editor.annotation_updated.connect(self._on_annotation_updated)
-        self._editor.chapters_changed.connect(self._on_auto_detect_chapters)
+        self._editor.auto_detect_chapters_requested.connect(self._on_auto_detect_chapters)
         self._editor.chapter_added.connect(self._on_chapter_added)
         self._editor.chapter_removed.connect(self._on_chapter_removed)
         self._editor.debug_overlay_changed.connect(self._on_debug_overlay_changed)
@@ -1760,7 +1760,7 @@ class MainWindow(QMainWindow):
         self._mark_dirty()
         logger.info("Annotation updated: %s", annot_type)
 
-    def _on_auto_detect_chapters(self, _: list) -> None:
+    def _on_auto_detect_chapters(self) -> None:
         """Handle auto-detect chapters request from editor panel."""
         from .activity_analyzer import detect_chapters
         chapters = detect_chapters(

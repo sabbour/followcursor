@@ -203,9 +203,7 @@ class EditorPanel(QWidget):
     annotation_added = Signal(str, object)       # type ("text"|"arrow"|"highlight"), annotation object
     annotation_removed = Signal(str, str)        # type, annotation id
     annotation_updated = Signal(str, object)     # type, annotation object
-    # chapters_changed acts as an action request trigger (e.g. auto-detection),
-    # not just a state notification, despite its name.
-    chapters_changed = Signal(list)              # list of Chapter objects
+    auto_detect_chapters_requested = Signal()   # request auto-detection
     chapter_added = Signal(object)               # Chapter object
     chapter_removed = Signal(int)                # chapter timestamp_ms
 
@@ -450,7 +448,9 @@ class EditorPanel(QWidget):
         self._keystroke_filter_combo.addItem("All Keys", "all")
         self._keystroke_filter_combo.addItem("Modifiers Only", "modifiers-only")
         self._keystroke_filter_combo.addItem("Shortcuts Only", "shortcuts-only")
-        self._keystroke_filter_combo.setCurrentIndex(2)  # Default to "Shortcuts Only"
+        shortcuts_only_idx = self._keystroke_filter_combo.findData("shortcuts-only")
+        if shortcuts_only_idx >= 0:
+            self._keystroke_filter_combo.setCurrentIndex(shortcuts_only_idx)
         self._keystroke_filter_combo.setToolTip(
             "Only shows keyboard shortcuts (Ctrl+X, Alt+Tab, etc.)\n"
             "Safer for tutorials with password entry"
@@ -1157,8 +1157,7 @@ class EditorPanel(QWidget):
 
     def _on_auto_detect_chapters(self) -> None:
         """Request auto-detection of chapter boundaries."""
-        # This will be handled by main_window.py which has access to mouse/key/click events
-        self.chapters_changed.emit([])  # Signal request for auto-detection
+        self.auto_detect_chapters_requested.emit()
 
     def _on_add_chapter(self) -> None:
         """Add a chapter marker at the current playback position."""
