@@ -854,11 +854,11 @@ class EditorPanel(QWidget):
 
         # Patterns get larger, fewer-per-row swatches so the pattern is visible
         if category == CAT_PATTERN:
-            size, cols = 32, 7
+            size, cols = 44, 4
         elif category == CAT_GRADIENT:
-            size, cols = 28, 8
+            size, cols = 36, 6
         else:
-            size, cols = 24, 9
+            size, cols = 28, 8
 
         for idx, preset in enumerate(presets):
             btn = QPushButton()

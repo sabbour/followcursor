@@ -1124,7 +1124,7 @@ class MainWindow(QMainWindow):
         self._btn_change_source.setVisible(False)
 
         self._btn_record = QPushButton("  Record  (Ctrl+Shift+R)")
-        self._btn_record.setIcon(load_icon("record", variant="filled", color=T.DANGER))
+        self._btn_record.setIcon(load_icon("record", variant="filled", color="#ffffff"))
         self._btn_record.setObjectName("RecordBtn")
         self._btn_record.clicked.connect(self._start_recording)
         self._btn_record.setVisible(False)
