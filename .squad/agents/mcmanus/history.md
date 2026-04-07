@@ -37,6 +37,42 @@ Implemented complete annotation system for text, arrows, and highlights.
 
 ## Learnings
 
+### 2026-07-22: Fluent 2 Phase 2 — Visual Polish (Shadows, Animations, Focus)
+
+**fluent_effects.py** — New reusable effects module:
+- `apply_shadow(widget, level)` — applies QGraphicsDropShadowEffect with "subtle" (4px blur) or "medium" (8px blur) levels
+- `install_hover_animation(widget, prop, start, end)` — attaches QPropertyAnimation via event filter, no subclassing needed
+- `install_focus_ring(widget)` — toggles brand-coloured glow on keyboard focus via event filter
+- `HoverAnimationFilter` / `FocusRingFilter` — reusable QObject event filters
+- `_parse_rgba()` — helper to convert token rgba strings to QColor
+
+**tokens.py** — Added Phase 2 tokens:
+- Focus ring: FOCUS_RING_WIDTH=2, FOCUS_RING_OFFSET=2
+- Scrollbar: SCROLLBAR_THIN=6, SCROLLBAR_WIDE=12, SCROLLBAR_MIN_HEIGHT=24
+
+**theme.py** — Focus & scrollbar enhancements:
+- QPushButton/QComboBox/QLineEdit/QTextEdit :focus rules with 2px BRAND border
+- Vertical + horizontal scrollbar styling with hover expansion (6px→12px)
+- Pressed handle state and rounded track corners
+
+**editor_panel.py** — Migrated ~30 hardcoded hex colors to token references:
+- Collapsible section headers, scrollbar overrides, checkbox styling
+- Menu popups, about dialog, annotation list items
+- Background swatch picker (all `#8b5cf6` → `T.BRAND`, `6px` → `T.RADIUS_SMALL`)
+
+**source_picker.py** — Applied shadows + token styles:
+- Cards get `apply_shadow("subtle")`, dialog gets `apply_shadow("medium")`
+- Tab bar colors migrated from hardcoded hex to tokens
+- Thumbnail label background uses `T.BG_CANVAS` + `T.RADIUS_SMALL`
+
+**Key decisions:**
+- QGraphicsDropShadowEffect is exclusive per widget — focus ring (glow) and shadow can't coexist. Use shadow on passive surfaces, focus ring on interactive controls.
+- Event filters for hover/focus avoid subclassing every widget. Lightweight and composable.
+- Qt QSS doesn't support CSS `outline` properly — implemented focus via border instead.
+- Scrollbar hover width expansion works natively in QSS (width property in :hover pseudo-state).
+
+**Testing**: All 347 tests pass (334 existing + 13 new for fluent_effects).
+
 ### 2026-07-22: Fluent 2 Phase 1 — Design Tokens & Theme Normalization
 
 **tokens.py** — New centralized design token module:
