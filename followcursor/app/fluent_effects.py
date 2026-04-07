@@ -139,7 +139,8 @@ class HoverAnimationFilter(QObject):
         prop_name: str,
         normal_val: Any,
         hover_val: Any,
-        duration_ms: int = T.DURATION_FAST,
+        duration_ms: int = T.DURATION_FASTER,
+        easing: QEasingCurve.Type = QEasingCurve.Type.OutCubic,
         parent: Optional[QObject] = None,
     ) -> None:
         super().__init__(parent or target)
@@ -150,7 +151,7 @@ class HoverAnimationFilter(QObject):
 
         self._anim = QPropertyAnimation(target, prop_name.encode(), self)
         self._anim.setDuration(duration_ms)
-        self._anim.setEasingCurve(QEasingCurve.Type.OutCubic)
+        self._anim.setEasingCurve(easing)
 
     def eventFilter(self, obj: QObject, event: QEvent) -> bool:
         if obj is not self._target:
@@ -173,7 +174,8 @@ def install_hover_animation(
     prop_name: str,
     normal_val: Any,
     hover_val: Any,
-    duration_ms: int = T.DURATION_FAST,
+    duration_ms: int = T.DURATION_FASTER,
+    easing: QEasingCurve.Type = QEasingCurve.Type.OutCubic,
 ) -> HoverAnimationFilter:
     """Install a hover-state animation on *widget*.
 
@@ -186,14 +188,16 @@ def install_hover_animation(
     normal_val / hover_val:
         Start and end values for the property animation.
     duration_ms:
-        Transition duration (default: ``DURATION_FAST`` = 100 ms).
+        Transition duration (default: ``DURATION_FASTER`` = 100 ms).
+    easing:
+        Easing curve type (default: ``OutCubic`` for Fluent 2 curveEasyEase).
 
     Returns the installed :class:`HoverAnimationFilter` so callers can
     keep a reference if needed.
     """
     widget.setProperty(prop_name, normal_val)
     filt = HoverAnimationFilter(
-        widget, prop_name, normal_val, hover_val, duration_ms,
+        widget, prop_name, normal_val, hover_val, duration_ms, easing,
     )
     widget.installEventFilter(filt)
     return filt
@@ -203,7 +207,8 @@ def install_hover_bg_animation(
     widget: QWidget,
     normal_color: str = T.BG_INTERACTIVE,
     hover_color: str = T.BG_HOVER,
-    duration_ms: int = T.DURATION_FAST,
+    duration_ms: int = T.DURATION_FASTER,
+    easing: QEasingCurve.Type = QEasingCurve.Type.OutCubic,
 ) -> HoverAnimationFilter:
     """Install a hover background-colour animation on *widget*.
 
@@ -220,7 +225,9 @@ def install_hover_bg_animation(
     hover_color:
         CSS hex colour for the hovered state (default: ``BG_HOVER``).
     duration_ms:
-        Transition duration (default: ``DURATION_FAST`` = 100 ms).
+        Transition duration (default: ``DURATION_FASTER`` = 100 ms).
+    easing:
+        Easing curve type (default: ``OutCubic`` for Fluent 2 curveEasyEase).
 
     Returns the installed :class:`HoverAnimationFilter`.
     """
@@ -230,6 +237,7 @@ def install_hover_bg_animation(
         QColor(normal_color),
         QColor(hover_color),
         duration_ms,
+        easing,
     )
 
 
@@ -289,3 +297,33 @@ def install_focus_ring(widget: QWidget) -> FocusRingFilter:
     filt = FocusRingFilter(widget)
     widget.installEventFilter(filt)
     return filt
+
+
+# ── Fluent 2 Motion Helpers ────────────────────────────────────────────
+
+def get_entering_curve() -> QEasingCurve.Type:
+    """Return the Fluent 2 easing curve for entering elements.
+    
+    Maps to Fluent 2 ``curveDecelerate`` — elements slow down as they
+    arrive in the viewport, creating a natural settling motion.
+    """
+    return QEasingCurve.Type.OutQuad
+
+
+def get_exiting_curve() -> QEasingCurve.Type:
+    """Return the Fluent 2 easing curve for exiting elements.
+    
+    Maps to Fluent 2 ``curveAccelerate`` — elements speed up as they
+    leave the viewport, creating a quick exit.
+    """
+    return QEasingCurve.Type.InQuad
+
+
+def get_default_curve() -> QEasingCurve.Type:
+    """Return the default Fluent 2 easing curve for in-viewport motion.
+    
+    Maps to Fluent 2 ``curveEasyEase`` — smooth repositioning and state
+    transitions within the viewport.
+    """
+    return QEasingCurve.Type.OutCubic
+

@@ -11,18 +11,34 @@ Reference:
 - https://fluent2.microsoft.design/elevation
 """
 
-# ── Spacing (4 px base grid) ───────────────────────────────────────────
-SPACE_XXS: int = 4
-SPACE_XS: int = 8
-SPACE_SM: int = 12
-SPACE_MD: int = 16
-SPACE_LG: int = 24
-SPACE_XL: int = 32
-SPACE_XXL: int = 48
+# ── Spacing (Fluent 2 Spacer Tokens) ──────────────────────────────────
+# Based on https://fluent2.microsoft.design/layout
+# Uses 4px base unit with additional granular steps for precision
+SPACE_XXS: int = 2   # size20 — tight compact spacing
+SPACE_XS: int = 4    # size40 — minimal padding
+SPACE_SM: int = 8    # size80 — small controls, icons
+SPACE_MD: int = 12   # size120 — default control padding
+SPACE_LG: int = 16   # size160 — section spacing
+SPACE_XL: int = 24   # size240 — panel spacing
+SPACE_XXL: int = 32  # size320 — large gaps, hero sections
+SPACE_XXXL: int = 48 # size480 — major layout divisions
 
-# ── Corner radius ──────────────────────────────────────────────────────
-RADIUS_SMALL: int = 4   # buttons, inputs, small controls
-RADIUS_MEDIUM: int = 8  # dialogs, panels, containers, cards
+# Additional Fluent 2 spacer tokens for fine control
+SPACE_6: int = 6     # size60 — icon-text gap
+SPACE_10: int = 10   # size100 — list item padding
+SPACE_20: int = 20   # size200 — medium sections
+SPACE_40: int = 40   # size400 — large containers
+SPACE_64: int = 64   # size640 — extra-large divisions
+
+# ── Corner Radius (Fluent 2 Shapes) ───────────────────────────────────
+# Based on https://fluent2.microsoft.design/shapes
+# Global-Corner-Radius tokens
+RADIUS_NONE: int = 0      # Navigation bars, tabs, edge-aligned elements
+RADIUS_SMALL: int = 4     # Global-Corner-Radius-40 — buttons, inputs, small controls
+RADIUS_MEDIUM: int = 8    # Global-Corner-Radius-80 — large buttons, cards
+RADIUS_LARGE: int = 12    # Global-Corner-Radius-120 — sheets, popovers, large surfaces
+RADIUS_XLARGE: int = 16   # Global-Corner-Radius-160 — extra-large containers
+RADIUS_CIRCULAR: int = 9999  # Global-Corner-Radius-Circular — avatars, status dots (50% effective)
 
 # ── Fluent 2 Neutral Color Ramp (Dark Theme) ───────────────────────────
 # Based on official Fluent 2 grey palette for dark mode
@@ -113,19 +129,90 @@ DISCARD_HOVER_BG: str = "#525252"     # grey[32] — discard hover
 DIALOG_BG: str = "#1f1f1f"            # grey[8] — modal dialog backdrop
 OVERLAY_BG: str = "rgba(31, 31, 31, 0.92)"  # semi-transparent panel bg (grey[8] + alpha)
 
-# ── Typography ─────────────────────────────────────────────────────────
-FONT_FAMILY: str = '"Segoe UI Variable", "Segoe UI", sans-serif'
-FONT_FAMILY_MONO: str = '"Segoe UI Variable", "Segoe UI", monospace'
-FONT_SIZE_CAPTION: int = 11   # captions, small labels, status text
-FONT_SIZE_BODY: int = 13      # default body text
-FONT_SIZE_SUBTITLE: int = 15  # sub-headings
-FONT_SIZE_TITLE: int = 16     # section titles, record button
-FONT_SIZE_HEADER: int = 20    # page headers
+# ── Typography (Fluent 2 Type Ramp) ───────────────────────────────────
+# Based on https://fluent2.microsoft.design/typography
+# Font family: Segoe UI Variable with fallback to Segoe UI
+# Windows 10 may not have Segoe UI Variable — fallback ensures compatibility
+FONT_FAMILY: str = '"Segoe UI Variable", "Segoe UI", -apple-system, BlinkMacSystemFont, sans-serif'
+FONT_FAMILY_MONO: str = '"Consolas", "Courier New", monospace'
 
-# ── Animation (durations in milliseconds) ──────────────────────────────
-DURATION_FAST: int = 100       # state transitions – hover, press
-DURATION_NORMAL: int = 200     # panel transitions
-DURATION_SLOW: int = 300       # content reveals, overlays
+# Font Weights (Fluent 2 conventions)
+FONT_WEIGHT_REGULAR: int = 400   # fontWeightRegular — default body text
+FONT_WEIGHT_MEDIUM: int = 500    # fontWeightMedium — slight emphasis
+FONT_WEIGHT_SEMIBOLD: int = 600  # fontWeightSemibold — headings, buttons
+FONT_WEIGHT_BOLD: int = 700      # fontWeightBold — strong emphasis, display
+
+# Type Ramp (font size / line height)
+# Caption 2: 10px / 14px (Regular 400)
+FONT_SIZE_CAPTION_2: int = 10
+FONT_LINE_HEIGHT_CAPTION_2: int = 14
+
+# Caption 1: 12px / 16px (Regular 400 or Semibold 600)
+FONT_SIZE_CAPTION_1: int = 12
+FONT_LINE_HEIGHT_CAPTION_1: int = 16
+
+# Body 1: 14px / 20px (Regular 400 or Semibold 600) — default UI text
+FONT_SIZE_BODY_1: int = 14
+FONT_LINE_HEIGHT_BODY_1: int = 20
+
+# Body 2: 16px / 22px (Regular 400)
+FONT_SIZE_BODY_2: int = 16
+FONT_LINE_HEIGHT_BODY_2: int = 22
+
+# Subtitle 2: 20px / 28px (Semibold 600)
+FONT_SIZE_SUBTITLE_2: int = 20
+FONT_LINE_HEIGHT_SUBTITLE_2: int = 28
+
+# Subtitle 1: 24px / 32px (Semibold 600)
+FONT_SIZE_SUBTITLE_1: int = 24
+FONT_LINE_HEIGHT_SUBTITLE_1: int = 32
+
+# Title 3: 28px / 36px (Semibold 600)
+FONT_SIZE_TITLE_3: int = 28
+FONT_LINE_HEIGHT_TITLE_3: int = 36
+
+# Title 2: 32px / 40px (Semibold 600)
+FONT_SIZE_TITLE_2: int = 32
+FONT_LINE_HEIGHT_TITLE_2: int = 40
+
+# Title 1: 40px / 52px (Semibold 600)
+FONT_SIZE_TITLE_1: int = 40
+FONT_LINE_HEIGHT_TITLE_1: int = 52
+
+# Display: 68px / 92px (Bold 700)
+FONT_SIZE_DISPLAY: int = 68
+FONT_LINE_HEIGHT_DISPLAY: int = 92
+
+# Legacy aliases for backward compatibility (map to Fluent 2 type ramp)
+FONT_SIZE_CAPTION = FONT_SIZE_CAPTION_1    # 12px (was 11px)
+FONT_SIZE_BODY = FONT_SIZE_BODY_1          # 14px (was 13px)
+FONT_SIZE_SUBTITLE = FONT_SIZE_SUBTITLE_2  # 20px (was 15px)
+FONT_SIZE_TITLE = FONT_SIZE_SUBTITLE_2     # 20px (was 16px)
+FONT_SIZE_HEADER = FONT_SIZE_SUBTITLE_2    # 20px (was 20px, now aligned to Subtitle2)
+
+# ── Animation (Fluent 2 Motion Tokens) ────────────────────────────────
+# Based on https://fluent2.microsoft.design/motion
+# Duration tokens
+DURATION_ULTRA_FAST: int = 50   # durationUltraFast — focus rings, micro feedback
+DURATION_FASTER: int = 100      # durationFaster — icon state swaps, badge updates
+DURATION_FAST: int = 150        # durationFast — button press, toggle, checkbox
+DURATION_NORMAL: int = 200      # durationNormal — default hover/focus/state transitions
+DURATION_GENTLE: int = 250      # durationGentle — content revealing, tooltip appear
+DURATION_SLOW: int = 300        # durationSlow — drawer open, panel slide-in
+DURATION_SLOWER: int = 400      # durationSlower — complex orchestrated sequences
+DURATION_ULTRA_SLOW: int = 500  # durationUltraSlow — full-page transitions, hero reveals
+
+# Easing curves (CSS cubic-bezier values for reference — Qt uses QEasingCurve enums)
+# Qt mappings:
+#   curveEasyEase → QEasingCurve.Type.OutCubic (default, smooth)
+#   curveDecelerate → QEasingCurve.Type.OutQuad (entering elements)
+#   curveAccelerate → QEasingCurve.Type.InQuad (exiting elements)
+#   curveLinear → QEasingCurve.Type.Linear (loops, progress)
+CURVE_EASY_EASE: str = "cubic-bezier(0.33, 0, 0.67, 1)"    # Elements moving within viewport
+CURVE_EASY_EASE_MAX: str = "cubic-bezier(0.8, 0, 0.2, 1)"  # Emphasis, dramatic repositioning
+CURVE_ACCELERATE: str = "cubic-bezier(0.9, 0.1, 1, 0.2)"   # Exiting screen (ease in, fast out)
+CURVE_DECELERATE: str = "cubic-bezier(0.1, 0.9, 0.2, 1)"   # Entering screen (ease out, slow in)
+CURVE_LINEAR: str = "linear"                                # Continuous repetitive motion
 
 # ── Fluent 2 Elevation / Shadow System ─────────────────────────────────
 # Based on official Fluent 2 elevation spec (dark theme)
