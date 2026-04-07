@@ -96,7 +96,7 @@ All **features, bug fixes, and significant changes** must be developed on a dedi
 **Keep squad state changes separate from code changes** — except for `.squad/agents/*/history.md` files:
 
 - **Allowed together:** `.squad/agents/*/history.md` may be committed in the same PR as code changes, because history files document the agent's understanding of the code it worked on and are contextual to the change being reviewed.
-- **Must be separate:** `decisions.md`, `orchestration-log/`, `log/`, `ceremonies.md`, `team.md`, `routing.md`, and any other squad orchestration/state files must be committed in their own dedicated commits, never bundled with code, documentation, or config changes.
+- **Must be separate:** `decisions.md`, `orchestration-log/`, `log/`, `ceremonies.md`, `team.md`, `routing.md`, and any other squad orchestration/state files must be kept in separate PRs and in their own dedicated commits, never bundled with code, documentation, or config changes.
 
 ### Parallel Work & Merge Conflicts
 
