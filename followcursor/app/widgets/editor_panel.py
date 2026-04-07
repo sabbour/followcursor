@@ -328,7 +328,7 @@ class EditorPanel(QWidget):
         self._ai_zoom_status.setVisible(False)
         zoom_lay.addWidget(self._ai_zoom_status)
 
-        self._container.addWidget(_CollapsibleSection("SMART ZOOM", zoom_body))
+        self._container.addWidget(_CollapsibleSection("Smart zoom", zoom_body))
 
         # ── Chapters (collapsible) ───────────────────────────────────
         chapters_body = QWidget()
@@ -362,7 +362,7 @@ class EditorPanel(QWidget):
         self._chapters_status.setVisible(False)
         chapters_lay.addWidget(self._chapters_status)
 
-        self._container.addWidget(_CollapsibleSection("CHAPTERS", chapters_body, collapsed=True))
+        self._container.addWidget(_CollapsibleSection("Chapters", chapters_body, collapsed=True))
 
         # ── Voiceover (collapsible) ──────────────────────────────────
         vo_body = QWidget()
@@ -388,7 +388,7 @@ class EditorPanel(QWidget):
         self._vo_status.setVisible(False)
         vo_lay.addWidget(self._vo_status)
 
-        self._container.addWidget(_CollapsibleSection("VOICEOVER", vo_body))
+        self._container.addWidget(_CollapsibleSection("Voiceover", vo_body))
 
         # ── Keystroke Overlay (collapsible) ──────────────────────────
         keystroke_body = QWidget()
@@ -474,7 +474,7 @@ class EditorPanel(QWidget):
         filter_row.addWidget(self._keystroke_filter_combo, 1)
         keystroke_lay.addLayout(filter_row)
 
-        self._container.addWidget(_CollapsibleSection("KEYSTROKES", keystroke_body, collapsed=True))
+        self._container.addWidget(_CollapsibleSection("Keystrokes", keystroke_body, collapsed=True))
 
         # ── Background picker (collapsible) ──────────────────────────
         bg_body = QWidget()
@@ -508,7 +508,7 @@ class EditorPanel(QWidget):
         bg_lay.addWidget(self._bg_stack)
         self._current_bg_preset = DEFAULT_PRESET
 
-        self._container.addWidget(_CollapsibleSection("BACKGROUND", bg_body, collapsed=True))
+        self._container.addWidget(_CollapsibleSection("Background", bg_body, collapsed=True))
 
         # ── Frame picker (collapsible) ───────────────────────────────
         fr_body = QWidget()
@@ -526,7 +526,7 @@ class EditorPanel(QWidget):
         fr_lay.addWidget(self._frame_combo)
         self._current_frame_preset = DEFAULT_FRAME
 
-        self._container.addWidget(_CollapsibleSection("DEVICE FRAME", fr_body, collapsed=True))
+        self._container.addWidget(_CollapsibleSection("Device frame", fr_body, collapsed=True))
 
         # ── Click effect picker (collapsible) ────────────────────────
         click_body = QWidget()
@@ -544,7 +544,7 @@ class EditorPanel(QWidget):
         click_lay.addWidget(self._click_combo)
         self._current_click_preset = DEFAULT_CLICK_EFFECT
 
-        self._container.addWidget(_CollapsibleSection("CLICK EFFECTS", click_body, collapsed=True))
+        self._container.addWidget(_CollapsibleSection("Click effects", click_body, collapsed=True))
 
         # ── Annotations (collapsible) ────────────────────────────────
         annot_body = QWidget()
@@ -600,7 +600,7 @@ class EditorPanel(QWidget):
         list_scroll.setWidget(self._annotations_list_widget)
         annot_lay.addWidget(list_scroll)
 
-        self._container.addWidget(_CollapsibleSection("ANNOTATIONS", annot_body, collapsed=True))
+        self._container.addWidget(_CollapsibleSection("Annotations", annot_body, collapsed=True))
 
         # ── Output dimensions (collapsible) ──────────────────────────
         dim_body = QWidget()
@@ -622,7 +622,7 @@ class EditorPanel(QWidget):
         dim_lay.addWidget(self._dim_combo)
 
         self._current_output_dim = "auto"
-        self._container.addWidget(_CollapsibleSection("OUTPUT SIZE", dim_body, collapsed=True))
+        self._container.addWidget(_CollapsibleSection("Output size", dim_body, collapsed=True))
 
         # End of scrollable content
         self._container.addStretch()
