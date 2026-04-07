@@ -1,8 +1,56 @@
 # McManus — UI Dev History
 
-# McManus — UI Dev History
-
 ## Recent Work
+
+### 2026-04-07: Fluent UI System Icons Integration (Issue #99)
+
+**Task:** Replace all emoji icons with proper Fluent UI System Icons  
+**Outcome:** ✅ Complete — PR #103  
+**Branch:** feat/issue-99-fluent-icons
+
+Replaced all emoji characters (⏺, ▶, ⏸, 💾, 🔍, ✂, 🎙, 🎬, ⬆, 🗑) with SVG icons from Microsoft's Fluent UI System Icons library. Emoji rendering is inconsistent across Windows versions and unprofessional.
+
+**Implementation:**
+- Created **icon_loader.py** module with theme-aware SVG loading
+  - Reads SVG files from `followcursor/app/icons/` directory
+  - Applies fill color dynamically using token references (regex replacement)
+  - Caches loaded icons for performance (global dict)
+  - Converts rgba() token strings to hex for SVG compatibility
+  - Returns QIcon ready for use in Qt widgets
+- Downloaded 17 SVG files from Fluent UI System Icons GitHub repo (20px size)
+  - Regular variants: play, pause, record, save, search, cut, mic, video, arrow_upload, delete, add, folder_open
+  - Filled variants: play, pause, record, save (for active/selected states)
+- Replaced emoji in **main_window.py**:
+  - Sidebar buttons: Record (filled), Edit (play), Open (folder_open), Save
+  - Control bar: Record button with filled red icon
+  - Context menus: Zoom (search), Delete (delete with danger color)
+- Replaced emoji in **title_bar.py**:
+  - Logo icon: Play filled in brand color
+  - Export button: Arrow upload icon
+  - Discard button: Delete icon
+- Replaced emoji in **timeline_widget.py**:
+  - Play/pause button: Dynamically swaps between play_filled and pause_filled
+  - Context menus: Split (cut), Add Zoom (search), Add Voiceover (mic), Delete (delete)
+- Replaced emoji in **editor_panel.py**:
+  - Auto-detect chapters button: Video icon
+- Replaced emoji in **preview_widget.py**:
+  - Zoom context menu: Search icon
+
+**Design approach:**
+- Icons colored using token references (T.BRAND, T.FG_PRIMARY, T.DANGER)
+- Filled variants for active states (play button switches to pause when playing)
+- Sidebar buttons changed signature from text emoji to QIcon
+- All menu items use setIcon() for consistent alignment
+
+**Testing:**
+- ✅ All 370 tests pass
+- ✅ No visual regressions (icons align properly with text)
+
+**Key learnings:**
+- SVG color replacement via regex is simpler than QSvgRenderer colorization
+- Icon caching critical for performance (20+ icons loaded per session)
+- Filled vs. regular variants provide good visual hierarchy
+- 20px size works well for both buttons and menu items
 
 ### 2026-04-07: Issue #98 Session Log (Orchestration Complete)
 
