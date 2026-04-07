@@ -70,7 +70,7 @@ class KeyEvent:
             timestamp=d["timestamp"],
             x=d.get("x"),
             y=d.get("y"),
-            vk_code=d.get("vkCode"),
+            vk_code=d.get("vkCode", d.get("vk_code")),
         )
 
 

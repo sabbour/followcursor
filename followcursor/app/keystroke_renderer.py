@@ -163,10 +163,9 @@ def _group_keystrokes(
         vk_code = event.vk_code
         key_name = _format_key_event(vk_code)
         
-        # Apply filter based on mode
-        if filter_mode == "modifiers-only":
-            if vk_code not in MODIFIER_VKS:
-                continue
+        # All events are kept for grouping; filtering happens at the
+        # group level via _should_show_group so that combos like Ctrl+C
+        # retain their non-modifier key in modifiers-only mode.
         
         visible.append((key_name, event.timestamp, age, vk_code))
     
@@ -221,22 +220,39 @@ def _should_show_group(
     if filter_mode == "all":
         return True
     
-    # For modifiers-only and shortcuts-only modes:
-    # Only show if group contains at least one Ctrl/Alt/Win modifier
+    # Prefer explicit modifier detection when the recording contains
+    # Ctrl/Alt/Win key events.  Some recording paths only preserve the
+    # resulting grouped keystrokes, though, so fall back to a
+    # conservative multi-key heuristic instead of filtering everything.
     has_modifier = any(vk in modifier_vks for vk in vk_codes)
+    has_shift = any(vk in shift_vks for vk in vk_codes)
+    distinct_non_shift_vks = {vk for vk in vk_codes if vk not in shift_vks}
+    has_multi_key_combo = len(distinct_non_shift_vks) > 1
     
     if filter_mode == "modifiers-only":
-        # Only show if it has a Ctrl/Alt/Win modifier
-        return has_modifier
+        # Show explicit Ctrl/Alt/Win combinations when available.  If
+        # those modifier VKs were not recorded, still allow likely
+        # modified combos through so this mode doesn't suppress
+        # everything.  Shift-only typing is excluded.
+        return has_modifier or has_multi_key_combo
     
     if filter_mode == "shortcuts-only":
-        # Only show if it has a Ctrl/Alt/Win modifier
-        # Single Shift+letter is NOT considered a shortcut
-        return has_modifier
+        # Single Shift+letter is not considered a shortcut.  When
+        # explicit modifier events are unavailable, treat only
+        # non-Shift multi-key groups as shortcuts.
+        if has_modifier:
+            return True
+        return has_multi_key_combo and not (
+            has_shift and len(distinct_non_shift_vks) <= 1
+        )
     
     # Unknown filter_mode — default to safe behavior (shortcuts-only)
     logger.warning("Unknown keystroke filter_mode %r, defaulting to shortcuts-only", filter_mode)
-    return has_modifier
+    if has_modifier:
+        return True
+    return has_multi_key_combo and not (
+        has_shift and len(distinct_non_shift_vks) <= 1
+    )
 
 
 def _compute_fade_alpha(age_ms: float, display_duration_ms: int) -> float:

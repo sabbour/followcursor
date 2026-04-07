@@ -38,7 +38,7 @@ import numpy as np
 
 from PySide6.QtCore import QObject, Signal
 
-from .models import ZoomKeyframe, MousePosition, ClickEvent, VideoSegment, VoiceoverSegment, ClickEffectPreset, DEFAULT_CLICK_EFFECT
+from .models import ZoomKeyframe, MousePosition, ClickEvent, VideoSegment, VoiceoverSegment, ClickEffectPreset, DEFAULT_CLICK_EFFECT, KeyEvent, KeystrokeOverlayConfig, Chapter
 from .zoom_engine import ZoomEngine
 from .cursor_renderer import draw_cursor_cv, draw_clicks_cv, _build_cursor_template
 from .keystroke_renderer import draw_keystrokes_cv
@@ -583,10 +583,10 @@ class VideoExporter(QObject):
         encoder_id: str = "libx264",
         voiceover_segments: Optional[List[VoiceoverSegment]] = None,
         video_segments: Optional[List[VideoSegment]] = None,
-        key_events: Optional[List] = None,
-        keystroke_config: Optional = None,
+        key_events: Optional[List[KeyEvent]] = None,
+        keystroke_config: Optional[KeystrokeOverlayConfig] = None,
         annotations = None,
-        chapters: Optional[List] = None,
+        chapters: Optional[List[Chapter]] = None,
     ) -> None:
         """Start export in a background thread.
 
@@ -959,11 +959,14 @@ class VideoExporter(QObject):
                                 end_ms = video_end_ms_trimmed
                             else:
                                 end_ms = start_ms + 1000  # fallback
+                            # Sanitize chapter name for ffmetadata format:
+                            # escape special chars and strip newlines.
+                            safe_name = name.replace("\\", "\\\\").replace("=", "\\=").replace(";", "\\;").replace("#", "\\#").replace("\n", " ")
                             f.write("[CHAPTER]\n")
                             f.write(f"TIMEBASE=1/1000\n")
                             f.write(f"START={start_ms}\n")
                             f.write(f"END={end_ms}\n")
-                            f.write(f"title={name}\n")
+                            f.write(f"title={safe_name}\n")
                     logger.info("Chapter metadata file created: %s", _chapters_metadata_path)
                 except Exception as exc:
                     logger.warning("Failed to create chapter metadata: %s", exc)
