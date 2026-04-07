@@ -138,7 +138,7 @@ def capture_window_thumbnail(
         return None
 
     # Scale down to thumbnail size before GDI allocation so the bitmap buffer
-    # stays reasonable (≤ max_w × max_h × 4 bytes ≈ 1.4 MB) regardless of window size.
+    # stays reasonable (≤ max_w × max_h × 4 bytes) regardless of window size.
     cap_scale = min(max_w / w, max_h / h, 1.0)
     cap_w = max(10, int(w * cap_scale))
     cap_h = max(10, int(h * cap_scale))
