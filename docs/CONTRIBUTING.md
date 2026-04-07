@@ -205,8 +205,10 @@ FollowCursor uses [Semantic Versioning](https://semver.org/) (MAJOR.MINOR.PATCH)
 The version lives in `followcursor/app/version.py`:
 
 ```python
-__version__ = "{{ version }}"
+__version__ = "X.Y.Z"
 ```
+
+> **Note:** `{{ version }}` placeholders in this documentation are replaced at build time by MkDocs — they always reflect the current release when viewed on the docs site.
 
 ### Releasing
 
@@ -255,10 +257,10 @@ Produces `dist\FollowCursor\FollowCursor.exe` — a single-folder PyInstaller di
 
 ```powershell
 # Unsigned (local testing)
-.\scripts\Build-Msix.ps1 -Version "{{ version }}" -SkipSign
+.\scripts\Build-Msix.ps1 -Version "X.Y.Z" -SkipSign
 
 # Signed with local PFX
-.\scripts\Build-Msix.ps1 -Version "{{ version }}" -LocalPfx ".\cert.pfx" -Publisher "CN=MyName"
+.\scripts\Build-Msix.ps1 -Version "X.Y.Z" -LocalPfx ".\cert.pfx" -Publisher "CN=MyName"
 ```
 
 ### CI Pipeline

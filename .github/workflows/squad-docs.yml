@@ -8,6 +8,7 @@ on:
       - 'docs/**'
       - 'mkdocs.yml'
       - '.github/workflows/squad-docs.yml'
+      - 'followcursor/app/version.py'
     tags:
       - 'v*'
 
