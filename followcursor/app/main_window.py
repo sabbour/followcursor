@@ -10,6 +10,7 @@ from typing import Optional, List
 logger = logging.getLogger(__name__)
 
 from PySide6.QtCore import Qt, QTimer, QSettings, QByteArray, QEvent, QThread, Signal as CoreSignal
+from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import (
     QMainWindow,
     QWidget,
@@ -59,6 +60,8 @@ from .widgets.countdown_overlay import CountdownOverlay
 from .widgets.processing_overlay import ProcessingOverlay
 from .widgets.recording_border import RecordingBorderOverlay
 from .icon import create_app_icon
+from .icon_loader import load_icon
+from . import tokens as T
 
 
 class _LoadProjectWorker(QThread):
@@ -997,20 +1000,28 @@ class MainWindow(QMainWindow):
         layout.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignHCenter)
 
         # Clipchamp-style sidebar: icon + label stacked
-        self._btn_record_view = self._make_sidebar_btn("⏺", "Record", active=True)
+        self._btn_record_view = self._make_sidebar_btn(
+            load_icon("record", variant="filled", color=T.BRAND), "Record", active=True
+        )
         self._btn_record_view.clicked.connect(lambda: self._set_view("record"))
 
-        self._btn_edit_view = self._make_sidebar_btn("✎", "Edit")
+        self._btn_edit_view = self._make_sidebar_btn(
+            load_icon("play", color=T.FG_PRIMARY), "Edit"
+        )
         self._btn_edit_view.clicked.connect(lambda: self._set_view("edit"))
 
         sep = QFrame()
         sep.setFixedSize(40, 1)
         sep.setStyleSheet("background-color: #2d2b45;")
 
-        self._btn_load = self._make_sidebar_btn("📂", "Open")
+        self._btn_load = self._make_sidebar_btn(
+            load_icon("folder_open", color=T.FG_PRIMARY), "Open"
+        )
         self._btn_load.clicked.connect(self._load_session)
 
-        self._btn_save = self._make_sidebar_btn("💾", "Save")
+        self._btn_save = self._make_sidebar_btn(
+            load_icon("save", color=T.FG_PRIMARY), "Save"
+        )
         self._btn_save.clicked.connect(self._save_session)
 
         for w in [self._btn_record_view, self._btn_edit_view, sep, self._btn_load, self._btn_save]:
@@ -1025,8 +1036,9 @@ class MainWindow(QMainWindow):
         return sidebar
 
     @staticmethod
-    def _make_sidebar_btn(icon: str, label: str, active: bool = False) -> QPushButton:
-        btn = QPushButton(f"{icon}\n{label}")
+    def _make_sidebar_btn(icon: QIcon, label: str, active: bool = False) -> QPushButton:
+        btn = QPushButton(f"\n{label}")
+        btn.setIcon(icon)
         btn.setObjectName("SidebarBtnActive" if active else "SidebarBtn")
         btn.setToolTip(label)
         return btn
@@ -1083,7 +1095,8 @@ class MainWindow(QMainWindow):
         self._btn_change_source.clicked.connect(self._select_source)
         self._btn_change_source.setVisible(False)
 
-        self._btn_record = QPushButton("⏺  Record  (Ctrl+Shift+R)")
+        self._btn_record = QPushButton("  Record  (Ctrl+Shift+R)")
+        self._btn_record.setIcon(load_icon("record", variant="filled", color=T.DANGER))
         self._btn_record.setObjectName("RecordBtn")
         self._btn_record.clicked.connect(self._start_recording)
         self._btn_record.setVisible(False)
@@ -2438,7 +2451,8 @@ class MainWindow(QMainWindow):
         )
 
         # Section header
-        header = menu.addAction(f"🔍  Zoom  ({target_kf.zoom:.2f}×)")
+        header = menu.addAction("  Zoom  ({:.2f}×)".format(target_kf.zoom))
+        header.setIcon(load_icon("search", color=T.FG_PRIMARY))
         header.setEnabled(False)
         menu.addSeparator()
 
@@ -2477,7 +2491,8 @@ class MainWindow(QMainWindow):
         )
 
         menu.addSeparator()
-        del_act = menu.addAction("🗑  Delete zoom section")
+        del_act = menu.addAction("  Delete zoom section")
+        del_act.setIcon(load_icon("delete", color=T.DANGER))
         del_act.triggered.connect(lambda: self._delete_zoom_section(start_kf_id))
 
         menu.exec(self.cursor().pos())
@@ -2629,7 +2644,8 @@ class MainWindow(QMainWindow):
             )
 
         menu.addSeparator()
-        del_act = menu.addAction("🗑  Delete pan point")
+        del_act = menu.addAction("  Delete pan point")
+        del_act.setIcon(load_icon("delete", color=T.DANGER))
         del_act.triggered.connect(lambda: self._delete_pan_point(pan_kf_id))
 
         menu.exec(self.cursor().pos())

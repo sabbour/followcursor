@@ -26,6 +26,7 @@ from PySide6.QtWidgets import (
 
 from .. import tokens as T
 from ..fluent_effects import apply_shadow, install_focus_ring
+from ..icon_loader import load_icon
 from ..models import ZoomKeyframe, MousePosition, KeyEvent, ClickEvent, ClickEffectPreset, CLICK_EFFECT_PRESETS, DEFAULT_CLICK_EFFECT, KeystrokeOverlayConfig
 from ..activity_analyzer import analyze_activity
 from ..backgrounds import (
@@ -340,7 +341,8 @@ class EditorPanel(QWidget):
         chapters_desc.setWordWrap(True)
         chapters_lay.addWidget(chapters_desc)
 
-        self._btn_auto_detect_chapters = QPushButton("🎬 Auto-detect chapters")
+        self._btn_auto_detect_chapters = QPushButton("  Auto-detect chapters")
+        self._btn_auto_detect_chapters.setIcon(load_icon("video", color=T.FG_PRIMARY))
         self._btn_auto_detect_chapters.setObjectName("CtrlBtn")
         self._btn_auto_detect_chapters.setFixedHeight(32)
         self._btn_auto_detect_chapters.setToolTip("Automatically detect scene boundaries based on activity patterns.")

@@ -5,6 +5,8 @@ from PySide6.QtWidgets import QWidget, QHBoxLayout, QLabel, QPushButton
 
 from ..fluent_effects import install_focus_ring
 from ..version import __version__
+from ..icon_loader import load_icon
+from .. import tokens as T
 
 
 class TitleBar(QWidget):
@@ -28,10 +30,9 @@ class TitleBar(QWidget):
         layout.setSpacing(0)
 
         # ── left: logo ──────────────────────────────────────────
-        logo_icon = QLabel("▶")
-        logo_icon.setStyleSheet(
-            "color: #8b5cf6; font-size: 16px; background: transparent; padding-right: 4px;"
-        )
+        logo_icon = QLabel()
+        logo_icon.setPixmap(load_icon("play", variant="filled", color=T.BRAND).pixmap(16, 16))
+        logo_icon.setStyleSheet("background: transparent; padding-right: 4px;")
         logo_icon.setFixedWidth(20)
         layout.addWidget(logo_icon)
 
@@ -48,12 +49,14 @@ class TitleBar(QWidget):
         layout.addStretch()
 
         # ── right: export + window controls ─────────────────────
-        self._btn_export = QPushButton("⬆  Export")
+        self._btn_export = QPushButton("  Export")
+        self._btn_export.setIcon(load_icon("arrow_upload", color=T.FG_PRIMARY))
         self._btn_export.setObjectName("ExportBtn")
         self._btn_export.clicked.connect(self.export_clicked.emit)
         layout.addWidget(self._btn_export)
 
-        self._btn_discard = QPushButton("🗑  Discard")
+        self._btn_discard = QPushButton("  Discard")
+        self._btn_discard.setIcon(load_icon("delete", color=T.FG_PRIMARY))
         self._btn_discard.setObjectName("DiscardBtn")
         self._btn_discard.clicked.connect(self.discard_clicked.emit)
         self._btn_discard.setVisible(False)

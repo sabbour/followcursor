@@ -19,6 +19,8 @@ from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushBu
 
 from ..models import ZoomKeyframe, MousePosition, KeyEvent, ClickEvent, VoiceoverSegment, VideoSegment, Chapter
 from ..utils import fmt_time as _fmt
+from ..icon_loader import load_icon
+from .. import tokens as T
 from .timeline_math import (
     trim_eff_start, trim_eff_end, trim_eff_dur, trim_ms_to_x, trim_x_to_ms,
     view_ms_to_x, view_x_to_ms, view_max_scale, view_clamp_offset,
@@ -292,7 +294,8 @@ class _TimelineTrack(QWidget):
             self.update()
             menu = QMenu(self)
             menu.setStyleSheet(self._MENU_STYLE)
-            del_act = menu.addAction("🗑  Delete click event")
+            del_act = menu.addAction("  Delete click event")
+            del_act.setIcon(load_icon("delete", color=T.DANGER))
             del_act.triggered.connect(lambda: self._delete_selected_click())
             menu.exec(self.mapToGlobal(pos))
             return
@@ -303,9 +306,10 @@ class _TimelineTrack(QWidget):
             self.update()
             menu = QMenu(self)
             menu.setStyleSheet(self._MENU_STYLE)
-            edit_act = menu.addAction("✏  Edit voiceover")
+            edit_act = menu.addAction("  Edit voiceover")
             edit_act.triggered.connect(lambda: self.voiceover_clicked.emit(vo_id))
-            del_act = menu.addAction("🗑  Delete voiceover")
+            del_act = menu.addAction("  Delete voiceover")
+            del_act.setIcon(load_icon("delete", color=T.DANGER))
             del_act.triggered.connect(lambda: self._delete_selected_voiceover())
             menu.exec(self.mapToGlobal(pos))
             return
@@ -322,7 +326,8 @@ class _TimelineTrack(QWidget):
             if len(self.video_segments) > 1:
                 menu = QMenu(self)
                 menu.setStyleSheet(self._MENU_STYLE)
-                del_act = menu.addAction("🗑  Delete segment")
+                del_act = menu.addAction("  Delete segment")
+                del_act.setIcon(load_icon("delete", color=T.DANGER))
                 del_act.triggered.connect(lambda: self._delete_selected_video_segment())
                 menu.exec(self.mapToGlobal(pos))
             return
@@ -331,16 +336,19 @@ class _TimelineTrack(QWidget):
             time_ms = self._x_to_ms(max(0.0, min(float(mx), float(self.width()))), self.width())
             menu = QMenu(self)
             menu.setStyleSheet(self._MENU_STYLE)
-            act_split = menu.addAction("✂  Split here")
+            act_split = menu.addAction("  Split here")
+            act_split.setIcon(load_icon("cut", color=T.FG_PRIMARY))
             act_split.triggered.connect(
                 lambda: self.split_requested.emit(self.current_time)
             )
             menu.addSeparator()
-            act_zoom = menu.addAction("🔍  Add Zoom here")
+            act_zoom = menu.addAction("  Add Zoom here")
+            act_zoom.setIcon(load_icon("search", color=T.FG_PRIMARY))
             act_zoom.triggered.connect(
                 lambda: self.add_zoom_requested.emit(time_ms)
             )
-            act_vo = menu.addAction("🎙  Add Voiceover here")
+            act_vo = menu.addAction("  Add Voiceover here")
+            act_vo.setIcon(load_icon("mic", color=T.FG_PRIMARY))
             act_vo.triggered.connect(
                 lambda: self.add_voiceover_requested.emit(time_ms)
             )
@@ -1397,7 +1405,8 @@ class TimelineWidget(QWidget):
         controls_row.addWidget(self._btn_skip_start)
 
         # play/pause
-        self._play_btn = QPushButton("▶")
+        self._play_btn = QPushButton()
+        self._play_btn.setIcon(load_icon("play", variant="filled", color=T.BRAND))
         self._play_btn.setObjectName("PlayBtn")
         self._play_btn.setToolTip("Play / Pause")
         self._play_btn.clicked.connect(self._on_play_pause)
@@ -1538,8 +1547,12 @@ class TimelineWidget(QWidget):
     def set_playing(self, playing: bool) -> None:
         """Update the play/pause button icon to reflect playback state."""
         self._is_playing = playing
-        self._play_btn.setText("⏸" if playing else "▶")
-        self._play_btn.setToolTip("Pause" if playing else "Play")
+        if playing:
+            self._play_btn.setIcon(load_icon("pause", variant="filled", color=T.BRAND))
+            self._play_btn.setToolTip("Pause")
+        else:
+            self._play_btn.setIcon(load_icon("play", variant="filled", color=T.BRAND))
+            self._play_btn.setToolTip("Play")
 
     def _on_play_pause(self) -> None:
         self.play_pause_clicked.emit()
