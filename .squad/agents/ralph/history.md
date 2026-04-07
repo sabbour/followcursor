@@ -17,7 +17,34 @@ Initial setup complete.
 
 ---
 
-## 2026-04-07 — Fluent 2 PR Merge Loop (6 PRs)
+## 2026-04-07 — Triage, README feature grouping, routing.md
+
+**Session:** `20260407T2006-ralph-triage-routing`
+**Requested by:** Ahmed Sabbour
+
+### What was done
+
+1. **Heartbeat triggered** — ran `gh workflow run squad-heartbeat.yml` manually.
+2. **Triaged 3 open issues** — applied `squad`, `squad:member`, `go:yes`, `type:docs`, `priority:p2` labels and posted triage comments:
+   - #132 → McManus (Fluent icons in MkDocs)
+   - #133 → Fenster (README + screen_recorder.py docstring fix)
+   - #134 → McManus (User Guide restructure)
+3. **Created and implemented issue #135** — grouped README feature list under 6 categories (PR #136).
+4. **Fixed CI blocker** — docs-only PRs were permanently blocked because `paths-ignore: '**/*.md'` on the `pull_request` trigger prevented the required `build` check from ever running. Removed the filter from `pull_request` (kept it on `push`).
+5. **Populated `routing.md`** — replaced template stubs with real FollowCursor routing rules: 14 work-type rows and 27 module ownership rows. The heartbeat triage script (`ralph-triage.js`) now has the data it needs to route by file path and keyword.
+
+### Learnings
+
+#### Docs-only PRs and required CI checks
+When `build.yml` uses `paths-ignore: '**/*.md'` on the `pull_request` trigger and branch protection requires the `build` check, any PR that only touches `.md` files will be permanently blocked — the check never runs, stays in `Expected` state, and merge is refused. Fix: remove `paths-ignore` from `pull_request`; keep it on `push` if desired.
+
+#### ralph-triage.js needs `## Work Type → Agent` heading exactly
+The section header regex is `/^##\s*work\s*type\s*(?:→|->)\s*agent\b/i`. The routing.md heading must match this pattern — use `## Work Type → Agent` (not `## Routing Table`).
+
+#### routing.md was a stub — heartbeat triage was silently doing nothing
+The installed `routing.md` had `{domain 1}` placeholders. Every triage run hit the lead-fallback path for all issues. Always verify routing.md is populated before relying on heartbeat auto-triage.
+
+
 
 **Session:** `20260407T193053-fluent2-pr-merges`
 **Requested by:** Ahmed Sabbour
