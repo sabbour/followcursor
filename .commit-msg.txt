@@ -1,0 +1,8 @@
+chore(squad): log merges and #100 session
+
+- Merged decision inbox files into .squad/decisions.md
+- Consolidated gh CLI auth directive, automated release directive, and Fluent 2 typography/shapes/spacing/motion decisions
+- Created orchestration log for McManus #100 work (PR #105): Fluent 2 type ramp, extended spacing tokens, shape tokens, motion tokens
+- Deleted inbox files (deduplicated)
+
+Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>
