@@ -1,40 +1,5 @@
 # Decisions Archive
 
-## Window Thumbnail Capture Resolution (Fenster, 2026-07-18)
-
-**Status:** Applied | **PR:** #109
-
-Bumped `capture_window_thumbnail()` defaults in `window_utils.py` from `max_w=400, max_h=220` to `max_w=800, max_h=450`.
-
-**Rationale:**
-- 2× pixel density over the ~400×200 card display area → sharp thumbnails with SmoothTransformation downscaling
-- GDI memory per capture: ~1.4 MB (800×450×4) — safe for 10+ concurrent window thumbnails
-- No code changes needed on the display side (`source_picker.py` already handles downscaling)
-- MSS fallback inherits new defaults automatically via parameters
-
-**Trade-offs:**
-- Memory increase from ~0.35 MB to ~1.4 MB per thumbnail (acceptable for typical window counts)
-- Marginal increase in PrintWindow render speed (mitigated by background thread execution)
-- Rejected 1600×900 to keep GDI allocations modest
-
----
-
-## No inline QSS on dialogs — use scoped theme.py rules (McManus, 2026-07-25)
-
-**Status:** Applied | **PR:** #110
-
-All widget-specific QSS overrides should live in `theme.py` as scoped rules (e.g., `#SourcePickerDialog QTabWidget::pane { ... }`), not as inline `setStyleSheet()` calls in widget code.
-
-**Context:**
-The source picker dialog had 11 lines of inline `setStyleSheet()` that overrode the global Fluent 2 tab styles with legacy values (wrong background color, missing hover state, legacy 13px font size instead of 14px).
-
-**Implications:**
-- Widget code should only set `setObjectName()` for QSS targeting — never `setStyleSheet()` for structural styling
-- Exception: one-off dynamic properties (e.g., computed background colors from thumbnail analysis) that can't be expressed as static QSS rules
-- Future Fluent 2 alignment work should grep for `setStyleSheet` in widget files and migrate any structural styling to theme.py
-
----
-
 ## PR Review Fixes — Backend (Fenster, 2026-01-20)
 
 **Status:** Applied | **Items:** 6 fixes + 12 prior resolutions

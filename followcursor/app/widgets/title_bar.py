@@ -1,6 +1,6 @@
 """Custom frameless title bar — Clipchamp-inspired."""
 
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import Qt, Signal, QSize
 from PySide6.QtWidgets import QWidget, QHBoxLayout, QLabel, QPushButton
 
 from ..fluent_effects import install_focus_ring
@@ -18,6 +18,7 @@ class TitleBar(QWidget):
 
     export_clicked = Signal()
     discard_clicked = Signal()
+    theme_toggle_clicked = Signal()  # New signal for theme toggle
 
     def __init__(self, window: QWidget) -> None:
         super().__init__(window)
@@ -30,11 +31,11 @@ class TitleBar(QWidget):
         layout.setSpacing(0)
 
         # ── left: logo ──────────────────────────────────────────
-        logo_icon = QLabel()
-        logo_icon.setPixmap(load_icon("play", variant="filled", color=T.BRAND).pixmap(16, 16))
-        logo_icon.setStyleSheet("background: transparent; padding-right: 4px;")
-        logo_icon.setFixedWidth(20)
-        layout.addWidget(logo_icon)
+        self._logo_icon = QLabel()
+        self._logo_icon.setPixmap(load_icon("play", variant="filled", color=T.BRAND).pixmap(16, 16))
+        self._logo_icon.setStyleSheet("background: transparent; padding-right: 4px;")
+        self._logo_icon.setFixedWidth(20)
+        layout.addWidget(self._logo_icon)
 
         self._logo_text = QLabel("FollowCursor")
         self._logo_text.setObjectName("TitleBarLogo")
@@ -42,13 +43,26 @@ class TitleBar(QWidget):
 
         ver_label = QLabel(f"v{__version__}")
         ver_label.setStyleSheet(
-            "color: #6c6890; font-size: 11px; background: transparent; padding-left: 6px;"
+            f"color: {T.FG_3}; font-size: {T.FONT_SIZE_CAPTION}px;"
+            f" background: transparent; padding-left: {T.SPACE_6}px;"
         )
         layout.addWidget(ver_label)
 
         layout.addStretch()
 
-        # ── right: export + window controls ─────────────────────
+        # ── right: theme toggle + export + window controls ─────────────
+        self._btn_theme = QPushButton()
+        self._btn_theme.setObjectName("ThemeToggleBtn")
+        self._btn_theme.setFixedSize(32, 32)
+        self._btn_theme.setToolTip("Toggle theme (Ctrl+T)")
+        self._btn_theme.setIcon(load_icon("brightness_high", color=T.FG_2))
+        self._btn_theme.setIconSize(QSize(20, 20))
+        self._btn_theme.clicked.connect(self.theme_toggle_clicked.emit)
+        install_focus_ring(self._btn_theme)
+        layout.addWidget(self._btn_theme)
+
+        layout.addSpacing(8)
+
         self._btn_export = QPushButton("  Export")
         self._btn_export.setIcon(load_icon("arrow_upload", color=T.FG_PRIMARY))
         self._btn_export.setObjectName("ExportBtn")
@@ -81,6 +95,11 @@ class TitleBar(QWidget):
             layout.addWidget(btn)
 
     # ── public ──────────────────────────────────────────────────────
+
+    def refresh_icons(self, dark: bool = True) -> None:
+        """Reload title-bar icons with colours for the active theme."""
+        icon_fg = T.FG_2 if dark else T.LIGHT_FG_2
+        self._btn_theme.setIcon(load_icon("brightness_high", color=icon_fg))
 
     def set_export_enabled(self, enabled: bool) -> None:
         """Enable or disable the export button."""

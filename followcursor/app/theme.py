@@ -10,6 +10,74 @@ Reference: https://fluent2.microsoft.design/components/web/react/
 
 from . import tokens as T
 
+
+# ══════════════════════════════════════════════════════════════════════════
+# LIGHT THEME — helper for building the light-mode QSS
+# ══════════════════════════════════════════════════════════════════════════
+
+def _build_light_theme() -> str:
+    """Build the light-theme QSS from the dark theme via a sentinel mapping.
+
+    A two-pass approach is used so that no substitution can accidentally alter
+    a value already written by an earlier one:
+
+    Pass 1: replace every dark token value with a unique ``%%NAME%%`` sentinel.
+    Pass 2: replace each sentinel with its corresponding light token value.
+
+    When multiple dark tokens share the same hex value (e.g. ``BG_LAYER_4``,
+    ``BG_CARD``, and ``BG_SUBTLE_SELECTED`` all equal ``"#333333"``) only the
+    first sentinel wins and all occurrences receive the same light value — a
+    known limitation documented inline below.
+    """
+    # (sentinel_name, dark_value, light_value)
+    # Longer / more specific dark values are listed first to avoid partial
+    # substring matches during pass 1 (e.g. rgba strings before hex strings).
+    SUBSTITUTIONS = [
+        # ── Brand translucent (rgba strings — must come before bare hex) ───
+        ("BRAND_TRANSLUCENT_STRONG",  T.BRAND_TRANSLUCENT_STRONG,  T.LIGHT_BRAND_TRANSLUCENT_STRONG),
+        ("BRAND_TRANSLUCENT_HOVER",   T.BRAND_TRANSLUCENT_HOVER,   T.LIGHT_BRAND_TRANSLUCENT_HOVER),
+        ("BRAND_TRANSLUCENT",         T.BRAND_TRANSLUCENT,         T.LIGHT_BRAND_TRANSLUCENT),
+        # ── Foreground / text ───────────────────────────────────────────────
+        # NOTE: FG_3 == STROKE_ACCESSIBLE == "#adadad"; one sentinel handles both.
+        ("FG_PRIMARY",    T.FG_PRIMARY,    T.LIGHT_FG_1),
+        ("FG_2",          T.FG_2,          T.LIGHT_FG_2),
+        ("FG_3",          T.FG_3,          T.LIGHT_FG_3),
+        ("FG_4",          T.FG_4,          T.LIGHT_FG_4),
+        ("FG_DISABLED",   T.FG_DISABLED,   "#a6a6a6"),
+        # ── Backgrounds ─────────────────────────────────────────────────────
+        ("BG_LAYER_1",        T.BG_LAYER_1,        T.LIGHT_BG_2),
+        ("BG_LAYER_2",        T.BG_LAYER_2,        T.LIGHT_BG_3),
+        # BG_LAYER_3 == BG_SURFACE == "#292929"; both become LIGHT_BG_1.
+        ("BG_LAYER_3",        T.BG_LAYER_3,        T.LIGHT_BG_1),
+        # BG_LAYER_4 == BG_CARD == BG_SUBTLE_SELECTED == "#333333".
+        # All share the same dark value so they receive a single light value.
+        ("BG_LAYER_4",        T.BG_LAYER_4,        T.LIGHT_BG_3),
+        # BG_LAYER_5 == BG_CARD_HOVER == "#3d3d3d"; one sentinel handles both.
+        ("BG_LAYER_5",        T.BG_LAYER_5,        T.LIGHT_BG_4),
+        ("BG_SUBTLE_HOVER",   T.BG_SUBTLE_HOVER,   T.LIGHT_BG_SUBTLE_HOVER),
+        ("BG_SUBTLE_PRESSED", T.BG_SUBTLE_PRESSED, T.LIGHT_BG_SUBTLE_PRESSED),
+        # ── Borders ─────────────────────────────────────────────────────────
+        ("STROKE_1",      T.STROKE_1,      T.LIGHT_STROKE_1),
+        ("STROKE_2",      T.STROKE_2,      T.LIGHT_STROKE_2),
+        # STROKE_ACCESSIBLE shares its value with FG_3; already handled above.
+        # ── Brand ────────────────────────────────────────────────────────────
+        # BRAND_HOVER must precede BRAND to avoid matching the shared prefix.
+        ("BRAND_HOVER",   T.BRAND_HOVER,   T.LIGHT_BRAND_BG_HOVER),
+        ("BRAND_ACTIVE",  T.BRAND_ACTIVE,  T.LIGHT_BRAND_BG_PRESSED),
+        # LIGHT_BRAND_BG == BRAND == "#8b5cf6" (purple preserved in light mode),
+        # so this substitution is a no-op and is included only for clarity.
+        ("BRAND",         T.BRAND,         T.LIGHT_BRAND_BG),
+    ]
+
+    qss = DARK_THEME
+    # Pass 1 — replace dark values with sentinels
+    for name, dark_val, _ in SUBSTITUTIONS:
+        qss = qss.replace(dark_val, f"%%{name}%%")
+    # Pass 2 — replace sentinels with light values
+    for name, _, light_val in SUBSTITUTIONS:
+        qss = qss.replace(f"%%{name}%%", light_val)
+    return qss
+
 DARK_THEME = f"""
 /* ══════════════════════════════════════════════════════════════
    GLOBAL BASE
@@ -704,8 +772,10 @@ QPushButton#SaveBtn:disabled {{
 }}
 #EditorTitle {{
     color: {T.FG_2};
-    font-size: {T.FONT_SIZE_BODY_1}px;
+    font-size: {T.FONT_SIZE_CAPTION_1}px;
     font-weight: {T.FONT_WEIGHT_SEMIBOLD};
+    text-transform: uppercase;
+    letter-spacing: 1px;
     background: transparent;
 }}
 /* Keyframe item card */
@@ -835,9 +905,6 @@ QPushButton#SaveBtn:disabled {{
     border: 1px solid {T.STROKE_1};
     border-radius: {T.RADIUS_LARGE}px;
 }}
-#SourcePickerDialog QTabWidget::pane {{
-    background-color: transparent;
-}}
 
 /* ── Misc Labels ──── */
 QLabel {{ background: transparent; }}
@@ -906,3 +973,21 @@ QLabel#Secondary {{ color: {T.FG_2}; font-size: {T.FONT_SIZE_CAPTION_1}px; }}
     padding: {T.SPACE_XS}px;
 }}
 """
+
+# ══════════════════════════════════════════════════════════════════════════
+# LIGHT THEME — Fluent 2 Light Mode
+# ══════════════════════════════════════════════════════════════════════════
+
+LIGHT_THEME = _build_light_theme()
+
+
+def get_theme(dark: bool = True) -> str:
+    """Return the appropriate QSS stylesheet based on theme preference.
+    
+    Args:
+        dark: If True, return DARK_THEME. If False, return LIGHT_THEME.
+        
+    Returns:
+        QSS stylesheet string
+    """
+    return DARK_THEME if dark else LIGHT_THEME

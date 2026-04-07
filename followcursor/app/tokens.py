@@ -14,7 +14,6 @@ Reference:
 # ── Spacing (Fluent 2 Spacer Tokens) ──────────────────────────────────
 # Based on https://fluent2.microsoft.design/layout
 # Uses 2px base unit with Fluent 2 spacer values (size20, size40, size80, etc.)
-SPACE_NONE: int = 0   # sizeNone
 SPACE_XXS: int = 2   # size20 — tight compact spacing
 SPACE_XS: int = 4    # size40 — minimal padding
 SPACE_SM: int = 8    # size80 — small controls, icons
@@ -28,11 +27,7 @@ SPACE_XXXL: int = 48 # size480 — major layout divisions
 SPACE_6: int = 6     # size60 — icon-text gap
 SPACE_10: int = 10   # size100 — list item padding
 SPACE_20: int = 20   # size200 — medium sections
-SPACE_28: int = 28   # size280 — extended section gaps
-SPACE_36: int = 36   # size360 — wide component spacing
 SPACE_40: int = 40   # size400 — large containers
-SPACE_52: int = 52   # size520 — extra-wide sections
-SPACE_56: int = 56   # size560 — jumbo component gaps
 SPACE_64: int = 64   # size640 — extra-large divisions
 
 # ── Corner Radius (Fluent 2 Shapes) ───────────────────────────────────
@@ -53,21 +48,21 @@ RADIUS_CIRCULAR: int = 9999  # Global-Corner-Radius-Circular — avatars, status
 # Background layers (darkest → lightest)
 # Aligned with Fluent 2 colorNeutralBackground hierarchy
 BG_SOLID: str = "#000000"            # grey[0] / black — deepest base (canvas, root)
-BG_LAYER_1: str = "#242424"          # grey[4] — app background, base layer
-BG_LAYER_2: str = "#2c2c2c"          # grey[8] — panels, secondary surfaces
-BG_LAYER_3: str = "#363636"          # grey[12] — raised cards, content areas
-BG_LAYER_4: str = "#3d3d3d"          # grey[16] — elevated surfaces, tooltips
-BG_LAYER_5: str = "#484848"          # grey[20] — highest background (dialogs, overlays)
+BG_LAYER_1: str = "#141414"          # grey[4] — app background, base layer
+BG_LAYER_2: str = "#1f1f1f"          # grey[8] — panels, secondary surfaces
+BG_LAYER_3: str = "#292929"          # grey[12] — raised cards, content areas
+BG_LAYER_4: str = "#333333"          # grey[16] — elevated surfaces, tooltips
+BG_LAYER_5: str = "#3d3d3d"          # grey[20] — highest background (dialogs, overlays)
 
 # Interactive surface states
 BG_SUBTLE: str = "transparent"       # colorSubtleBackground rest (hover: grey[22])
-BG_SUBTLE_HOVER: str = "rgba(255, 255, 255, 0.06)"     # grey[22] — subtle hover (list items, etc.)
+BG_SUBTLE_HOVER: str = "#383838"     # grey[22] — subtle hover (list items, etc.)
 BG_SUBTLE_PRESSED: str = "#2e2e2e"   # grey[18] — subtle pressed
 BG_SUBTLE_SELECTED: str = "#333333"  # grey[20] — subtle selected
 
 # Card surfaces (from colorNeutralCardBackground)
-BG_CARD: str = "#3d3d3d"             # grey[20] rest
-BG_CARD_HOVER: str = "#454545"       # grey[24] hover
+BG_CARD: str = "#333333"             # grey[20] rest
+BG_CARD_HOVER: str = "#3d3d3d"       # grey[24] hover
 BG_CARD_PRESSED: str = "#2e2e2e"     # grey[18] pressed
 BG_CARD_SELECTED: str = "#383838"    # grey[22] selected
 
@@ -306,3 +301,38 @@ SHADOW_SUBTLE_COLOR = SHADOW_LAYER_2_KEY
 SHADOW_MEDIUM_BLUR = SHADOW_LAYER_3_BLUR
 SHADOW_MEDIUM_OFFSET = SHADOW_LAYER_3_OFFSET_Y
 SHADOW_MEDIUM_COLOR = SHADOW_LAYER_3_KEY
+
+# ── Fluent 2 Light Theme Colors ───────────────────────────────────────────
+# Official Fluent 2 light mode palette
+# Reference: https://fluent2.microsoft.design/color
+LIGHT_BG_1: str = "#ffffff"        # colorNeutralBackground1 — canvas
+LIGHT_BG_2: str = "#fafafa"        # colorNeutralBackground2
+LIGHT_BG_3: str = "#f5f5f5"        # colorNeutralBackground3
+LIGHT_BG_4: str = "#f0f0f0"        # colorNeutralBackground4
+LIGHT_BG_5: str = "#ebebeb"        # colorNeutralBackground5
+LIGHT_FG_1: str = "#242424"        # colorNeutralForeground1 — primary text
+LIGHT_FG_2: str = "#424242"        # colorNeutralForeground2 — secondary text
+LIGHT_FG_3: str = "#616161"        # colorNeutralForeground3 — tertiary text
+LIGHT_FG_4: str = "#707070"        # colorNeutralForeground4 — quaternary
+LIGHT_STROKE_1: str = "#d1d1d1"    # colorNeutralStroke1 — default borders
+LIGHT_STROKE_2: str = "#e0e0e0"    # colorNeutralStroke2 — dividers
+LIGHT_STROKE_ACCESSIBLE: str = "#616161"  # colorNeutralStrokeAccessible (3:1 contrast)
+# Brand tokens — keep the original FollowCursor purple, adjusted for light backgrounds
+LIGHT_BRAND_FG: str = "#6d28d9"            # violet-700 — legible on white (colorBrandForeground1)
+LIGHT_BRAND_BG: str = "#8b5cf6"            # violet-500 — same primary brand as dark theme
+LIGHT_BRAND_BG_HOVER: str = "#7c3aed"      # violet-600 — darker for hover on light surface
+LIGHT_BRAND_BG_PRESSED: str = "#6d28d9"    # violet-700 — pressed / active state
+
+# Light theme subtle interactive states
+LIGHT_BG_SUBTLE: str = "transparent"       # colorSubtleBackground rest (same as dark)
+LIGHT_BG_SUBTLE_HOVER: str = "#f5f5f5"     # subtle hover
+LIGHT_BG_SUBTLE_PRESSED: str = "#ebebeb"   # subtle pressed
+LIGHT_BG_CARD_HOVER: str = "#f0f0f0"       # card hover
+
+# Light theme brand translucent surfaces (Issue #112)
+LIGHT_BRAND_TRANSLUCENT: str = "rgba(139, 92, 246, 0.10)"       # tinted brand surface
+LIGHT_BRAND_TRANSLUCENT_HOVER: str = "rgba(139, 92, 246, 0.15)" # tinted brand hover
+LIGHT_BRAND_TRANSLUCENT_STRONG: str = "rgba(139, 92, 246, 0.20)" # tinted brand strong
+
+# Light theme focus ring
+LIGHT_FOCUS_RING: str = "#8b5cf6"          # same brand purple; legible on light backgrounds
