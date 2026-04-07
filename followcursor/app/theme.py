@@ -223,6 +223,42 @@ QCheckBox::indicator:checked:focus {{
     border: 2px solid {T.BRAND};
     background-color: {T.BRAND};
 }}
+QCheckBox::indicator:indeterminate {{
+    border-color: {T.BRAND};
+    background-color: qlineargradient(
+        x1: 0, y1: 0, x2: 0, y2: 1,
+        stop: 0 {T.BRAND},
+        stop: 0.38 {T.BRAND},
+        stop: 0.38 {T.BG_LAYER_2},
+        stop: 0.62 {T.BG_LAYER_2},
+        stop: 0.62 {T.BRAND},
+        stop: 1 {T.BRAND}
+    );
+}}
+QCheckBox::indicator:indeterminate:hover {{
+    border-color: {T.BRAND_HOVER};
+    background-color: qlineargradient(
+        x1: 0, y1: 0, x2: 0, y2: 1,
+        stop: 0 {T.BRAND_HOVER},
+        stop: 0.38 {T.BRAND_HOVER},
+        stop: 0.38 {T.BG_LAYER_2},
+        stop: 0.62 {T.BG_LAYER_2},
+        stop: 0.62 {T.BRAND_HOVER},
+        stop: 1 {T.BRAND_HOVER}
+    );
+}}
+QCheckBox::indicator:indeterminate:disabled {{
+    border-color: {T.STROKE_2};
+    background-color: qlineargradient(
+        x1: 0, y1: 0, x2: 0, y2: 1,
+        stop: 0 {T.BG_LAYER_1},
+        stop: 0.38 {T.BG_LAYER_1},
+        stop: 0.38 {T.STROKE_2},
+        stop: 0.62 {T.STROKE_2},
+        stop: 0.62 {T.BG_LAYER_1},
+        stop: 1 {T.BG_LAYER_1}
+    );
+}}
 
 /* ══════════════════════════════════════════════════════════════
    RADIOBUTTON — Fluent 2 Radio Pattern
@@ -245,12 +281,22 @@ QRadioButton::indicator:hover {{
     background-color: {T.BG_LAYER_3};
 }}
 QRadioButton::indicator:checked {{
-    background-color: {T.BRAND};
+    background-color: qradialgradient(cx: 0.5, cy: 0.5, radius: 0.5,
+        fx: 0.5, fy: 0.5,
+        stop: 0 {T.BRAND},
+        stop: 0.35 {T.BRAND},
+        stop: 0.36 {T.BG_LAYER_2},
+        stop: 1 {T.BG_LAYER_2});
     border-color: {T.BRAND};
 }}
 QRadioButton::indicator:checked:hover {{
-    background-color: {T.BRAND_HOVER};
-    border-color: {T.BRAND_HOVER};
+    background-color: qradialgradient(cx: 0.5, cy: 0.5, radius: 0.5,
+        fx: 0.5, fy: 0.5,
+        stop: 0 {T.BRAND},
+        stop: 0.35 {T.BRAND},
+        stop: 0.36 {T.BG_SUBTLE_HOVER},
+        stop: 1 {T.BG_SUBTLE_HOVER});
+    border-color: {T.BRAND};
 }}
 QRadioButton::indicator:disabled {{
     background-color: {T.BG_LAYER_1};
