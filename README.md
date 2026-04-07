@@ -24,27 +24,44 @@ Record your screen or any individual window, then export a polished MP4 video wh
 
 ![FollowCursor screenshot](./screenshot.png)
 
+### 🎬 Recording
+
 - **Screen & Window Recording** — Capture any monitor (hardware-accelerated via Windows Graphics Capture) or individual windows
+- **Mouse & Click Tracking** — Records cursor position at 60 Hz, keyboard events, and click events with visual markers
+- **Live Zoom Shortcuts** — `Ctrl+Shift+=` / `Ctrl+Shift+-` to zoom in/out during recording (global hotkeys)
+- **3-Second Countdown** — Visual countdown before recording starts
+
+### 🔍 Zoom & Pan
+
 - **Smart Auto-Zoom** — Automatically detects mouse settlements, typing bursts, and click clusters to generate zoom keyframes with configurable sensitivity (Low / Medium / High). Spatial-aware clustering merges nearby same-area events into sustained zooms, and consecutive clusters are chained together (up to 4 per chain) — the camera stays zoomed in and pans smoothly between them instead of zooming out and back in
 - **Manual Zoom Keyframes** — Right-click the timeline or preview to add zoom points; drag segments to reposition them
 - **Zoom Depth Control** — Right-click a zoom segment to set depth (Subtle 1.25×, Medium 1.5×, Close 2×, Detail 2.5×)
 - **Centroid Editing** — Reposition the pan center of any zoom keyframe by clicking "Set centroid" on a zoom segment, then clicking the target point on the preview
-- **Live Zoom Shortcuts** — `Ctrl+Shift+=` / `Ctrl+Shift+-` to zoom in/out during recording (global hotkeys)
-- **Mouse & Click Tracking** — Records cursor position at 60 Hz, keyboard events, and click events with visual markers
-- **Click Selection & Deletion** — Select individual click events on the timeline and delete unwanted ones
+
+### ✂️ Editing
+
 - **Timeline Editor** — Visual timeline with mouse-speed heatmap, gradient-styled zoom segments, draggable edges, and click-to-seek
 - **Trimming** — Drag trim handles on the timeline edges to cut unwanted content from the start or end of your recording; export respects the trimmed range
+- **Click Selection & Deletion** — Select individual click events on the timeline and delete unwanted ones
 - **Undo & Redo** — Full undo/redo for all zoom keyframe changes (Ctrl+Z / Ctrl+Shift+Z / Ctrl+Y), up to 50 levels deep
-- **Cinematic Export** — H.264 MP4 or GIF via ffmpeg with ease-out easing, cursor rendering, click ripple effects, and device frame overlays. MP4 supports GPU-accelerated encoding (NVENC, QuickSync, AMF) with automatic detection and fallback to software x264. GIF uses palette-based encoding (`palettegen` + `paletteuse`) for accurate colours and bayer dithering. Status bar shows active format/encoder during export
-- **Output Dimensions** — Choose from Auto, 16:9, 3:2, 4:3, 1:1, or 9:16 aspect ratios for the exported video. Preview shows crop boundaries with a semi-transparent overlay
+
+### 🎨 Visual Customization
+
 - **Background Presets** — 84 backgrounds (39 solids + 37 gradients + 8 patterns) with category picker
 - **Device Frames** — 5 frame styles: Wide Bezel, Slim Bezel, Thin Border, Shadow Only, No Frame
+- **Output Dimensions** — Choose from Auto, 16:9, 3:2, 4:3, 1:1, or 9:16 aspect ratios for the exported video. Preview shows crop boundaries with a semi-transparent overlay
+
+### 📤 Export
+
+- **Cinematic Export** — H.264 MP4 or GIF via ffmpeg with ease-out easing, cursor rendering, click ripple effects, and device frame overlays. MP4 supports GPU-accelerated encoding (NVENC, QuickSync, AMF) with automatic detection and fallback to software x264. GIF uses palette-based encoding (`palettegen` + `paletteuse`) for accurate colours and bayer dithering. Status bar shows active format/encoder during export
+- **Open in Clipchamp** — One-click handoff to Clipchamp for further editing
+
+### 🗂️ App & Project
+
 - **Project Files** — Save/load `.fcproj` bundles (ZIP with metadata + raw video) to resume editing later. Ctrl+S re-saves to the current file. Title bar shows project name and unsaved-changes indicator (●)
 - **Close Confirmation** — Prompts to save unsaved changes before closing the app
-- **Open in Clipchamp** — One-click handoff to Clipchamp for further editing
-- **Debug Overlay** — Per-time zoom marker overlay on the preview for fine-tuning keyframes (toggle via ⚙ settings menu)
-- **3-Second Countdown** — Visual countdown before recording starts
 - **Frameless Dark UI** — Custom title bar, dark theme with purple accents
+- **Debug Overlay** — Per-time zoom marker overlay on the preview for fine-tuning keyframes (toggle via ⚙ settings menu)
 
 ## Architecture
 
