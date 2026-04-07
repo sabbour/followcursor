@@ -928,6 +928,8 @@ class MainWindow(QMainWindow):
         if self._click_preset:
             self._preview.set_click_preset(self._click_preset)
             self._editor.set_click_preset(self._click_preset)
+        if self._keystroke_config:
+            self._preview.set_keystroke_config(self._keystroke_config)
 
         # Restore persisted encoder preference
         saved_encoder = self._settings.value("encoderId", "")
@@ -1672,6 +1674,7 @@ class MainWindow(QMainWindow):
     def _on_keystroke_config_changed(self, config) -> None:
         """Handle keystroke overlay configuration changes."""
         self._keystroke_config = config
+        self._preview.set_keystroke_config(config)
         # Persist to QSettings
         self._settings.setValue("keystroke/enabled", config.enabled)
         self._settings.setValue("keystroke/position", config.position)
@@ -3456,6 +3459,7 @@ class MainWindow(QMainWindow):
             self._mouse_track = session.mouse_track
             self._mouse_track_timestamps = [mp.timestamp for mp in self._mouse_track]
             self._key_events = session.key_events or []
+            self._preview.set_key_events(self._key_events)
             self._click_events = session.click_events or []
             self._zoom_engine.click_events = self._click_events
             self._video_segments = list(session.video_segments) if session.video_segments else []
@@ -3504,6 +3508,7 @@ class MainWindow(QMainWindow):
             loaded_keystroke = proj.get("keystroke_config")
             if loaded_keystroke:
                 self._keystroke_config = loaded_keystroke
+                self._preview.set_keystroke_config(loaded_keystroke)
                 self._editor.set_keystroke_config(loaded_keystroke)
 
             # Restore annotations if saved

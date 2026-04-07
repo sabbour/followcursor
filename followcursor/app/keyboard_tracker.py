@@ -23,16 +23,24 @@ WM_KEYDOWN = 0x0100
 WM_SYSKEYDOWN = 0x0104
 WM_QUIT = 0x0012
 
-# Virtual key codes to ignore — app hotkey combos and lock keys
+# Virtual key codes to ignore — lock keys
 # don't represent actual "typing" and would inflate activity signals.
 # Modifier keys (Ctrl, Alt, Win, Shift) are now recorded so keystroke
 # renderer can filter them properly.
 _IGNORE_VKS = frozenset((
     0x14, 0x90, 0x91,          # CapsLock, NumLock, ScrollLock
-    0x52,                      # R  — part of Ctrl+Shift+R record toggle
-    0xBB,                      # OEM_PLUS (= key) — part of zoom-in hotkey
     0xBD,                      # OEM_MINUS (- key) — part of zoom-out hotkey
 ))
+
+# Hotkey virtual keys — only ignored when Ctrl+Shift are both pressed
+_HOTKEY_VKS = frozenset((
+    0x52,   # R  — part of Ctrl+Shift+R record toggle
+    0xBB,   # OEM_PLUS (= key) — part of zoom-in hotkey
+))
+
+# Modifier virtual keys for hotkey detection
+VK_CONTROL = 0x11
+VK_SHIFT = 0x10
 
 # Low-level keyboard proc signature
 if sys.platform == "win32":
@@ -103,12 +111,24 @@ class _KeyboardHookThread(QThread):
         def low_level_handler(n_code, w_param, l_param):
             try:
                 if n_code >= 0 and w_param in (WM_KEYDOWN, WM_SYSKEYDOWN):
-                    # Skip modifier keys and app-hotkey keys
                     kb = ctypes.cast(l_param, ctypes.POINTER(KBDLLHOOKSTRUCT)).contents
-                    if kb.vkCode in _IGNORE_VKS:
+                    vk = kb.vkCode
+                    
+                    # Skip lock keys unconditionally
+                    if vk in _IGNORE_VKS:
                         return user32.CallNextHookEx(
                             self._hook, n_code, w_param, l_param,
                         )
+                    
+                    # Skip hotkey keys only when Ctrl+Shift are both pressed
+                    if vk in _HOTKEY_VKS:
+                        ctrl_pressed = user32.GetAsyncKeyState(VK_CONTROL) & 0x8000
+                        shift_pressed = user32.GetAsyncKeyState(VK_SHIFT) & 0x8000
+                        if ctrl_pressed and shift_pressed:
+                            return user32.CallNextHookEx(
+                                self._hook, n_code, w_param, l_param,
+                            )
+                    
                     ts = time.time() * 1000 - start_ms
                     # Capture cursor position at keystroke time
                     cx: float | None = None
@@ -116,7 +136,7 @@ class _KeyboardHookThread(QThread):
                     if user32.GetCursorPos(ctypes.byref(_cursor_pt)):
                         cx = float(_cursor_pt.x)
                         cy = float(_cursor_pt.y)
-                    events_list.append(KeyEvent(timestamp=ts, x=cx, y=cy, vk_code=int(kb.vkCode)))
+                    events_list.append(KeyEvent(timestamp=ts, x=cx, y=cy, vk_code=int(vk)))
             except Exception:
                 logger.exception("Error in keyboard hook callback")
             return user32.CallNextHookEx(self._hook, n_code, w_param, l_param)

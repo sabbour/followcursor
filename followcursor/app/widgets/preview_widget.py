@@ -21,7 +21,7 @@ from PySide6.QtCore import Qt, QTimer, Signal, QPointF, QRectF
 from PySide6.QtGui import QImage, QPainter, QColor, QFont, QPen
 from PySide6.QtWidgets import QWidget, QMenu
 
-from ..models import MousePosition, ClickEvent, ZoomKeyframe
+from ..models import MousePosition, ClickEvent, ZoomKeyframe, KeyEvent
 from ..zoom_engine import speed_at_time
 
 
@@ -72,7 +72,7 @@ class PreviewWidget(QWidget):
         self._click_preset = None  # None → use default click effect
         self._annotations = None  # None → no annotations
         self._keystroke_config = None  # KeystrokeOverlayConfig or None
-        self._key_events: List = []  # KeyEvent list
+        self._key_events: List[KeyEvent] = []
 
         # recording overlay
         self._recording_mode: bool = False
@@ -160,7 +160,7 @@ class PreviewWidget(QWidget):
         self._keystroke_config = config
         self.update()
 
-    def set_key_events(self, key_events: List) -> None:
+    def set_key_events(self, key_events: List[KeyEvent]) -> None:
         """Set the key events for keystroke overlay."""
         self._key_events = key_events
         self.update()

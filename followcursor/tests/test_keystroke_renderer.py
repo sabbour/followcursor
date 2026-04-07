@@ -1,7 +1,5 @@
 """Tests for app.keystroke_renderer — security-critical filtering tests."""
 
-import pytest
-
 from app.keystroke_renderer import (
     _group_keystrokes,
     _should_show_group,
