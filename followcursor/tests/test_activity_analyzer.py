@@ -439,3 +439,57 @@ class TestAnalyzeActivityZoomLevelGuard:
         clicks = [ClickEvent(x=500, y=500, timestamp=3000)]
         result = analyze_activity(track, MONITOR, click_events=clicks, zoom_level=-1.0)
         assert isinstance(result, list)
+
+
+# ── detect_chapters ─────────────────────────────────────────────────
+
+
+class TestDetectChapters:
+    def test_with_normal_mouse_track(self) -> None:
+        """Test chapter detection with normal mouse track data."""
+        from app.activity_analyzer import detect_chapters
+        from app.models import MousePosition, Chapter
+        
+        # Create a track with idle gaps and activity bursts
+        track = []
+        # Activity 0-2s
+        for i in range(0, 2000, 16):
+            track.append(MousePosition(x=100.0 + i * 0.1, y=100.0, timestamp=float(i)))
+        # Idle gap 2s-6s (4s gap)
+        track.append(MousePosition(x=300.0, y=100.0, timestamp=6000.0))
+        # Activity 6s-8s
+        for i in range(6000, 8000, 16):
+            track.append(MousePosition(x=600.0 + (i - 6000) * 0.1, y=200.0, timestamp=float(i)))
+        
+        chapters = detect_chapters(track, None, None, 10000.0)
+        
+        assert isinstance(chapters, list)
+        assert len(chapters) >= 1
+        assert all(isinstance(c, Chapter) for c in chapters)
+        # First chapter should always be at timestamp 0
+        assert chapters[0].timestamp_ms == 0
+    
+    def test_with_single_point_mouse_track(self) -> None:
+        """Test with single-point mouse track (division-by-zero case after #67 fix)."""
+        from app.activity_analyzer import detect_chapters
+        from app.models import MousePosition
+        
+        track = [MousePosition(x=500.0, y=500.0, timestamp=0.0)]
+        
+        # Should not crash even with single point
+        chapters = detect_chapters(track, None, None, 5000.0)
+        
+        assert isinstance(chapters, list)
+        assert len(chapters) >= 1
+        assert chapters[0].timestamp_ms == 0
+    
+    def test_with_empty_mouse_track(self) -> None:
+        """Test with empty mouse track (should return single chapter)."""
+        from app.activity_analyzer import detect_chapters
+        
+        chapters = detect_chapters([], None, None, 5000.0)
+        
+        assert isinstance(chapters, list)
+        assert len(chapters) == 1
+        assert chapters[0].timestamp_ms == 0
+        assert chapters[0].name == "Chapter 1"

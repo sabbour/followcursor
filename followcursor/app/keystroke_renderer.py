@@ -278,6 +278,7 @@ def draw_keystrokes_qpainter(
     screen_rect_y: float,
     screen_rect_w: float,
     screen_rect_h: float,
+    mouse_track: Optional[List] = None,
 ) -> None:
     """Draw keystroke overlays on the preview compositor's screen area.
     
@@ -288,6 +289,7 @@ def draw_keystrokes_qpainter(
         config: KeystrokeOverlayConfig with display settings
         monitor_rect: dict with left/top/width/height of captured monitor
         screen_rect_*: pixel position of screen area in painter coordinates
+        mouse_track: Optional mouse position data for near-cursor positioning
     """
     if not config.enabled or not key_events:
         return
@@ -305,8 +307,37 @@ def draw_keystrokes_qpainter(
     elif config.position == "bottom-left":
         base_x = screen_rect_x + 40
         base_y = screen_rect_y + screen_rect_h - 40
-    else:  # near-cursor (use last keystroke position if available)
-        # For simplicity in preview, default to bottom-center
+    elif config.position == "near-cursor":
+        # Find mouse position at current timestamp
+        if mouse_track:
+            import bisect
+            timestamps = [m.timestamp for m in mouse_track]
+            idx = bisect.bisect_right(timestamps, timestamp_ms)
+            if idx > 0:
+                idx -= 1
+            if idx < len(mouse_track):
+                mouse_pos = mouse_track[idx]
+                # Convert mouse position to screen coordinates
+                mon_left = monitor_rect.get("left", 0)
+                mon_top = monitor_rect.get("top", 0)
+                mon_w = monitor_rect.get("width", 1920)
+                mon_h = monitor_rect.get("height", 1080)
+                
+                norm_x = (mouse_pos.x - mon_left) / mon_w
+                norm_y = (mouse_pos.y - mon_top) / mon_h
+                
+                base_x = screen_rect_x + norm_x * screen_rect_w
+                base_y = screen_rect_y + norm_y * screen_rect_h + 60
+            else:
+                # Fallback to bottom-center if no mouse data
+                base_x = screen_rect_x + screen_rect_w / 2
+                base_y = screen_rect_y + screen_rect_h - 40
+        else:
+            # Fallback to bottom-center if no mouse track
+            base_x = screen_rect_x + screen_rect_w / 2
+            base_y = screen_rect_y + screen_rect_h - 40
+    else:
+        # Unknown position, fallback to bottom-center
         base_x = screen_rect_x + screen_rect_w / 2
         base_y = screen_rect_y + screen_rect_h - 40
     
@@ -385,6 +416,7 @@ def draw_keystrokes_cv(
     mon_top: int,
     mon_w: int,
     mon_h: int,
+    mouse_track: Optional[List] = None,
 ) -> None:
     """Draw keystroke overlays onto *frame_bgr* in-place for video export.
     
@@ -397,6 +429,7 @@ def draw_keystrokes_cv(
         mon_top: Monitor top position
         mon_w: Monitor width
         mon_h: Monitor height
+        mouse_track: Optional mouse position data for near-cursor positioning
     """
     if not config.enabled or not key_events:
         return
@@ -416,8 +449,32 @@ def draw_keystrokes_cv(
     elif config.position == "bottom-left":
         base_x = 60
         base_y = fh - 60
-    else:  # near-cursor
-        # Default to bottom-center for export
+    elif config.position == "near-cursor":
+        # Find mouse position at current timestamp
+        if mouse_track:
+            import bisect
+            timestamps = [m.timestamp for m in mouse_track]
+            idx = bisect.bisect_right(timestamps, timestamp_ms)
+            if idx > 0:
+                idx -= 1
+            if idx < len(mouse_track):
+                mouse_pos = mouse_track[idx]
+                # Convert mouse position to frame coordinates
+                norm_x = (mouse_pos.x - mon_left) / mon_w
+                norm_y = (mouse_pos.y - mon_top) / mon_h
+                
+                base_x = int(norm_x * fw)
+                base_y = int(norm_y * fh) + 60
+            else:
+                # Fallback to bottom-center if no mouse data
+                base_x = fw // 2
+                base_y = fh - 60
+        else:
+            # Fallback to bottom-center if no mouse track
+            base_x = fw // 2
+            base_y = fh - 60
+    else:
+        # Unknown position, fallback to bottom-center
         base_x = fw // 2
         base_y = fh - 60
     

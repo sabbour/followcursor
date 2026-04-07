@@ -214,6 +214,25 @@ class TestLoadProject:
         result = load_project(out)
         assert result["frame_preset"] is None
 
+    def test_keystroke_config_roundtrip(self, tmp_dir, dummy_video, full_session) -> None:
+        """keystrokeConfig roundtrip: save project with keystroke config, load it back."""
+        from app.models import KeystrokeOverlayConfig
+        keystroke_cfg = KeystrokeOverlayConfig(
+            enabled=True,
+            position="near-cursor",
+            style="key-cap",
+            filter_mode="modifiers-only",
+        )
+        out = save_project(str(tmp_dir / "kscfg"), dummy_video, full_session,
+                           keystroke_config=keystroke_cfg)
+        result = load_project(out)
+        loaded_cfg = result.get("keystroke_config")
+        assert loaded_cfg is not None
+        assert loaded_cfg.enabled is True
+        assert loaded_cfg.position == "near-cursor"
+        assert loaded_cfg.style == "key-cap"
+        assert loaded_cfg.filter_mode == "modifiers-only"
+
     def test_zip_slip_rejected(self, tmp_dir) -> None:
         """A crafted ZIP with path-traversal entries must be rejected."""
         malicious = str(tmp_dir / "evil.fcproj")

@@ -1222,37 +1222,48 @@ class EditorPanel(QWidget):
     def get_keystroke_config(self):
         """Get the current keystroke overlay configuration."""
         from ..models import KeystrokeOverlayConfig
-        return KeystrokeOverlayConfig(
-            enabled=self._keystroke_enabled.isChecked(),
-            position=self._keystroke_position_combo.currentData(),
-            style=self._keystroke_style_combo.currentData(),
-            display_duration_ms=1500,  # Default value
-            filter_mode=self._keystroke_filter_combo.currentData(),
-            font_size=18,  # Default value
-            opacity=0.85,  # Default value
-        )
+        # Use dataclass defaults
+        config = KeystrokeOverlayConfig()
+        config.enabled = self._keystroke_enabled.isChecked()
+        config.position = self._keystroke_position_combo.currentData()
+        config.style = self._keystroke_style_combo.currentData()
+        config.filter_mode = self._keystroke_filter_combo.currentData()
+        return config
 
     def set_keystroke_config(self, config) -> None:
         """Set the keystroke overlay configuration (e.g. from project load or QSettings)."""
-        self._keystroke_enabled.setChecked(config.enabled)
+        # Block signals to avoid transient emissions
+        self._keystroke_enabled.blockSignals(True)
+        self._keystroke_position_combo.blockSignals(True)
+        self._keystroke_style_combo.blockSignals(True)
+        self._keystroke_filter_combo.blockSignals(True)
+        
+        try:
+            self._keystroke_enabled.setChecked(config.enabled)
 
-        # Set position
-        for i in range(self._keystroke_position_combo.count()):
-            if self._keystroke_position_combo.itemData(i) == config.position:
-                self._keystroke_position_combo.setCurrentIndex(i)
-                break
+            # Set position
+            for i in range(self._keystroke_position_combo.count()):
+                if self._keystroke_position_combo.itemData(i) == config.position:
+                    self._keystroke_position_combo.setCurrentIndex(i)
+                    break
 
-        # Set style
-        for i in range(self._keystroke_style_combo.count()):
-            if self._keystroke_style_combo.itemData(i) == config.style:
-                self._keystroke_style_combo.setCurrentIndex(i)
-                break
+            # Set style
+            for i in range(self._keystroke_style_combo.count()):
+                if self._keystroke_style_combo.itemData(i) == config.style:
+                    self._keystroke_style_combo.setCurrentIndex(i)
+                    break
 
-        # Set filter
-        for i in range(self._keystroke_filter_combo.count()):
-            if self._keystroke_filter_combo.itemData(i) == config.filter_mode:
-                self._keystroke_filter_combo.setCurrentIndex(i)
-                break
+            # Set filter
+            for i in range(self._keystroke_filter_combo.count()):
+                if self._keystroke_filter_combo.itemData(i) == config.filter_mode:
+                    self._keystroke_filter_combo.setCurrentIndex(i)
+                    break
+        finally:
+            # Restore signal handling
+            self._keystroke_enabled.blockSignals(False)
+            self._keystroke_position_combo.blockSignals(False)
+            self._keystroke_style_combo.blockSignals(False)
+            self._keystroke_filter_combo.blockSignals(False)
 
     def _on_keystroke_enabled_changed(self, checked: bool) -> None:
         """Handle keystroke overlay enable/disable toggle."""

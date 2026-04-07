@@ -13,6 +13,8 @@ from app.models import (
     RecordingSession,
     VoiceoverSegment,
     VideoSegment,
+    Chapter,
+    KeystrokeOverlayConfig,
     DEFAULT_FPS,
     DEFAULT_MOUSE_INTERVAL,
 )
@@ -70,6 +72,21 @@ class TestKeyEvent:
         assert ke.timestamp == 99.0
         assert ke.x is None
         assert ke.y is None
+
+    def test_with_vk_code(self) -> None:
+        """Test KeyEvent serialization with vk_code field."""
+        ke = KeyEvent(timestamp=100.0, vk_code=0x41)  # 'A' key
+        d = ke.to_dict()
+        ke2 = KeyEvent.from_dict(d)
+        assert ke2.timestamp == 100.0
+        assert ke2.vk_code == 0x41
+
+    def test_vk_code_serialization(self) -> None:
+        """Ensure vk_code uses camelCase in serialization."""
+        ke = KeyEvent(timestamp=50.0, vk_code=0x11)  # Ctrl
+        d = ke.to_dict()
+        assert "vkCode" in d
+        assert d["vkCode"] == 0x11
 
 
 # ── ClickEvent ──────────────────────────────────────────────────────
@@ -577,3 +594,90 @@ class TestConstants:
         assert abs(polling_hz - DEFAULT_FPS) < 5, (
             f"Polling rate {polling_hz:.1f} Hz does not approximate FPS {DEFAULT_FPS}"
         )
+
+
+# ── Chapter ─────────────────────────────────────────────────────────
+
+
+class TestChapter:
+    def test_roundtrip(self) -> None:
+        """Chapter serialization roundtrip preserves all fields."""
+        ch = Chapter(timestamp_ms=1000, name="Intro", auto_detected=False)
+        d = ch.to_dict()
+        ch2 = Chapter.from_dict(d)
+        assert ch2.timestamp_ms == ch.timestamp_ms
+        assert ch2.name == ch.name
+        assert ch2.auto_detected == ch.auto_detected
+
+    def test_dict_keys(self) -> None:
+        """Check serialized field names use camelCase."""
+        ch = Chapter(timestamp_ms=5000, name="Chapter 2", auto_detected=True)
+        d = ch.to_dict()
+        assert set(d.keys()) == {"timestampMs", "name", "autoDetected"}
+
+    def test_from_dict_defaults_auto_detected(self) -> None:
+        """Missing autoDetected should default to True."""
+        d = {"timestampMs": 2000, "name": "Scene 1"}
+        ch = Chapter.from_dict(d)
+        assert ch.auto_detected is True
+
+
+# ── KeystrokeOverlayConfig ──────────────────────────────────────────
+
+
+class TestKeystrokeOverlayConfig:
+    def test_roundtrip(self) -> None:
+        """KeystrokeOverlayConfig serialization roundtrip preserves all fields."""
+        config = KeystrokeOverlayConfig(
+            enabled=True,
+            position="near-cursor",
+            style="key-cap",
+            display_duration_ms=2000,
+            filter_mode="modifiers-only",
+            font_size=20,
+            opacity=0.9,
+        )
+        d = config.to_dict()
+        config2 = KeystrokeOverlayConfig.from_dict(d)
+        assert config2.enabled == config.enabled
+        assert config2.position == config.position
+        assert config2.style == config.style
+        assert config2.display_duration_ms == config.display_duration_ms
+        assert config2.filter_mode == config.filter_mode
+        assert config2.font_size == config.font_size
+        assert config2.opacity == config.opacity
+
+    def test_dict_keys(self) -> None:
+        """Check serialized field names use camelCase."""
+        config = KeystrokeOverlayConfig()
+        d = config.to_dict()
+        expected = {
+            "enabled", "position", "style", "displayDurationMs",
+            "filterMode", "fontSize", "opacity"
+        }
+        assert set(d.keys()) == expected
+
+    def test_from_dict_invalid_filter_mode_falls_back(self) -> None:
+        """Invalid filter_mode should fall back to shortcuts-only."""
+        d = {
+            "enabled": True,
+            "position": "bottom-center",
+            "style": "floating-badge",
+            "displayDurationMs": 1500,
+            "filterMode": "invalid-mode",
+            "fontSize": 18,
+            "opacity": 0.85,
+        }
+        config = KeystrokeOverlayConfig.from_dict(d)
+        assert config.filter_mode == "shortcuts-only"
+
+    def test_defaults(self) -> None:
+        """Ensure default values match dataclass defaults."""
+        config = KeystrokeOverlayConfig()
+        assert config.enabled is False
+        assert config.position == "bottom-center"
+        assert config.style == "floating-badge"
+        assert config.display_duration_ms == 1500
+        assert config.filter_mode == "shortcuts-only"
+        assert config.font_size == 18
+        assert config.opacity == 0.85

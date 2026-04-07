@@ -124,6 +124,8 @@ def compose_scene(
     click_events: Optional[List[ClickEvent]] = None,
     click_preset: Optional[ClickEffectPreset] = None,
     annotations = None,
+    key_events: Optional[List] = None,
+    keystroke_config = None,
 ) -> None:
     """Paint the device-frame composition onto *painter*.
 
@@ -356,6 +358,32 @@ def compose_scene(
                 painter, click_events, time_ms, monitor_rect,
                 scr_x, scr_y, scr_w, scr_h,
                 click_preset or DEFAULT_CLICK_EFFECT,
+            )
+
+    # ── keystroke overlay ───────────────────────────────────────────
+    if key_events and keystroke_config and monitor_rect:
+        from .keystroke_renderer import draw_keystrokes_qpainter
+        if _zoom_video_only and zoom > 1.001:
+            src = source_rect
+            vscr_w = scr_w * (iw / src.width())
+            vscr_h = scr_h * (ih / src.height())
+            vscr_x = scr_x - (src.x() / iw) * vscr_w
+            vscr_y = scr_y - (src.y() / ih) * vscr_h
+            painter.save()
+            painter.setClipRect(QRectF(scr_x, scr_y, scr_w, scr_h))
+            try:
+                draw_keystrokes_qpainter(
+                    painter, key_events, time_ms, keystroke_config, monitor_rect,
+                    vscr_x, vscr_y, vscr_w, vscr_h,
+                    mouse_track,
+                )
+            finally:
+                painter.restore()
+        else:
+            draw_keystrokes_qpainter(
+                painter, key_events, time_ms, keystroke_config, monitor_rect,
+                scr_x, scr_y, scr_w, scr_h,
+                mouse_track,
             )
 
 
