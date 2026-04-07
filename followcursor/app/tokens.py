@@ -53,21 +53,21 @@ RADIUS_CIRCULAR: int = 9999  # Global-Corner-Radius-Circular — avatars, status
 # Background layers (darkest → lightest)
 # Aligned with Fluent 2 colorNeutralBackground hierarchy
 BG_SOLID: str = "#000000"            # grey[0] / black — deepest base (canvas, root)
-BG_LAYER_1: str = "#141414"          # grey[4] — app background, base layer
-BG_LAYER_2: str = "#1f1f1f"          # grey[8] — panels, secondary surfaces
-BG_LAYER_3: str = "#292929"          # grey[12] — raised cards, content areas
-BG_LAYER_4: str = "#333333"          # grey[16] — elevated surfaces, tooltips
-BG_LAYER_5: str = "#3d3d3d"          # grey[20] — highest background (dialogs, overlays)
+BG_LAYER_1: str = "#242424"          # grey[4] — app background, base layer
+BG_LAYER_2: str = "#2c2c2c"          # grey[8] — panels, secondary surfaces
+BG_LAYER_3: str = "#363636"          # grey[12] — raised cards, content areas
+BG_LAYER_4: str = "#3d3d3d"          # grey[16] — elevated surfaces, tooltips
+BG_LAYER_5: str = "#484848"          # grey[20] — highest background (dialogs, overlays)
 
 # Interactive surface states
 BG_SUBTLE: str = "transparent"       # colorSubtleBackground rest (hover: grey[22])
-BG_SUBTLE_HOVER: str = "#383838"     # grey[22] — subtle hover (list items, etc.)
+BG_SUBTLE_HOVER: str = "rgba(255, 255, 255, 0.06)"     # grey[22] — subtle hover (list items, etc.)
 BG_SUBTLE_PRESSED: str = "#2e2e2e"   # grey[18] — subtle pressed
 BG_SUBTLE_SELECTED: str = "#333333"  # grey[20] — subtle selected
 
 # Card surfaces (from colorNeutralCardBackground)
-BG_CARD: str = "#333333"             # grey[20] rest
-BG_CARD_HOVER: str = "#3d3d3d"       # grey[24] hover
+BG_CARD: str = "#3d3d3d"             # grey[20] rest
+BG_CARD_HOVER: str = "#454545"       # grey[24] hover
 BG_CARD_PRESSED: str = "#2e2e2e"     # grey[18] pressed
 BG_CARD_SELECTED: str = "#383838"    # grey[22] selected
 
