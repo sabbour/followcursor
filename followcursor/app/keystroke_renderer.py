@@ -6,9 +6,9 @@ Displays keystrokes as floating badges or text with configurable position,
 style, and duration.
 """
 
+import bisect
 import logging
 from typing import List, Optional, Tuple
-import ctypes.wintypes as wintypes
 
 import cv2
 import numpy as np
@@ -126,6 +126,18 @@ def _group_keystrokes(
     if not key_events:
         return []
     
+    # Use bisect to find the time window efficiently
+    start_time = timestamp_ms - display_duration_ms
+    # Binary search for first event in visible range
+    start_idx = bisect.bisect_left([e.timestamp for e in key_events], start_time)
+    # Binary search for last event in visible range (exclusive)
+    end_idx = bisect.bisect_right([e.timestamp for e in key_events], timestamp_ms)
+    
+    # Only process events in the visible time window
+    visible_events = key_events[start_idx:end_idx]
+    if not visible_events:
+        return []
+    
     # Modifier key VK codes: Ctrl, Alt, Win (but not Shift alone)
     MODIFIER_VKS = frozenset((
         0x11,         # Ctrl
@@ -138,10 +150,8 @@ def _group_keystrokes(
     SHIFT_VKS = frozenset((0x10, 0xA0, 0xA1))  # Shift, LShift, RShift
     
     visible = []
-    for event in key_events:
+    for event in visible_events:
         age = timestamp_ms - event.timestamp
-        if age < 0 or age > display_duration_ms:
-            continue
         
         # Skip events without vk_code
         if not hasattr(event, 'vk_code') or event.vk_code is None:
@@ -416,6 +426,9 @@ def draw_keystrokes_cv(
     font_scale = config.font_size / 18.0  # Base scale
     font_thickness = max(1, int(font_scale * 2))
     
+    # Allocate a single shared overlay for all keystroke groups
+    overlay = frame_bgr.copy()
+    
     # Draw each visible keystroke group
     y_offset = 0
     for text, _, age in grouped:
@@ -445,11 +458,7 @@ def draw_keystrokes_cv(
         badge_x = max(10, min(badge_x, fw - badge_w - 10))
         badge_y = max(10, min(badge_y, fh - badge_h - 10))
         
-        # Create badge overlay
-        overlay = frame_bgr.copy()
-        
-        # Draw badge background
-        bg_alpha_val = int(alpha * config.opacity * 255)
+        # Draw badge background on shared overlay
         if config.style == "floating-badge":
             # Rounded rectangle (approximate with ellipse corners)
             cv2.rectangle(

@@ -565,7 +565,7 @@ class EditorPanel(QWidget):
         annot_lay.addLayout(btn_row)
 
         # Annotations list
-        from PySide6.QtWidgets import QScrollArea, QVBoxLayout as QVBoxLayout2
+        from PySide6.QtWidgets import QScrollArea, QVBoxLayout
         list_scroll = QScrollArea()
         list_scroll.setWidgetResizable(True)
         list_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)

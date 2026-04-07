@@ -511,7 +511,7 @@ class TestComputeOutputDurationSpeedGuard:
     """compute_output_duration must not raise ZeroDivisionError for any speed."""
 
     def test_normal_speed_2x(self) -> None:
-        """2× speed on a 1000ms zoom segment should reduce 2000ms input to 1500ms output."""
+        """2× speed on a zoom segment should compress the timeline."""
         engine = ZoomEngine()
         engine.add_keyframe(ZoomKeyframe.create(timestamp=0, zoom=2.0, duration=200, speed=2.0))
         # The sped-up region lasts until the zoom-out keyframe's timestamp + duration.

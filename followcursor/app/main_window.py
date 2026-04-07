@@ -119,9 +119,8 @@ class _SaveProjectWorker(QThread):
             save_project(
                 self._path, self._video_path, self._session,
                 self._monitor_rect, self._actual_fps,
-                self._bg_preset, self._frame_preset,
-                self._click_preset, self._keystroke_config,
-                self._annotations,
+                self._bg_preset, self._frame_preset, self._click_preset,
+                self._keystroke_config, self._annotations,
                 metadata_only=self._metadata_only,
             )
             self.done.emit(self._path)
@@ -1732,7 +1731,23 @@ class MainWindow(QMainWindow):
 
     def _on_annotation_updated(self, annot_type: str, annotation) -> None:
         """Handle annotation updated from editor panel."""
-        # For now, just trigger a preview refresh
+        # Find and replace the annotation by ID
+        if annot_type == "text" and self._annotations and self._annotations.texts:
+            for i, text in enumerate(self._annotations.texts):
+                if text.id == annotation.id:
+                    self._annotations.texts[i] = annotation
+                    break
+        elif annot_type == "arrow" and self._annotations and self._annotations.arrows:
+            for i, arrow in enumerate(self._annotations.arrows):
+                if arrow.id == annotation.id:
+                    self._annotations.arrows[i] = annotation
+                    break
+        elif annot_type == "highlight" and self._annotations and self._annotations.highlights:
+            for i, highlight in enumerate(self._annotations.highlights):
+                if highlight.id == annotation.id:
+                    self._annotations.highlights[i] = annotation
+                    break
+        
         self._preview.set_annotations(self._annotations)
         self._mark_dirty()
         logger.info("Annotation updated: %s", annot_type)

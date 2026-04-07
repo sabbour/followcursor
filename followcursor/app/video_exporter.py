@@ -1267,6 +1267,13 @@ class VideoExporter(QObject):
                                     m_left, m_top, m_w, m_h,
                                     c_bgr, c_alpha,
                                 )
+                            
+                            # Draw annotations before cursor/clicks/keystrokes
+                            if annotations:
+                                render_annotations_cv(
+                                    fc, annotations, t_ms, m_w, m_h
+                                )
+                            
                             if _has_clicks:
                                 draw_clicks_cv(
                                     fc, click_events, t_ms,
@@ -1279,12 +1286,6 @@ class VideoExporter(QObject):
                                 draw_keystrokes_cv(
                                     fc, key_events, t_ms, keystroke_config,
                                     m_left, m_top, m_w, m_h,
-                                )
-                            
-                            # Draw annotations if present
-                            if annotations:
-                                render_annotations_cv(
-                                    fc, annotations, t_ms, m_w, m_h
                                 )
                             
                             composed = _compose_cv(

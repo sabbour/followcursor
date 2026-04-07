@@ -451,7 +451,7 @@ class ClickEffectPreset:
 
     name: str
     color: tuple[int, int, int, int]  # RGBA (0-255)
-    style: str  # "ripple" | "burst" | "highlight"
+    style: str  # "ripple"
     duration_ms: int
     radius: int
 
@@ -467,10 +467,20 @@ class ClickEffectPreset:
     @staticmethod
     def from_dict(d: dict) -> "ClickEffectPreset":
         try:
+            # Validate and clamp color to 4 RGBA ints (0-255)
+            raw_color = d["color"]
+            if not isinstance(raw_color, (list, tuple)) or len(raw_color) != 4:
+                raise ValueError("color must have exactly 4 RGBA values")
+            color = tuple(max(0, min(255, int(c))) for c in raw_color)
+            
+            # Validate style (only "ripple" is implemented)
+            raw_style = d.get("style", "ripple")
+            style = raw_style if raw_style == "ripple" else "ripple"
+            
             return ClickEffectPreset(
                 name=d["name"],
-                color=tuple(d["color"]),
-                style=d.get("style", "ripple"),
+                color=color,
+                style=style,
                 duration_ms=d.get("durationMs", 400),
                 radius=d.get("radius", 24),
             )
