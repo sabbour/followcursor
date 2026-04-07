@@ -71,6 +71,8 @@ class PreviewWidget(QWidget):
         self._frame_preset = None  # None → use default frame
         self._click_preset = None  # None → use default click effect
         self._annotations = None  # None → no annotations
+        self._key_events: list = []  # KeyEvent list for keystroke overlay
+        self._keystroke_config = None  # KeystrokeOverlayConfig or None
 
         # recording overlay
         self._recording_mode: bool = False
@@ -151,6 +153,12 @@ class PreviewWidget(QWidget):
     def set_annotations(self, annotations) -> None:
         """Set the annotations for the compositor."""
         self._annotations = annotations
+        self.update()
+
+    def set_keystroke_data(self, key_events: list, config) -> None:
+        """Set keystroke overlay data for the compositor."""
+        self._key_events = key_events or []
+        self._keystroke_config = config
         self.update()
 
     def set_output_dim(self, dim) -> None:
@@ -719,6 +727,8 @@ class PreviewWidget(QWidget):
             click_events=self._click_events or None,
             click_preset=self._click_preset,
             annotations=self._annotations,
+            key_events=self._key_events or None,
+            keystroke_config=self._keystroke_config,
         )
 
         painter.setClipping(False)

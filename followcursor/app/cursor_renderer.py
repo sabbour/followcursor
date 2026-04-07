@@ -5,6 +5,7 @@ Provides both QPainter-based (for live preview) and numpy/OpenCV-based
 Also renders click ripple effects at recorded click positions.
 """
 
+import logging
 from typing import List, Optional, Tuple
 
 import cv2
@@ -20,6 +21,8 @@ from PySide6.QtGui import (
 )
 
 from .models import MousePosition, ClickEvent, ClickEffectPreset, DEFAULT_CLICK_EFFECT
+
+logger = logging.getLogger(__name__)
 
 
 # ── Cursor appearance ───────────────────────────────────────────────
@@ -269,7 +272,11 @@ def draw_clicks_qpainter(
     screen_rect_h: float,
     preset: Optional[ClickEffectPreset] = None,
 ) -> None:
-    """Draw expanding ripple effects for recent clicks on the preview."""
+    """Draw expanding ripple effects for recent clicks on the preview.
+
+    Note: Only the "ripple" style is currently implemented. The preset's
+    ``style`` field ("burst", "highlight") is accepted but renders as ripple.
+    """
     if not click_events:
         return
 
@@ -333,7 +340,11 @@ def draw_clicks_cv(
     mon_h: int,
     preset: Optional[ClickEffectPreset] = None,
 ) -> None:
-    """Draw expanding ripple effects for recent clicks onto *frame_bgr* in-place."""
+    """Draw expanding ripple effects for recent clicks onto *frame_bgr* in-place.
+
+    Note: Only the "ripple" style is currently implemented. The preset's
+    ``style`` field ("burst", "highlight") is accepted but renders as ripple.
+    """
     if not click_events:
         return
 

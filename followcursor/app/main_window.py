@@ -85,7 +85,7 @@ class _LoadProjectWorker(QThread):
 class _SaveProjectWorker(QThread):
     """Background thread that writes a .fcproj ZIP file.
 
-    Bundling the AVI can take noticeable time; the GUI thread stays
+    Bundling the video can take noticeable time; the GUI thread stays
     responsive while this runs.  When *metadata_only* is True, only
     the JSON metadata is rewritten — the existing video entry is
     carried over byte-for-byte from the old ZIP.
@@ -1369,6 +1369,8 @@ class MainWindow(QMainWindow):
             self._status_text.setText("Ready")
             self._unsaved_changes = True
             self._update_title()
+            # Push keystroke data to preview for live rendering
+            self._preview.set_keystroke_data(self._key_events, self._keystroke_config)
             self._set_view("edit")
         except Exception:
             logger.exception("Error in post-recording finalization")
@@ -1678,6 +1680,8 @@ class MainWindow(QMainWindow):
         self._settings.setValue("keystroke/position", config.position)
         self._settings.setValue("keystroke/style", config.style)
         self._settings.setValue("keystroke/filterMode", config.filter_mode)
+        # Update preview with keystroke data
+        self._preview.set_keystroke_data(self._key_events, self._keystroke_config)
         self._mark_dirty()
 
     def _on_annotation_added(self, annot_type: str, annotation) -> None:
@@ -1732,7 +1736,26 @@ class MainWindow(QMainWindow):
 
     def _on_annotation_updated(self, annot_type: str, annotation) -> None:
         """Handle annotation updated from editor panel."""
-        # For now, just trigger a preview refresh
+        if self._annotations is None:
+            return
+
+        # Update the matching annotation by id
+        if annot_type == "text" and self._annotations.texts:
+            self._annotations.texts = [
+                annotation if a.id == annotation.id else a
+                for a in self._annotations.texts
+            ]
+        elif annot_type == "arrow" and self._annotations.arrows:
+            self._annotations.arrows = [
+                annotation if a.id == annotation.id else a
+                for a in self._annotations.arrows
+            ]
+        elif annot_type == "highlight" and self._annotations.highlights:
+            self._annotations.highlights = [
+                annotation if a.id == annotation.id else a
+                for a in self._annotations.highlights
+            ]
+
         self._preview.set_annotations(self._annotations)
         self._mark_dirty()
         logger.info("Annotation updated: %s", annot_type)
@@ -3038,8 +3061,9 @@ class MainWindow(QMainWindow):
         race conditions during concurrent access.
         """
         import winsound
-        # Defensive copy to avoid race conditions with segment updates
-        segments_snapshot = list(self._voiceover_segments)
+        # Defensive copy under lock to avoid race conditions with segment updates
+        with self._vo_lock:
+            segments_snapshot = list(self._voiceover_segments)
         for seg in segments_snapshot:
             with self._vo_lock:
                 if seg.id in self._vo_played_ids:

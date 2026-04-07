@@ -124,6 +124,8 @@ def compose_scene(
     click_events: Optional[List[ClickEvent]] = None,
     click_preset: Optional[ClickEffectPreset] = None,
     annotations = None,
+    key_events: Optional[list] = None,
+    keystroke_config = None,
 ) -> None:
     """Paint the device-frame composition onto *painter*.
 
@@ -282,6 +284,30 @@ def compose_scene(
         painter.drawEllipse(QPointF(cam_cx - cam_r * 0.2, cam_cy - cam_r * 0.2),
                             cam_r * 0.35, cam_r * 0.35)
 
+    # ── annotations overlay (rendered before cursor/clicks for correct z-order) ──
+    if annotations and monitor_rect:
+        from .annotation_renderer import render_annotations_qpainter
+        if _zoom_video_only and zoom > 1.001:
+            src = source_rect
+            vscr_w = scr_w * (iw / src.width())
+            vscr_h = scr_h * (ih / src.height())
+            vscr_x = scr_x - src.left() * (vscr_w / iw)
+            vscr_y = scr_y - src.top() * (vscr_h / ih)
+            painter.save()
+            painter.setClipRect(QRectF(scr_x, scr_y, scr_w, scr_h))
+            try:
+                render_annotations_qpainter(
+                    painter, annotations, time_ms, monitor_rect,
+                    vscr_x, vscr_y, vscr_w, vscr_h,
+                )
+            finally:
+                painter.restore()
+        else:
+            render_annotations_qpainter(
+                painter, annotations, time_ms, monitor_rect,
+                scr_x, scr_y, scr_w, scr_h,
+            )
+
     # ── mouse cursor overlay ───────────────────────────────────────
     if mouse_track and monitor_rect:
         from .cursor_renderer import draw_cursor_qpainter
@@ -334,29 +360,13 @@ def compose_scene(
                 click_preset or DEFAULT_CLICK_EFFECT,
             )
 
-    # ── annotations overlay ────────────────────────────────────────
-    if annotations and monitor_rect:
-        from .annotation_renderer import render_annotations_qpainter
-        if _zoom_video_only and zoom > 1.001:
-            src = source_rect
-            vscr_w = scr_w * (iw / src.width())
-            vscr_h = scr_h * (ih / src.height())
-            vscr_x = scr_x - src.left() * (vscr_w / iw)
-            vscr_y = scr_y - src.top() * (vscr_h / ih)
-            painter.save()
-            painter.setClipRect(QRectF(scr_x, scr_y, scr_w, scr_h))
-            try:
-                render_annotations_qpainter(
-                    painter, annotations, time_ms, monitor_rect,
-                    vscr_x, vscr_y, vscr_w, vscr_h,
-                )
-            finally:
-                painter.restore()
-        else:
-            render_annotations_qpainter(
-                painter, annotations, time_ms, monitor_rect,
-                scr_x, scr_y, scr_w, scr_h,
-            )
+    # ── keystroke overlay ──────────────────────────────────────────
+    if key_events and keystroke_config and monitor_rect:
+        from .keystroke_renderer import draw_keystrokes_qpainter
+        draw_keystrokes_qpainter(
+            painter, key_events, time_ms, keystroke_config,
+            monitor_rect, scr_x, scr_y, scr_w, scr_h,
+        )
 
 
 def draw_empty_bg(painter: QPainter, w: float, h: float,

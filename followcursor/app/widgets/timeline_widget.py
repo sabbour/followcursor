@@ -13,10 +13,11 @@ from PySide6.QtGui import (
     QFont,
     QMouseEvent,
     QWheelEvent,
+    QPolygonF,
 )
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QMenu, QScrollBar
 
-from ..models import ZoomKeyframe, MousePosition, KeyEvent, ClickEvent, VoiceoverSegment, VideoSegment
+from ..models import ZoomKeyframe, MousePosition, KeyEvent, ClickEvent, VoiceoverSegment, VideoSegment, Chapter
 from ..utils import fmt_time as _fmt
 from .timeline_math import (
     trim_eff_start, trim_eff_end, trim_eff_dur, trim_ms_to_x, trim_x_to_ms,
@@ -84,7 +85,7 @@ class _TimelineTrack(QWidget):
         self.video_segments: List[VideoSegment] = []
         self.trim_start_ms: float = 0.0
         self.trim_end_ms: float = 0.0  # 0 = no trim
-        self.chapters: List = []  # List[Chapter]
+        self.chapters: List[Chapter] = []
 
         # Trim handle drag state (relative drag using frozen anchor)
         self._drag_trim_start_x: float = 0.0

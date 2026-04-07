@@ -21,9 +21,10 @@ from PySide6.QtWidgets import (
     QDialogButtonBox,
     QFormLayout,
     QApplication,
+    QScrollArea,
 )
 
-from ..models import ZoomKeyframe, MousePosition, KeyEvent, ClickEvent, ClickEffectPreset, CLICK_EFFECT_PRESETS, DEFAULT_CLICK_EFFECT
+from ..models import ZoomKeyframe, MousePosition, KeyEvent, ClickEvent, ClickEffectPreset, CLICK_EFFECT_PRESETS, DEFAULT_CLICK_EFFECT, KeystrokeOverlayConfig
 from ..activity_analyzer import analyze_activity
 from ..backgrounds import (
     PRESETS, DEFAULT_PRESET, BackgroundPreset,
@@ -202,6 +203,8 @@ class EditorPanel(QWidget):
     annotation_added = Signal(str, object)       # type ("text"|"arrow"|"highlight"), annotation object
     annotation_removed = Signal(str, str)        # type, annotation id
     annotation_updated = Signal(str, object)     # type, annotation object
+    # chapters_changed acts as an action request trigger (e.g. auto-detection),
+    # not just a state notification, despite its name.
     chapters_changed = Signal(list)              # list of Chapter objects
     chapter_added = Signal(object)               # Chapter object
     chapter_removed = Signal(int)                # chapter timestamp_ms
@@ -217,7 +220,6 @@ class EditorPanel(QWidget):
         outer.setSpacing(0)
 
         # Scrollable content area (for when many sections are expanded)
-        from PySide6.QtWidgets import QScrollArea
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
@@ -565,7 +567,6 @@ class EditorPanel(QWidget):
         annot_lay.addLayout(btn_row)
 
         # Annotations list
-        from PySide6.QtWidgets import QScrollArea, QVBoxLayout as QVBoxLayout2
         list_scroll = QScrollArea()
         list_scroll.setWidgetResizable(True)
         list_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
@@ -1219,21 +1220,27 @@ class EditorPanel(QWidget):
         self._current_click_preset = preset
         self._click_combo.setCurrentText(preset.name)
 
-    def get_keystroke_config(self):
+    def get_keystroke_config(self) -> KeystrokeOverlayConfig:
         """Get the current keystroke overlay configuration."""
-        from ..models import KeystrokeOverlayConfig
+        defaults = KeystrokeOverlayConfig()
         return KeystrokeOverlayConfig(
             enabled=self._keystroke_enabled.isChecked(),
             position=self._keystroke_position_combo.currentData(),
             style=self._keystroke_style_combo.currentData(),
-            display_duration_ms=1500,  # Default value
+            display_duration_ms=defaults.display_duration_ms,
             filter_mode=self._keystroke_filter_combo.currentData(),
-            font_size=18,  # Default value
-            opacity=0.85,  # Default value
+            font_size=defaults.font_size,
+            opacity=defaults.opacity,
         )
 
-    def set_keystroke_config(self, config) -> None:
+    def set_keystroke_config(self, config: KeystrokeOverlayConfig) -> None:
         """Set the keystroke overlay configuration (e.g. from project load or QSettings)."""
+        # Block signals to avoid multiple emissions during batch update
+        self._keystroke_enabled.blockSignals(True)
+        self._keystroke_position_combo.blockSignals(True)
+        self._keystroke_style_combo.blockSignals(True)
+        self._keystroke_filter_combo.blockSignals(True)
+
         self._keystroke_enabled.setChecked(config.enabled)
 
         # Set position
@@ -1253,6 +1260,12 @@ class EditorPanel(QWidget):
             if self._keystroke_filter_combo.itemData(i) == config.filter_mode:
                 self._keystroke_filter_combo.setCurrentIndex(i)
                 break
+
+        # Restore signals
+        self._keystroke_enabled.blockSignals(False)
+        self._keystroke_position_combo.blockSignals(False)
+        self._keystroke_style_combo.blockSignals(False)
+        self._keystroke_filter_combo.blockSignals(False)
 
     def _on_keystroke_enabled_changed(self, checked: bool) -> None:
         """Handle keystroke overlay enable/disable toggle."""

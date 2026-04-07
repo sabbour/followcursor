@@ -1,7 +1,7 @@
 """Tests for app.credentials — DPAPI encryption for API keys."""
 
 import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 import base64
 
 from app import credentials

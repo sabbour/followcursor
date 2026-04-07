@@ -93,7 +93,12 @@ def _draw_highlight_qpainter(
     screen_w: float,
     screen_h: float,
 ) -> None:
-    """Draw a single highlight box annotation."""
+    """Draw a single highlight box annotation.
+
+    The ``opacity`` field takes precedence over the alpha channel in
+    ``color``.  Color alpha is ignored; use ``opacity`` (0.0–1.0) to
+    control fill transparency.
+    """
     # Convert normalized coords to screen pixels
     px = screen_x + highlight.x * screen_w
     py = screen_y + highlight.y * screen_h
@@ -237,6 +242,8 @@ def render_annotations_cv(
     """Draw annotations onto *frame_bgr* in-place for video export.
     
     Renders annotations in the order: highlights → arrows → text (back to front).
+    A single overlay copy is allocated for all alpha-blended annotations per
+    frame to avoid redundant full-frame copies.
     
     Args:
         frame_bgr: The raw video frame (BGR format)
@@ -250,11 +257,24 @@ def render_annotations_cv(
     
     fh, fw = frame_bgr.shape[:2]
     
-    # Render highlights first (back layer)
+    # Collect visible annotations to decide if we need an overlay
+    visible_highlights = []
     if annotations.highlights:
-        for highlight in annotations.highlights:
-            if highlight.start_ms <= timestamp_ms <= highlight.end_ms:
-                _draw_highlight_cv(frame_bgr, highlight, fw, fh)
+        for h in annotations.highlights:
+            if h.start_ms <= timestamp_ms <= h.end_ms:
+                visible_highlights.append(h)
+    visible_texts_bg = []
+    if annotations.texts:
+        for t in annotations.texts:
+            if t.start_ms <= timestamp_ms <= t.end_ms and t.background_color is not None:
+                visible_texts_bg.append(t)
+
+    # Allocate a single overlay for all alpha-blended drawing
+    overlay = frame_bgr.copy() if (visible_highlights or visible_texts_bg) else None
+
+    # Render highlights first (back layer)
+    for highlight in visible_highlights:
+        _draw_highlight_cv(frame_bgr, highlight, fw, fh, overlay)
     
     # Render arrows (middle layer)
     if annotations.arrows:
@@ -266,7 +286,7 @@ def render_annotations_cv(
     if annotations.texts:
         for text in annotations.texts:
             if text.start_ms <= timestamp_ms <= text.end_ms:
-                _draw_text_cv(frame_bgr, text, fw, fh)
+                _draw_text_cv(frame_bgr, text, fw, fh, overlay)
 
 
 def _draw_highlight_cv(
@@ -274,8 +294,14 @@ def _draw_highlight_cv(
     highlight: HighlightBox,
     frame_w: int,
     frame_h: int,
+    overlay: Optional[np.ndarray] = None,
 ) -> None:
-    """Draw a single highlight box annotation."""
+    """Draw a single highlight box annotation.
+
+    The ``opacity`` field takes precedence over the alpha channel in
+    ``color``.  Color alpha is ignored; use ``opacity`` (0.0–1.0) to
+    control fill transparency.
+    """
     # Convert normalized coords to frame pixels
     px = int(highlight.x * frame_w)
     py = int(highlight.y * frame_h)
@@ -291,8 +317,9 @@ def _draw_highlight_cv(
     if pw <= 0 or ph <= 0:
         return
     
-    # Create overlay for alpha blending
-    overlay = frame_bgr.copy()
+    # Use shared overlay or allocate one
+    if overlay is None:
+        overlay = frame_bgr.copy()
     
     # Convert RGBA to BGR
     color_bgr = (highlight.color[2], highlight.color[1], highlight.color[0])
@@ -306,6 +333,8 @@ def _draw_highlight_cv(
     roi_overlay = overlay[py:py + ph, px:px + pw]
     blended = cv2.addWeighted(roi, 1 - alpha, roi_overlay, alpha, 0)
     np.copyto(roi, blended)
+    # Reset overlay region to current frame state for next annotation
+    np.copyto(overlay[py:py + ph, px:px + pw], roi)
     
     # Draw border
     if highlight.border_width > 0:
@@ -335,6 +364,10 @@ def _draw_arrow_cv(
     # Convert RGBA to BGR
     color_bgr = (arrow.color[2], arrow.color[1], arrow.color[0])
     
+    # Compute tipLength from head_size relative to arrow length
+    length = math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2)
+    tip_length = (arrow.head_size / length) if length > 0 else 0.15
+
     # Draw main arrow line with arrowhead
     cv2.arrowedLine(
         frame_bgr,
@@ -343,7 +376,7 @@ def _draw_arrow_cv(
         color_bgr,
         arrow.thickness,
         cv2.LINE_AA,
-        tipLength=0.15  # Arrow tip length as fraction of line length
+        tipLength=tip_length
     )
 
 
@@ -352,6 +385,7 @@ def _draw_text_cv(
     text: TextAnnotation,
     frame_w: int,
     frame_h: int,
+    overlay: Optional[np.ndarray] = None,
 ) -> None:
     """Draw a single text annotation with optional background."""
     # Convert normalized coords to frame pixels
@@ -384,8 +418,9 @@ def _draw_text_cv(
     
     # Draw background if specified
     if text.background_color is not None:
-        # Create overlay for alpha blending
-        overlay = frame_bgr.copy()
+        # Use shared overlay or allocate one
+        if overlay is None:
+            overlay = frame_bgr.copy()
         bg_color_bgr = (
             text.background_color[2],
             text.background_color[1],
@@ -407,6 +442,8 @@ def _draw_text_cv(
         roi_overlay = overlay[badge_y:badge_y + badge_h, badge_x:badge_x + badge_w]
         blended = cv2.addWeighted(roi, 1 - bg_alpha, roi_overlay, bg_alpha, 0)
         np.copyto(roi, blended)
+        # Reset overlay region for next annotation
+        np.copyto(overlay[badge_y:badge_y + badge_h, badge_x:badge_x + badge_w], roi)
     
     # Draw text
     text_color_bgr = (text.color[2], text.color[1], text.color[0])

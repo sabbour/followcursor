@@ -13,6 +13,13 @@ from app.models import (
     RecordingSession,
     VoiceoverSegment,
     VideoSegment,
+    Chapter,
+    ClickEffectPreset,
+    KeystrokeOverlayConfig,
+    TextAnnotation,
+    ArrowAnnotation,
+    HighlightBox,
+    AnnotationCollection,
     DEFAULT_FPS,
     DEFAULT_MOUSE_INTERVAL,
 )
@@ -577,3 +584,192 @@ class TestConstants:
         assert abs(polling_hz - DEFAULT_FPS) < 5, (
             f"Polling rate {polling_hz:.1f} Hz does not approximate FPS {DEFAULT_FPS}"
         )
+
+
+# ── Chapter roundtrip ─────────────────────────────────────────────
+
+
+class TestChapterRoundtrip:
+    def test_roundtrip(self) -> None:
+        """to_dict → from_dict preserves all fields."""
+        ch = Chapter(timestamp_ms=12345, name="Intro", auto_detected=True)
+        d = ch.to_dict()
+        ch2 = Chapter.from_dict(d)
+        assert ch2.timestamp_ms == ch.timestamp_ms
+        assert ch2.name == ch.name
+        assert ch2.auto_detected == ch.auto_detected
+
+    def test_defaults_roundtrip(self) -> None:
+        ch = Chapter(timestamp_ms=0, name="")
+        d = ch.to_dict()
+        ch2 = Chapter.from_dict(d)
+        assert ch2.timestamp_ms == 0
+        assert ch2.name == ""
+        assert ch2.auto_detected is True  # default is True (heuristic-generated)
+
+
+# ── ClickEffectPreset roundtrip ─────────────────────────────────
+
+
+class TestClickEffectPresetRoundtrip:
+    def test_roundtrip(self) -> None:
+        """to_dict → from_dict preserves all fields."""
+        preset = ClickEffectPreset(
+            name="Purple", color=(138, 92, 246, 200), style="ripple",
+            duration_ms=500, radius=30,
+        )
+        d = preset.to_dict()
+        preset2 = ClickEffectPreset.from_dict(d)
+        assert preset2.name == preset.name
+        assert tuple(preset2.color) == tuple(preset.color)
+        assert preset2.style == preset.style
+        assert preset2.duration_ms == preset.duration_ms
+        assert preset2.radius == preset.radius
+
+
+# ── KeystrokeOverlayConfig roundtrip ──────────────────────────────
+
+
+class TestKeystrokeOverlayConfigRoundtrip:
+    def test_roundtrip(self) -> None:
+        """to_dict → from_dict preserves all fields."""
+        config = KeystrokeOverlayConfig(
+            enabled=True,
+            position="bottom-left",
+            style="key-cap",
+            display_duration_ms=2000,
+            filter_mode="all",
+            font_size=24,
+            opacity=0.5,
+        )
+        d = config.to_dict()
+        config2 = KeystrokeOverlayConfig.from_dict(d)
+        assert config2.enabled == config.enabled
+        assert config2.position == config.position
+        assert config2.style == config.style
+        assert config2.display_duration_ms == config.display_duration_ms
+        assert config2.filter_mode == config.filter_mode
+        assert config2.font_size == config.font_size
+        assert config2.opacity == config.opacity
+
+    def test_defaults_roundtrip(self) -> None:
+        config = KeystrokeOverlayConfig()
+        d = config.to_dict()
+        config2 = KeystrokeOverlayConfig.from_dict(d)
+        assert config2.enabled == config.enabled
+        assert config2.filter_mode == "shortcuts-only"
+
+    def test_filter_mode_validation(self) -> None:
+        """from_dict with unrecognized filter_mode falls back to default."""
+        d = KeystrokeOverlayConfig().to_dict()
+        d["filterMode"] = "invalid-mode"
+        config = KeystrokeOverlayConfig.from_dict(d)
+        assert config.filter_mode == "shortcuts-only"
+
+
+# ── Annotation roundtrips ────────────────────────────────────────
+
+
+class TestTextAnnotationRoundtrip:
+    def test_roundtrip(self) -> None:
+        annot = TextAnnotation(
+            id="t1", start_ms=100.0, end_ms=2000.0,
+            x=0.3, y=0.7, text="Hello",
+            font_size=24, color=(255, 0, 0, 128),
+            background_color=(0, 0, 0, 180),
+        )
+        d = annot.to_dict()
+        annot2 = TextAnnotation.from_dict(d)
+        assert annot2.id == annot.id
+        assert annot2.start_ms == annot.start_ms
+        assert annot2.end_ms == annot.end_ms
+        assert annot2.x == annot.x
+        assert annot2.y == annot.y
+        assert annot2.text == annot.text
+        assert annot2.font_size == annot.font_size
+        assert tuple(annot2.color) == tuple(annot.color)
+        assert tuple(annot2.background_color) == tuple(annot.background_color)
+
+
+class TestArrowAnnotationRoundtrip:
+    def test_roundtrip(self) -> None:
+        annot = ArrowAnnotation(
+            id="a1", start_ms=500.0, end_ms=3000.0,
+            x1=0.1, y1=0.2, x2=0.8, y2=0.9,
+            color=(0, 255, 0, 255), thickness=5, head_size=20,
+        )
+        d = annot.to_dict()
+        annot2 = ArrowAnnotation.from_dict(d)
+        assert annot2.id == annot.id
+        assert annot2.x1 == annot.x1
+        assert annot2.y1 == annot.y1
+        assert annot2.x2 == annot.x2
+        assert annot2.y2 == annot.y2
+        assert tuple(annot2.color) == tuple(annot.color)
+        assert annot2.thickness == annot.thickness
+        assert annot2.head_size == annot.head_size
+
+
+class TestHighlightBoxRoundtrip:
+    def test_roundtrip(self) -> None:
+        annot = HighlightBox(
+            id="h1", start_ms=0.0, end_ms=5000.0,
+            x=0.2, y=0.3, width=0.4, height=0.2,
+            color=(255, 204, 0, 100), opacity=0.6, border_width=3,
+        )
+        d = annot.to_dict()
+        annot2 = HighlightBox.from_dict(d)
+        assert annot2.id == annot.id
+        assert annot2.x == annot.x
+        assert annot2.y == annot.y
+        assert annot2.width == annot.width
+        assert annot2.height == annot.height
+        assert tuple(annot2.color) == tuple(annot.color)
+        assert annot2.opacity == annot.opacity
+        assert annot2.border_width == annot.border_width
+
+
+class TestAnnotationCollectionRoundtrip:
+    def test_roundtrip(self) -> None:
+        coll = AnnotationCollection(
+            texts=[TextAnnotation(id="t1", start_ms=0, end_ms=1000, x=0.5, y=0.5, text="Hi")],
+            arrows=[ArrowAnnotation(id="a1", start_ms=0, end_ms=1000, x1=0, y1=0, x2=1, y2=1)],
+            highlights=[HighlightBox(id="h1", start_ms=0, end_ms=1000, x=0.1, y=0.1, width=0.5, height=0.5)],
+        )
+        d = coll.to_dict()
+        coll2 = AnnotationCollection.from_dict(d)
+        assert len(coll2.texts) == 1
+        assert coll2.texts[0].id == "t1"
+        assert len(coll2.arrows) == 1
+        assert coll2.arrows[0].id == "a1"
+        assert len(coll2.highlights) == 1
+        assert coll2.highlights[0].id == "h1"
+
+    def test_empty_roundtrip(self) -> None:
+        coll = AnnotationCollection()
+        d = coll.to_dict()
+        coll2 = AnnotationCollection.from_dict(d)
+        assert coll2.texts is None
+        assert coll2.arrows is None
+        assert coll2.highlights is None
+
+
+# ── KeyEvent.vk_code roundtrip ─────────────────────────────────
+
+
+class TestKeyEventVkCode:
+    def test_vk_code_roundtrip(self) -> None:
+        """vk_code survives to_dict → from_dict."""
+        ke = KeyEvent(timestamp=100.0, x=10.0, y=20.0, vk_code=65)
+        d = ke.to_dict()
+        assert d["vkCode"] == 65
+        ke2 = KeyEvent.from_dict(d)
+        assert ke2.vk_code == 65
+
+    def test_vk_code_none_omitted(self) -> None:
+        """vk_code=None should not appear in serialized dict."""
+        ke = KeyEvent(timestamp=100.0)
+        d = ke.to_dict()
+        assert "vkCode" not in d
+        ke2 = KeyEvent.from_dict(d)
+        assert ke2.vk_code is None
