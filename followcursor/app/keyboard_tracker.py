@@ -23,14 +23,11 @@ WM_KEYDOWN = 0x0100
 WM_SYSKEYDOWN = 0x0104
 WM_QUIT = 0x0012
 
-# Virtual key codes to ignore — modifier keys and app hotkey combos
+# Virtual key codes to ignore — app hotkey combos and lock keys
 # don't represent actual "typing" and would inflate activity signals.
+# Modifier keys (Ctrl, Alt, Win, Shift) are now recorded so keystroke
+# renderer can filter them properly.
 _IGNORE_VKS = frozenset((
-    0x10, 0x11, 0x12,          # Shift, Ctrl, Alt (generic)
-    0xA0, 0xA1,                # LShift, RShift
-    0xA2, 0xA3,                # LCtrl, RCtrl
-    0xA4, 0xA5,                # LAlt, RAlt
-    0x5B, 0x5C,                # LWin, RWin
     0x14, 0x90, 0x91,          # CapsLock, NumLock, ScrollLock
     0x52,                      # R  — part of Ctrl+Shift+R record toggle
     0xBB,                      # OEM_PLUS (= key) — part of zoom-in hotkey

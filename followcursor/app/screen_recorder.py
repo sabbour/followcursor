@@ -147,8 +147,14 @@ def _stop_ffmpeg_writer(proc: Optional[subprocess.Popen]) -> None:
         # Step 3: Kill if timeout expires
         try:
             proc.kill()
-            proc.wait(timeout=5)
-            logger.info("ffmpeg killed after timeout (pid=%s)", proc.pid)
+            try:
+                proc.wait(timeout=5)
+                logger.info("ffmpeg killed after timeout (pid=%s)", proc.pid)
+            except subprocess.TimeoutExpired:
+                logger.warning("ffmpeg did not exit after kill (pid=%s), checking if still running", proc.pid)
+                if proc.poll() is None:
+                    logger.error("ffmpeg still running after kill (pid=%s), attempting second kill", proc.pid)
+                    proc.kill()
         except Exception as e:
             logger.error("Failed to kill ffmpeg (pid=%s): %s", proc.pid, e)
     except Exception as e:

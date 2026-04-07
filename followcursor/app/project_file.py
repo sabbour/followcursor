@@ -297,7 +297,8 @@ def load_project(input_path: str) -> dict:
 
     try:
         with open(json_path, "r", encoding="utf-8") as f:
-            data = json.loads(f.read())
+            json_content = f.read()
+            data = json.loads(json_content)
         session = RecordingSession.from_json(json.dumps(data))
     except (ValueError, TypeError, json.JSONDecodeError) as exc:
         raise ValueError(f"Corrupted project file: {exc}") from exc

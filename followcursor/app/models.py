@@ -523,12 +523,15 @@ class KeystrokeOverlayConfig:
     @staticmethod
     def from_dict(d: dict) -> "KeystrokeOverlayConfig":
         """Reconstruct from a dict produced by ``to_dict()``."""
+        filter_mode = d.get("filterMode", "shortcuts-only")
+        if filter_mode not in {"all", "modifiers-only", "shortcuts-only"}:
+            filter_mode = "shortcuts-only"
         return KeystrokeOverlayConfig(
             enabled=d.get("enabled", False),
             position=d.get("position", "bottom-center"),
             style=d.get("style", "floating-badge"),
             display_duration_ms=d.get("displayDurationMs", 1500),
-            filter_mode=d.get("filterMode", "shortcuts-only"),
+            filter_mode=filter_mode,
             font_size=d.get("fontSize", 18),
             opacity=d.get("opacity", 0.85),
         )

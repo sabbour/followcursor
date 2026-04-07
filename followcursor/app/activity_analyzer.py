@@ -691,6 +691,7 @@ def detect_chapters(
         screen_w = max(xs) - min(xs) if xs else 1920
         screen_h = max(ys) - min(ys) if ys else 1080
         diag = math.sqrt(screen_w**2 + screen_h**2)
+        diag = max(diag, 100.0)
         jump_threshold_px = diag * JUMP_THRESHOLD
 
         for i in range(1, len(mouse_events)):

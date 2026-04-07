@@ -228,7 +228,7 @@ def _should_show_group(
         # Single Shift+letter is NOT considered a shortcut
         return has_modifier
     
-    return True
+    return False
 
 
 def _compute_fade_alpha(age_ms: float, display_duration_ms: int) -> float:

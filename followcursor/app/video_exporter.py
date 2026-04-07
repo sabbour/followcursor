@@ -447,7 +447,7 @@ class GeometryComputer:
         src_w: int,
         src_h: int,
         frame_preset: FramePreset,
-    ):
+    ) -> None:
         """Initialize geometry computer with canvas and source dimensions.
         
         Args:
@@ -457,6 +457,9 @@ class GeometryComputer:
             src_h: Source video height in pixels
             frame_preset: Frame preset defining bezel/padding parameters
         """
+        if (not isinstance(canvas_w, int) or not isinstance(canvas_h, int) or
+            canvas_w <= 0 or canvas_h <= 0):
+            raise ValueError(f"output_dim must be two positive integers, got ({canvas_w}, {canvas_h})")
         self.canvas_w = canvas_w
         self.canvas_h = canvas_h
         self.src_w = src_w
@@ -927,19 +930,25 @@ class VideoExporter(QObject):
                 try:
                     with os.fdopen(fd, "w", encoding="utf-8") as f:
                         f.write(";FFMETADATA1\n")
-                        for chapter in sorted(chapters, key=lambda c: c.timestamp_ms):
-                            # Adjust chapter times for trim offset
+                        sorted_chapters = sorted(chapters, key=lambda c: c.timestamp_ms)
+                        # Filter chapters to only those within trim range
+                        filtered_chapters = []
+                        for chapter in sorted_chapters:
                             chap_ms = chapter.timestamp_ms - trim_start_ms
                             if chap_ms < 0:
                                 continue  # Chapter is before trim start
                             if trim_end_ms > 0 and chapter.timestamp_ms > trim_end_ms:
                                 continue  # Chapter is after trim end
-                            # Convert to ffmpeg timebase (milliseconds)
-                            start_ms = int(chap_ms)
-                            # Chapter ends at the next chapter or end of video
-                            # For simplicity, set a nominal 1-second duration
-                            # (ffmpeg will extend to next chapter automatically)
-                            end_ms = start_ms + 1000
+                            filtered_chapters.append((chapter, int(chap_ms)))
+                        
+                        # Write chapters with correct END times
+                        for i, (chapter, start_ms) in enumerate(filtered_chapters):
+                            # Chapter ends at the next chapter start or end of video
+                            if i + 1 < len(filtered_chapters):
+                                end_ms = filtered_chapters[i + 1][1]
+                            else:
+                                # Last chapter ends at video duration
+                                end_ms = int(duration_ms - trim_start_ms) if trim_end_ms == 0 else int(trim_end_ms - trim_start_ms)
                             f.write("[CHAPTER]\n")
                             f.write(f"TIMEBASE=1/1000\n")
                             f.write(f"START={start_ms}\n")
@@ -1310,7 +1319,11 @@ class VideoExporter(QObject):
                     stderr_out = proc.communicate(timeout=300)[1]
                 except subprocess.TimeoutExpired:
                     proc.kill()
-                    stderr_out = proc.communicate()[1]
+                    try:
+                        stderr_out = proc.communicate(timeout=5)[1]
+                    except subprocess.TimeoutExpired:
+                        logger.warning("GIF ffmpeg did not respond after kill")
+                        stderr_out = b""
                 stderr_text = stderr_out.decode(errors="replace") if stderr_out else ""
                 cap.release()
                 if proc.returncode != 0:
@@ -1400,7 +1413,11 @@ class VideoExporter(QObject):
                 stderr_out = proc.communicate(timeout=60)[1]
             except subprocess.TimeoutExpired:
                 proc.kill()
-                stderr_out = proc.communicate()[1]
+                try:
+                    stderr_out = proc.communicate(timeout=5)[1]
+                except subprocess.TimeoutExpired:
+                    logger.warning("MP4 ffmpeg did not respond after kill")
+                    stderr_out = b""
 
             stderr_text = stderr_out.decode(errors="replace") if stderr_out else ""
 
@@ -1429,7 +1446,11 @@ class VideoExporter(QObject):
                         stderr_out = proc.communicate(timeout=60)[1]
                     except subprocess.TimeoutExpired:
                         proc.kill()
-                        stderr_out = proc.communicate()[1]
+                        try:
+                            stderr_out = proc.communicate(timeout=5)[1]
+                        except subprocess.TimeoutExpired:
+                            logger.warning("Fallback encoder %s ffmpeg did not respond after kill", encoder_id)
+                            stderr_out = b""
                     stderr_text = stderr_out.decode(errors="replace") if stderr_out else ""
                     if proc.returncode == 0 and pipe_ok:
                         break  # success

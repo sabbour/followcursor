@@ -140,6 +140,11 @@ def capture_window_thumbnail(
     cap_w = max(10, int(w * cap_scale))
     cap_h = max(10, int(h * cap_scale))
 
+    # Cap dimensions to prevent GDI allocation failures
+    max_dim = 8192
+    if cap_w > max_dim or cap_h > max_dim:
+        return None
+
     try:
         gdi32 = ctypes.windll.gdi32
 
