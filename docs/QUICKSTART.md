@@ -17,30 +17,30 @@ Download the latest .msix installer or portable .zip from the [GitHub Releases](
 | Requirement | Notes |
 | ----------- | ----- |
 | **Windows 10 (build 1903+) or Windows 11** | Required for Windows Graphics Capture API |
-| **Python 3.10 or newer** | [Download](https://www.python.org/downloads/) — check **Add to PATH** during install |
+| **Python 3.13** | [Download](https://www.python.org/downloads/) — check **Add to PATH** during install |
 | **ffmpeg** | Bundled automatically via imageio-ffmpeg — no manual install needed |
 
 !!! warning "ARM64 Windows"
-    Install the **x64** edition of Python, not ARM64. Many dependencies (OpenCV, windows-capture) don''t have ARM64 wheels. x64 Python runs fine via emulation.
+    Install the **x64** edition of Python, not ARM64. Many dependencies (OpenCV, windows-capture) don't have ARM64 wheels. x64 Python runs fine via emulation.
 
 **One-command setup:**
 
-`powershell
+```powershell
 cd followcursor
 .\scripts\Start-Dev.ps1
-`
+```
 
 This creates a virtual environment, installs all dependencies, and launches the app.
 
 **Manual setup:**
 
-`powershell
+```powershell
 cd followcursor
 python -m venv .venv
 .venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 python main.py
-`
+```
 
 ### Option C: VS Code
 
@@ -161,7 +161,7 @@ Export renders every frame with zoom, cursor, click effects, keystroke overlay, 
 - **Ctrl+S** — saves a .fcproj file (ZIP bundle with raw video + all metadata + voiceover audio)
 - Re-saving is near-instant — only metadata is updated, the video is never re-copied
 - The title bar shows the project name and a dot indicator for unsaved changes
-- Closing with unsaved changes prompts **Save / Don''t Save / Cancel**
+- Closing with unsaved changes prompts **Save / Don't Save / Cancel**
 
 ---
 
@@ -207,7 +207,7 @@ Export renders every frame with zoom, cursor, click effects, keystroke overlay, 
 ### No monitors found or blank thumbnails
 
 - Make sure you are running on Windows 10 build 1903+ or Windows 11
-- Some Remote Desktop sessions don''t support WGC — the app falls back to GDI capture automatically
+- Some Remote Desktop sessions don't support WGC — the app falls back to GDI capture automatically
 
 ### Recording is laggy
 

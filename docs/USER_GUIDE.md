@@ -32,7 +32,7 @@ Click **Select Source** in the sidebar to open the Source Picker dialog. Two tab
 Each option shows a live thumbnail preview so you can confirm the correct source before starting.
 
 - **Monitor capture** records the full display at native resolution. On multi-monitor setups, each monitor is listed separately.
-- **Window capture** records only that window''s content, regardless of whether it is obscured by other windows.
+- **Window capture** records only that window's content, regardless of whether it is obscured by other windows.
 
 ### Countdown & Start
 
@@ -179,7 +179,7 @@ The **centroid** is the point the camera focuses on during a zoom. To reposition
 2. Select **Set centroid**
 3. The preview enters centroid pick mode — the cursor changes to a crosshair
 4. **Click** the point on the preview where you want the camera to focus
-5. The keyframe''s pan center updates to match
+5. The keyframe's pan center updates to match
 
 ### Pan Path Points
 
@@ -477,7 +477,7 @@ Add voiceover segments at specific points in the timeline, write your text, and 
 - Audio is encoded as AAC at 192 kbps
 - Voiceover is only included in MP4 exports (not GIF)
 
-**Voice options:** Configurable via the AI Settings dialog. The default voice is n-US-Ava:DragonHDLatestNeural. Rate (0.0-3.0) and volume (0.0-3.0) are adjustable per segment.
+**Voice options:** Configurable via the AI Settings dialog. The default voice is en-US-Ava:DragonHDLatestNeural. Rate (0.0-3.0) and volume (0.0-3.0) are adjustable per segment.
 
 ---
 
@@ -505,9 +505,8 @@ FollowCursor can auto-detect **scene chapters** based on activity patterns:
 A .fcproj file is a **ZIP archive** containing:
 
 - project.json — session metadata (mouse positions, key events, click events, zoom keyframes, trim range, settings)
-- 
-ecording.mp4 — the raw H.264 intermediate video
-- oiceover_*.wav — synthesized voiceover audio files (one per segment)
+- recording.mp4 — the raw H.264 intermediate video
+- voiceover_*.wav — synthesized voiceover audio files (one per segment)
 
 ### Loading a Project
 
@@ -515,13 +514,13 @@ Open a .fcproj file to restore the entire session. A loading overlay appears whi
 
 ### Close Confirmation
 
-When closing with unsaved changes, a confirmation dialog asks: **Save / Don''t Save / Cancel**.
+When closing with unsaved changes, a confirmation dialog asks: **Save / Don't Save / Cancel**.
 
 ---
 
 ## Open in Clipchamp
 
-For additional editing, click the **Clipchamp** button to hand off your recording to Microsoft''s built-in video editor on Windows 11.
+For additional editing, click the **Clipchamp** button to hand off your recording to Microsoft's built-in video editor on Windows 11.
 
 ---
 
