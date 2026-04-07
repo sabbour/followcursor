@@ -6,7 +6,7 @@
 - Added docs/overrides/.icons/fluent/ with Fluent SVGs from app/icons/
 - Configured mkdocs.yml: custom_dir + pymdownx.emoji with twemoji+svg+custom_icons
 - Updated docs/index.md to use :fluent-*: shortcodes
-- Icon shortcode format: :fluent-{filename-without-ext}: where filename uses dashes not underscores
+- Icon shortcode format: :fluent-{filename-without-ext}: where shortcodes use underscores matching SVG filename (e.g. :fluent-arrow_upload_20_regular:)
 - PR opened for #132
 
 ### 2026-04-07: Fixed PR #110 — Source Picker Icon Color State Management
