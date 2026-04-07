@@ -8,7 +8,13 @@
 
 Never force merge PRs just to get things done. Always wait for CI builds to pass AND address all pending review comments, especially those from Copilot code review, before merging.
 
-### 2026-04-07T08:15:00Z: Wait for Copilot Review
+### 2026-04-07: Squad files must be in separate PRs from feature changes
+
+**By:** Ahmed Sabbour
+
+`.squad/` files (history, routing, decisions, logs) must never be committed in the same PR as feature, fix, or docs changes. Always open a dedicated `chore/squad-*` branch and PR for any `.squad/` updates. Mixing squad housekeeping with feature diffs trips up the Copilot reviewer and pollutes the PR.
+
+
 
 **By:** Ahmed Sabbour (via Copilot)
 
