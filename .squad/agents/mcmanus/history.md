@@ -536,3 +536,13 @@ Restyled all widgets to match official Microsoft Fluent 2 component patterns. Th
 **Reference:**
 - https://fluent2.microsoft.design/components/web/react/
 
+### 2026-07-25: Source Picker Fluent 2 Alignment
+
+**Context:** The source picker dialog was the last widget not fully aligned with the Fluent 2 migration (PRs #98–#107).
+
+**Key takeaways:**
+1. **Inline QSS is a Fluent 2 anti-pattern** — The dialog had 11 lines of inline `setStyleSheet()` on the tab widget that overrode the global Fluent 2 tab styles with legacy values (wrong background, missing hover state, legacy font size). Removing inline QSS and relying on the global theme fixed all inconsistencies at once.
+2. **Scoped QSS for container overrides** — When a dialog needs its tab pane background to be transparent (rather than the global `BG_LAYER_1`), add a scoped `#SourcePickerDialog QTabWidget::pane` rule in theme.py — don't use inline styles.
+3. **Legacy token drift** — The dialog title used `FONT_SIZE_HEADER` (legacy 20px alias) and hardcoded weight `600`. While the values happened to match, using the Fluent 2 tokens (`FONT_SIZE_SUBTITLE_2`, `FONT_WEIGHT_SEMIBOLD`) is correct for consistency and future-proofing.
+4. **Non-standard control heights** — The Refresh button had `setFixedHeight(28)` which doesn't match any Fluent 2 control height. Removing it lets the `CtrlBtn` QSS (36px) apply, consistent with all other secondary buttons.
+
