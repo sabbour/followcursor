@@ -697,6 +697,15 @@ class MainWindow(QMainWindow):
         self.resize(1200, 800)
         self.setWindowFlags(Qt.WindowType.FramelessWindowHint)
         self.setStyleSheet(DARK_THEME)
+        
+        # Enable Mica backdrop on Windows 11 Build 22621+
+        hwnd = int(self.winId())
+        if is_mica_supported():
+            success = enable_mica(hwnd, dark_mode=True)
+            if success:
+                # Set transparent background for Mica to be visible
+                self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
+                logger.info("Mica backdrop enabled with transparent background")
 
         # ── persistent settings ─────────────────────────────────────
         self._settings = QSettings("FollowCursor", "FollowCursor")
