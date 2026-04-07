@@ -66,25 +66,26 @@ QPushButton:focus {{
 QLineEdit, QTextEdit {{
     background-color: {T.BG_LAYER_2};
     color: {T.FG_PRIMARY};
-    border: 1px solid {T.STROKE_1};
-    border-radius: {T.RADIUS_SMALL}px;
-    padding: {T.SPACE_6}px {T.SPACE_SM}px;
+    border: none;
+    border-bottom: 1px solid {T.STROKE_1};
+    border-radius: 0px;
+    padding: {T.SPACE_6}px {T.SPACE_MD}px;
     font-size: {T.FONT_SIZE_BODY_1}px;
     selection-background-color: {T.BRAND};
     selection-color: {T.FG_PRIMARY};
+    min-height: 32px;
 }}
 QLineEdit:hover, QTextEdit:hover {{
-    border-color: {T.STROKE_ACCESSIBLE};
+    border-bottom-color: {T.STROKE_ACCESSIBLE};
 }}
 QLineEdit:focus, QTextEdit:focus {{
-    outline: {T.FOCUS_RING_WIDTH}px solid {T.BRAND};
-    outline-offset: {T.FOCUS_RING_OFFSET}px;
-    border-color: {T.BRAND};
+    border-bottom: 2px solid {T.BRAND};
+    padding-bottom: {T.SPACE_6 - 1}px;
 }}
 QLineEdit:disabled, QTextEdit:disabled {{
     background-color: {T.BG_LAYER_1};
     color: {T.FG_DISABLED};
-    border-color: {T.STROKE_2};
+    border-bottom-color: {T.STROKE_2};
 }}
 
 /* ══════════════════════════════════════════════════════════════
@@ -96,7 +97,7 @@ QComboBox {{
     color: {T.FG_PRIMARY};
     border: 1px solid {T.STROKE_1};
     border-radius: {T.RADIUS_SMALL}px;
-    padding: {T.SPACE_6}px {T.SPACE_SM}px;
+    padding: 0px {T.SPACE_MD}px;
     font-size: {T.FONT_SIZE_BODY_1}px;
     min-height: 32px;
 }}
@@ -119,9 +120,9 @@ QComboBox::drop-down {{
 }}
 QComboBox::down-arrow {{
     image: none;
-    border-left: 4px solid transparent;
-    border-right: 4px solid transparent;
-    border-top: 5px solid {T.FG_2};
+    border-left: 3px solid transparent;
+    border-right: 3px solid transparent;
+    border-top: 4px solid {T.FG_2};
     margin-right: {T.SPACE_XS}px;
 }}
 QComboBox QAbstractItemView {{
@@ -193,9 +194,9 @@ QCheckBox {{
     font-size: {T.FONT_SIZE_BODY_1}px;
 }}
 QCheckBox::indicator {{
-    width: 16px;
-    height: 16px;
-    border: 1px solid {T.STROKE_1};
+    width: 20px;
+    height: 20px;
+    border: 2px solid {T.STROKE_1};
     border-radius: {T.RADIUS_SMALL}px;
     background-color: {T.BG_LAYER_2};
 }}
@@ -209,6 +210,7 @@ QCheckBox::indicator:checked {{
 }}
 QCheckBox::indicator:checked:hover {{
     background-color: {T.BRAND_HOVER};
+    border-color: {T.BRAND_HOVER};
 }}
 QCheckBox::indicator:disabled {{
     background-color: {T.BG_LAYER_1};
@@ -218,6 +220,46 @@ QCheckBox::indicator:focus {{
     border: 2px solid {T.BRAND};
 }}
 QCheckBox::indicator:checked:focus {{
+    border: 2px solid {T.BRAND};
+    background-color: {T.BRAND};
+}}
+
+/* ══════════════════════════════════════════════════════════════
+   RADIOBUTTON — Fluent 2 Radio Pattern
+   https://fluent2.microsoft.design/components/web/react/core/radio/usage
+   ══════════════════════════════════════════════════════════════ */
+QRadioButton {{
+    spacing: {T.SPACE_SM}px;
+    color: {T.FG_PRIMARY};
+    font-size: {T.FONT_SIZE_BODY_1}px;
+}}
+QRadioButton::indicator {{
+    width: 20px;
+    height: 20px;
+    border: 2px solid {T.STROKE_1};
+    border-radius: 10px;
+    background-color: {T.BG_LAYER_2};
+}}
+QRadioButton::indicator:hover {{
+    border-color: {T.STROKE_ACCESSIBLE};
+    background-color: {T.BG_LAYER_3};
+}}
+QRadioButton::indicator:checked {{
+    background-color: {T.BRAND};
+    border-color: {T.BRAND};
+}}
+QRadioButton::indicator:checked:hover {{
+    background-color: {T.BRAND_HOVER};
+    border-color: {T.BRAND_HOVER};
+}}
+QRadioButton::indicator:disabled {{
+    background-color: {T.BG_LAYER_1};
+    border-color: {T.STROKE_2};
+}}
+QRadioButton::indicator:focus {{
+    border: 2px solid {T.BRAND};
+}}
+QRadioButton::indicator:checked:focus {{
     border: 2px solid {T.BRAND};
     background-color: {T.BRAND};
 }}
@@ -391,7 +433,7 @@ QScrollBar:vertical:hover {{
 }}
 QScrollBar::handle:vertical {{
     background: {T.STROKE_1};
-    border-radius: {T.RADIUS_SMALL}px;
+    border-radius: 3px;
     min-height: {T.SCROLLBAR_MIN_HEIGHT}px;
 }}
 QScrollBar::handle:vertical:hover {{
@@ -417,7 +459,7 @@ QScrollBar:horizontal:hover {{
 }}
 QScrollBar::handle:horizontal {{
     background: {T.STROKE_1};
-    border-radius: {T.RADIUS_SMALL}px;
+    border-radius: 3px;
     min-width: {T.SCROLLBAR_MIN_HEIGHT}px;
 }}
 QScrollBar::handle:horizontal:hover {{
@@ -438,12 +480,35 @@ QScrollBar::add-page:horizontal, QScrollBar::sub-page:horizontal {{
    https://fluent2.microsoft.design/components/web/react/core/tooltip/usage
    ══════════════════════════════════════════════════════════════ */
 QToolTip {{
-    background-color: {T.BG_LAYER_5};
+    background-color: {T.BG_LAYER_4};
+    color: {T.FG_PRIMARY};
+    border: 1px solid {T.STROKE_1};
+    border-radius: {T.RADIUS_SMALL}px;
+    padding: {T.SPACE_6}px {T.SPACE_SM}px;
+    font-size: {T.FONT_SIZE_CAPTION_1}px;
+    max-width: 240px;
+}}
+
+/* ══════════════════════════════════════════════════════════════
+   GROUPBOX — Fluent 2 Card Container Pattern
+   https://fluent2.microsoft.design/components/web/react/core/card/usage
+   ══════════════════════════════════════════════════════════════ */
+QGroupBox {{
+    background-color: {T.BG_CARD};
     color: {T.FG_PRIMARY};
     border: 1px solid {T.STROKE_1};
     border-radius: {T.RADIUS_MEDIUM}px;
-    padding: {T.SPACE_6}px {T.SPACE_SM}px;
-    font-size: {T.FONT_SIZE_CAPTION_1}px;
+    padding: {T.SPACE_LG}px;
+    margin-top: {T.SPACE_SM}px;
+    font-size: {T.FONT_SIZE_BODY_1}px;
+    font-weight: {T.FONT_WEIGHT_MEDIUM};
+}}
+QGroupBox::title {{
+    subcontrol-origin: margin;
+    subcontrol-position: top left;
+    padding: 0 {T.SPACE_XS}px;
+    color: {T.FG_PRIMARY};
+    background-color: transparent;
 }}
 
 /* ══════════════════════════════════════════════════════════════
@@ -842,7 +907,10 @@ QPushButton#SaveBtn:disabled {{
 }}
 
 /* ── Misc Labels ──── */
-QLabel {{ background: transparent; }}
+QLabel {{
+    background: transparent;
+    font-size: {T.FONT_SIZE_BODY_1}px;
+}}
 QLabel#Muted {{ color: {T.FG_3}; font-size: {T.FONT_SIZE_CAPTION_1}px; }}
 QLabel#Secondary {{ color: {T.FG_2}; font-size: {T.FONT_SIZE_CAPTION_1}px; }}
 
