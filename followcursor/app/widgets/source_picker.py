@@ -73,7 +73,7 @@ class _WindowThumbWorker(QThread):
         for win in self._windows:
             if self._cancelled:
                 return
-            thumb = capture_window_thumbnail(win["hwnd"])
+            thumb = capture_window_thumbnail(win["hwnd"], max_w=800, max_h=440)
             if thumb is not None:
                 h, w, c = thumb.shape
                 qimg = QImage(thumb.data, w, h, w * c, QImage.Format.Format_RGB888)
@@ -123,7 +123,7 @@ class _SourceCard(QFrame):
         )
         if thumb:
             self._thumb_label.setPixmap(
-                thumb.scaled(self._thumb_label.width() or 400, 200,
+                thumb.scaled(self._thumb_label.width() or 800, 400,
                              Qt.AspectRatioMode.KeepAspectRatio,
                              Qt.TransformationMode.SmoothTransformation)
             )

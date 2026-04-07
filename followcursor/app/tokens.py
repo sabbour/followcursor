@@ -183,14 +183,13 @@ FONT_LINE_HEIGHT_TITLE_1: int = 52
 FONT_SIZE_DISPLAY: int = 68
 FONT_LINE_HEIGHT_DISPLAY: int = 92
 
-# Legacy aliases for backward compatibility (preserve original values)
-# Keep these at their original sizes so existing QSS doesn't break
+# Legacy aliases — bumped to improve readability on modern displays
 # Use new Fluent 2 tokens (FONT_SIZE_CAPTION_1, FONT_SIZE_BODY_1, etc.) for new code
-FONT_SIZE_CAPTION: int = 11    # original value preserved
-FONT_SIZE_BODY: int = 13       # original value preserved
-FONT_SIZE_SUBTITLE: int = 15   # original value preserved
-FONT_SIZE_TITLE: int = 16      # original value preserved
-FONT_SIZE_HEADER: int = 20     # original value preserved
+FONT_SIZE_CAPTION: int = 12    # bumped from 11
+FONT_SIZE_BODY: int = 14       # bumped from 13
+FONT_SIZE_SUBTITLE: int = 16   # bumped from 15
+FONT_SIZE_TITLE: int = 18      # bumped from 16
+FONT_SIZE_HEADER: int = 22     # bumped from 20
 
 # ── Animation (Fluent 2 Motion Tokens) ────────────────────────────────
 # Based on https://fluent2.microsoft.design/motion

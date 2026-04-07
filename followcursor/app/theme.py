@@ -195,22 +195,28 @@ QComboBox::down-arrow {{
 QComboBox QAbstractItemView {{
     background-color: {T.BG_LAYER_4};
     color: {T.FG_PRIMARY};
-    border: 1px solid {T.STROKE_1};
+    border: 1px solid {T.STROKE_2};
     border-radius: {T.RADIUS_MEDIUM}px;
     padding: {T.SPACE_XS}px;
+    outline: none;
     selection-background-color: {T.BG_SUBTLE_SELECTED};
     selection-color: {T.FG_PRIMARY};
 }}
 QComboBox QAbstractItemView::item {{
-    padding: {T.SPACE_6}px {T.SPACE_SM}px;
+    padding: {T.SPACE_SM}px {T.SPACE_MD}px;
     border-radius: {T.RADIUS_SMALL}px;
-    min-height: 32px;
+    min-height: 36px;
+    border: none;
+    outline: none;
 }}
 QComboBox QAbstractItemView::item:hover {{
     background-color: {T.BG_SUBTLE_HOVER};
 }}
 QComboBox QAbstractItemView::item:selected {{
-    background-color: {T.BG_SUBTLE_SELECTED};
+    background-color: {T.BRAND_TRANSLUCENT};
+    color: {T.FG_PRIMARY};
+    border: none;
+    outline: none;
 }}
 
 /* ══════════════════════════════════════════════════════════════
@@ -849,14 +855,14 @@ QPushButton#SaveBtn:disabled {{
 }}
 #TimeDisplay {{
     color: {T.FG_PRIMARY};
-    font-size: {T.FONT_SIZE_CAPTION_1}px;
+    font-size: {T.FONT_SIZE_BODY_1}px;
     font-weight: {T.FONT_WEIGHT_MEDIUM};
     background: transparent;
     font-family: {T.FONT_FAMILY_MONO};
 }}
 #TimeDisplayDim {{
     color: {T.FG_3};
-    font-size: {T.FONT_SIZE_CAPTION_1}px;
+    font-size: {T.FONT_SIZE_BODY_1}px;
     font-weight: {T.FONT_WEIGHT_MEDIUM};
     background: transparent;
     font-family: {T.FONT_FAMILY_MONO};
