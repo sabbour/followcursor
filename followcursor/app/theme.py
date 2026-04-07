@@ -51,11 +51,12 @@ QPushButton:disabled {{
     color: {T.FG_DISABLED};
     border-color: {T.STROKE_2};
 }}
-/* Focus ring — Fluent 2 spec: 2px brand outline, 2px offset */
+/* Focus ring — Fluent 2 spec: 2px brand outline, 2px offset
+   NOTE: Qt QSS doesn't support outline/outline-offset reliably.
+   Using border instead, with padding adjustment to prevent size shift. */
 QPushButton:focus {{
-    outline: {T.FOCUS_RING_WIDTH}px solid {T.BRAND};
-    outline-offset: {T.FOCUS_RING_OFFSET}px;
-    border-color: {T.STROKE_ACCESSIBLE};
+    border: 2px solid {T.BRAND};
+    padding: {T.SPACE_XS - 1}px {T.SPACE_SM - 1}px;
 }}
 
 /* ══════════════════════════════════════════════════════════════
@@ -70,7 +71,7 @@ QLineEdit, QTextEdit {{
     padding: {T.SPACE_6}px {T.SPACE_SM}px;
     font-size: {T.FONT_SIZE_BODY_1}px;
     selection-background-color: {T.BRAND};
-    selection-color: white;
+    selection-color: {T.FG_PRIMARY};
 }}
 QLineEdit:hover, QTextEdit:hover {{
     border-color: {T.STROKE_ACCESSIBLE};
@@ -213,8 +214,12 @@ QCheckBox::indicator:disabled {{
     background-color: {T.BG_LAYER_1};
     border-color: {T.STROKE_2};
 }}
-QCheckBox:focus {{
-    outline: none;
+QCheckBox::indicator:focus {{
+    border: 2px solid {T.BRAND};
+}}
+QCheckBox::indicator:checked:focus {{
+    border: 2px solid {T.BRAND};
+    background-color: {T.BRAND};
 }}
 
 /* ══════════════════════════════════════════════════════════════
@@ -896,7 +901,7 @@ QLabel#Secondary {{ color: {T.FG_2}; font-size: {T.FONT_SIZE_CAPTION_1}px; }}
     border: 1px solid {T.STROKE_1};
     border-radius: {T.RADIUS_MEDIUM}px;
     selection-background-color: {T.BRAND};
-    selection-color: white;
+    selection-color: {T.FG_PRIMARY};
     padding: {T.SPACE_XS}px;
 }}
 """
