@@ -184,6 +184,7 @@ class SourcePickerDialog(QDialog):
         self._mon_worker: _MonitorThumbWorker | None = None
         self._win_worker: _WindowThumbWorker | None = None
         self.chosen_source: dict = {}  # returned to caller
+        self._tab_icon_names = ["desktop", "window"]  # track icon names for state updates
 
         # Fluent 2 — medium elevation shadow on floating dialogs
         apply_shadow(self, level="medium")
@@ -213,6 +214,10 @@ class SourcePickerDialog(QDialog):
             load_icon("window", color=T.FG_2),
             "Windows",
         )
+        # Connect tab change to update icon colors
+        self._tabs.currentChanged.connect(self._update_tab_icons)
+        # Set initial state
+        self._update_tab_icons(self._tabs.currentIndex())
         layout.addWidget(self._tabs, 1)
 
         # Action buttons
@@ -286,7 +291,7 @@ class SourcePickerDialog(QDialog):
         top_row.addStretch()
 
         refresh_btn = QPushButton("Refresh")
-        refresh_btn.setIcon(load_icon("arrow_sync", color=T.FG_2))
+        refresh_btn.setIcon(load_icon("arrow_sync", color=T.FG_PRIMARY))
         refresh_btn.setObjectName("CtrlBtn")
         refresh_btn.clicked.connect(self._refresh_windows)
         top_row.addWidget(refresh_btn)
@@ -376,6 +381,13 @@ class SourcePickerDialog(QDialog):
 
     def _confirm(self) -> None:
         self.accept()
+
+    def _update_tab_icons(self, index: int) -> None:
+        """Update tab icon colors to reflect selection state."""
+        for i in range(self._tabs.count()):
+            color = T.FG_PRIMARY if i == index else T.FG_2
+            icon_name = self._tab_icon_names[i]
+            self._tabs.setTabIcon(i, load_icon(icon_name, color=color))
 
     def done(self, result: int) -> None:
         """Stop background thumbnail workers before closing the dialog."""
