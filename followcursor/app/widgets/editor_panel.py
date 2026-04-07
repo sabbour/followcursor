@@ -87,8 +87,8 @@ class _CollapsibleSection(QWidget):
         self._btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self._btn.setStyleSheet(
             f"QPushButton {{ background: {T.BG_ELEVATED}; color: {T.FG_SECONDARY};"
-            f"  font-size: {T.FONT_SIZE_CAPTION}px;"
-            f"  font-weight: 600; letter-spacing: 1px; border: none;"
+            f"  font-size: {T.FONT_SIZE_BODY_1}px;"
+            f"  font-weight: {T.FONT_WEIGHT_SEMIBOLD}; border: none;"
             f"  border-bottom: 1px solid {T.BORDER_SUBTLE}; text-align: left;"
             f"  padding: 0 {T.SPACE_MD}px; }}"
             f"QPushButton:hover {{ background: {T.BG_INTERACTIVE}; color: {T.FG_PRIMARY}; }}"

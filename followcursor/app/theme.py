@@ -704,10 +704,8 @@ QPushButton#SaveBtn:disabled {{
 }}
 #EditorTitle {{
     color: {T.FG_2};
-    font-size: {T.FONT_SIZE_CAPTION_1}px;
+    font-size: {T.FONT_SIZE_BODY_1}px;
     font-weight: {T.FONT_WEIGHT_SEMIBOLD};
-    text-transform: uppercase;
-    letter-spacing: 1px;
     background: transparent;
 }}
 /* Keyframe item card */
