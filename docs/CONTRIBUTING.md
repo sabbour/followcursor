@@ -205,7 +205,7 @@ FollowCursor uses [Semantic Versioning](https://semver.org/) (MAJOR.MINOR.PATCH)
 The version lives in `followcursor/app/version.py`:
 
 ```python
-__version__ = "0.10.0"
+__version__ = "{{ version }}"
 ```
 
 ### Releasing
@@ -218,6 +218,7 @@ __version__ = "0.10.0"
 6. Tag: `git tag vX.Y.Z`
 7. Push: `git push origin main --tags`
 8. CI builds `.exe` + signed MSIX and creates a GitHub Release
+9. The tag push automatically triggers the docs site to rebuild and deploy — the version number shown in all pages updates to the new release automatically (no manual docs edits needed)
 
 ---
 
@@ -254,10 +255,10 @@ Produces `dist\FollowCursor\FollowCursor.exe` — a single-folder PyInstaller di
 
 ```powershell
 # Unsigned (local testing)
-.\scripts\Build-Msix.ps1 -Version "0.10.0" -SkipSign
+.\scripts\Build-Msix.ps1 -Version "{{ version }}" -SkipSign
 
 # Signed with local PFX
-.\scripts\Build-Msix.ps1 -Version "0.10.0" -LocalPfx ".\cert.pfx" -Publisher "CN=MyName"
+.\scripts\Build-Msix.ps1 -Version "{{ version }}" -LocalPfx ".\cert.pfx" -Publisher "CN=MyName"
 ```
 
 ### CI Pipeline

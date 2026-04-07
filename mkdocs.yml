@@ -32,6 +32,11 @@ theme:
   icon:
     repo: fontawesome/brands/github
 
+plugins:
+  - search
+  - macros:
+      module_name: docs/hooks/main
+
 markdown_extensions:
   - admonition
   - pymdownx.details
