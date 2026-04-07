@@ -179,7 +179,7 @@ class _AISettingsDialog(QDialog):
         layout.addWidget(buttons)
 
         # Fluent 2 — focus rings on dialog input fields
-        for child in self.findChildren((QLineEdit,)):
+        for child in self.findChildren(QLineEdit):
             install_focus_ring(child)
 
     def get_settings(self):
@@ -694,7 +694,9 @@ class EditorPanel(QWidget):
         self._monitor_rect: dict = {}
 
         # Fluent 2 — focus ring glow on all interactive controls
-        for child in self.findChildren((QPushButton, QComboBox)):
+        for child in self.findChildren(QPushButton):
+            install_focus_ring(child)
+        for child in self.findChildren(QComboBox):
             install_focus_ring(child)
 
     # ── position / depth controls ───────────────────────────────────
