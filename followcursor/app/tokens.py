@@ -13,7 +13,7 @@ Reference:
 
 # ── Spacing (Fluent 2 Spacer Tokens) ──────────────────────────────────
 # Based on https://fluent2.microsoft.design/layout
-# Uses 4px base unit with additional granular steps for precision
+# Uses 2px base unit with Fluent 2 spacer values (size20, size40, size80, etc.)
 SPACE_XXS: int = 2   # size20 — tight compact spacing
 SPACE_XS: int = 4    # size40 — minimal padding
 SPACE_SM: int = 8    # size80 — small controls, icons
@@ -183,12 +183,14 @@ FONT_LINE_HEIGHT_TITLE_1: int = 52
 FONT_SIZE_DISPLAY: int = 68
 FONT_LINE_HEIGHT_DISPLAY: int = 92
 
-# Legacy aliases for backward compatibility (map to Fluent 2 type ramp)
-FONT_SIZE_CAPTION = FONT_SIZE_CAPTION_1    # 12px (was 11px)
-FONT_SIZE_BODY = FONT_SIZE_BODY_1          # 14px (was 13px)
-FONT_SIZE_SUBTITLE = FONT_SIZE_SUBTITLE_2  # 20px (was 15px)
-FONT_SIZE_TITLE = FONT_SIZE_SUBTITLE_2     # 20px (was 16px)
-FONT_SIZE_HEADER = FONT_SIZE_SUBTITLE_2    # 20px (was 20px, now aligned to Subtitle2)
+# Legacy aliases for backward compatibility (preserve original values)
+# Keep these at their original sizes so existing QSS doesn't break
+# Use new Fluent 2 tokens (FONT_SIZE_CAPTION_1, FONT_SIZE_BODY_1, etc.) for new code
+FONT_SIZE_CAPTION: int = 11    # original value preserved
+FONT_SIZE_BODY: int = 13       # original value preserved
+FONT_SIZE_SUBTITLE: int = 15   # original value preserved
+FONT_SIZE_TITLE: int = 16      # original value preserved
+FONT_SIZE_HEADER: int = 20     # original value preserved
 
 # ── Animation (Fluent 2 Motion Tokens) ────────────────────────────────
 # Based on https://fluent2.microsoft.design/motion
