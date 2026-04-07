@@ -434,3 +434,24 @@ FollowCursor's Phase 1 token system (created Jan 2026) introduced semantic color
 
 ---
 *Applied as of 2026-04-07, PR #105*
+## User Directives (Ahmed Sabbour, 2026-04-07)
+
+**Status:** Captured | **Type:** Development Workflow — PR Review & Issue Management
+
+### Three Directives
+
+1. **PR Review Feedback Processing (11:08 UTC)**
+   - Ralph must check open PRs for review comments (especially from Copilot PR reviewer) before reporting the board as clear
+   - PRs with unresolved review threads are actionable work, not "awaiting review"
+   - Ralph should spawn agents to address review feedback in the main triage loop
+
+2. **Milestone Assignment During Triage (11:15 UTC)**
+   - Ralph must assign a milestone to every issue during triage
+   - Ensures every issue has a milestone set for project tracking and release planning
+
+3. **GitHub Issue Assignment on Pickup (11:20 UTC)**
+   - When Ralph picks up an issue for a squad member, immediately assign the issue on GitHub
+   - Signals that work is in progress and prevents duplicate work from other agents
+   - Use `gh issue edit N --add-assignee @me` or set "in progress" label
+
+**Rationale:** User requests — these are workflow policies to prevent missed PR review feedback, ensure release planning visibility, and avoid duplicate work across parallel agent spawns.
