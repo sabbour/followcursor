@@ -6,7 +6,7 @@ This document describes the internal architecture of FollowCursor: how the major
 
 ## High-Level Overview
 
-```
+```text
 MainWindow
  |-- TitleBar (frameless, custom)
  |-- PreviewWidget (live / playback)
@@ -40,7 +40,7 @@ The app operates in two modes, switchable via the sidebar:
 
 ### Recording Flow
 
-```
+```text
 User clicks Start
   --> CountdownOverlay shows 3-2-1
   --> _do_start_recording()
@@ -89,7 +89,7 @@ All data classes live in `app/models.py`.
 
 ### ZoomKeyframe Anatomy
 
-```
+```text
 ZoomKeyframe:
   id        -- UUID string (for tracking/deletion)
   timestamp -- when the zoom transition STARTS (ms)
@@ -115,7 +115,7 @@ Zoom operations come in pairs: a **zoom-in** keyframe (`zoom > 1.0`) followed by
 
 ### Recording Pipeline
 
-```
+```text
 WGC / GDI (BGRA frames)
   --> ffmpeg stdin pipe
   --> H.264 intermediate MP4 (CRF 18, ultrafast)
@@ -203,7 +203,7 @@ API keys encrypted with **Windows DPAPI** via `credentials.py`. User-scoped encr
 
 ### Pipeline
 
-```
+```text
 Phase 1: Probe source MP4 (FPS, frame count)
 Phase 2: Build background + bezel layers
 Phase 3: Merge voiceover audio (if any)
@@ -300,7 +300,7 @@ All hooks run in dedicated threads with Win32 message loops. `CallNextHookEx` al
 
 All inter-component communication via Qt signals and slots:
 
-```
+```text
 EditorPanel.output_dimensions_changed --> MainWindow --> PreviewWidget.set_output_dim
 TimelineWidget.segment_clicked --> MainWindow --> Context menu
 PreviewWidget.zoom_at_requested --> MainWindow --> _add_keyframe
@@ -326,7 +326,7 @@ PreviewWidget.zoom_at_requested --> MainWindow --> _add_keyframe
 
 `.fcproj` files are ZIP archives:
 
-```
+```text
 project.fcproj (ZIP)
   |-- project.json     -- session metadata
   |-- recording.mp4    -- H.264 intermediate video
@@ -372,6 +372,7 @@ Python `logging` module. Format: `%(name)s | %(levelname)s | %(message)s`. `Rota
 | `app/screen_recorder.py` | WGC + ffmpeg pipe capture |
 | `app/video_exporter.py` | H.264/GIF export with zoom/cursor |
 | `app/compositor.py` | QPainter compositing for preview |
+| `app/utils.py` | Helper functions for video/image processing |
 | `app/zoom_engine.py` | Keyframe interpolation + undo/redo |
 | `app/activity_analyzer.py` | Auto-zoom from activity |
 | `app/ai_service.py` | AI zoom + TTS voiceover |

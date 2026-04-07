@@ -105,7 +105,7 @@ All colors, spacing, radii, and typography values come from `app/tokens.py`. Imp
 
 - **Framework:** pytest (configured via `followcursor/pytest.ini`)
 - **Location:** `followcursor/tests/` — one `test_<module>.py` per source module
-- **Current count:** 359 tests
+- **Current count:** 386 tests
 - **Scope:** Pure-logic layer (no Qt dependency in tests)
 
 ### Modules Tested
