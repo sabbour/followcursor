@@ -94,16 +94,20 @@ _SVG_PATH_INNER = (
 # Shadow offset in SVG-space units (~8 % of arrow height)
 _SHADOW_OFF = 160
 
-# Tight viewBox enclosing cursor content + shadow with small margin
-_VB_X, _VB_Y = 380, 40
-_VB_W, _VB_H = 1540, 2160
-
 # Arrow-tip (hotspot) in SVG coordinates
 _TIP_SVG_X, _TIP_SVG_Y = 384, 141
 
-# Hotspot normalised to viewBox (0-1)
-_TIP_NX = (_TIP_SVG_X - _VB_X) / _VB_W
-_TIP_NY = (_TIP_SVG_Y - _VB_Y) / _VB_H
+# ViewBox starts exactly at the arrow tip so the hotspot is at the
+# rendered-image origin (top-left = pixel 0,0).  The right/bottom edge
+# is kept at the same absolute SVG position as before to preserve the
+# full cursor body + shadow.
+_VB_X, _VB_Y = _TIP_SVG_X, _TIP_SVG_Y  # tip at viewBox origin
+_VB_W, _VB_H = 1536, 2059               # extends to SVG x=1920, y=2200
+
+# Hotspot normalised to viewBox (0-1) — exactly zero because the tip
+# IS the viewBox origin.
+_TIP_NX = 0.0
+_TIP_NY = 0.0
 
 # Fraction of viewBox height occupied by the arrow (tip to bottom)
 _ARROW_FRAC = (2027 - _TIP_SVG_Y) / _VB_H
@@ -198,8 +202,11 @@ def draw_cursor_qpainter(
 def _build_cursor_template(height: int) -> Tuple[np.ndarray, np.ndarray]:
     """Pre-render a cursor image + alpha mask at the given pixel height.
 
-    Returns (cursor_bgr, cursor_alpha) both of shape (H, W).
-    The cursor tip is at (0, 0) in the returned image.
+    Returns:
+        cursor_bgr:   shape (H, W, 3) — BGR colour channels.
+        cursor_alpha: shape (H, W)    — single-channel alpha mask (0-255).
+
+    The cursor tip is at pixel (0, 0) in both returned arrays.
     Includes a soft drop shadow for depth.
     """
     h = max(height, 8)
@@ -223,10 +230,8 @@ def _build_cursor_template(height: int) -> Tuple[np.ndarray, np.ndarray]:
     raw = np.frombuffer(buf, dtype=np.uint8).reshape(render_h, bpl)
     arr = raw[:, : render_w * 4].reshape(render_h, render_w, 4).copy()
 
-    # Crop so the hotspot (arrow tip) is at pixel (0, 0)
-    hx_px = max(0, int(_TIP_NX * render_w))
-    hy_px = max(0, int(_TIP_NY * render_h))
-    arr = arr[hy_px:, hx_px:]
+    # The viewBox origin IS the arrow tip, so pixel (0, 0) is already the
+    # hotspot — no cropping offset is required.
 
     cursor_alpha = arr[:, :, 3]
 
