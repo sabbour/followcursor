@@ -1832,12 +1832,21 @@ class MainWindow(QMainWindow):
         elif annot_type == "arrow" and self._annotations.arrows:
             for a in self._annotations.arrows:
                 if a.id == annot_id:
-                    dx = new_x - a.x1
-                    dy = new_y - a.y1
-                    a.x1 = new_x
-                    a.y1 = new_y
-                    a.x2 = max(0.0, min(1.0, a.x2 + dx))
-                    a.y2 = max(0.0, min(1.0, a.y2 + dy))
+                    midpoint_x = (a.x1 + a.x2) / 2.0
+                    midpoint_y = (a.y1 + a.y2) / 2.0
+                    dx = new_x - midpoint_x
+                    dy = new_y - midpoint_y
+                    # Constrain so translated endpoints stay within [0, 1]
+                    min_dx = -min(a.x1, a.x2)
+                    max_dx = 1.0 - max(a.x1, a.x2)
+                    min_dy = -min(a.y1, a.y2)
+                    max_dy = 1.0 - max(a.y1, a.y2)
+                    dx = max(min_dx, min(max_dx, dx))
+                    dy = max(min_dy, min(max_dy, dy))
+                    a.x1 += dx
+                    a.y1 += dy
+                    a.x2 += dx
+                    a.y2 += dy
                     break
         elif annot_type == "highlight" and self._annotations.highlights:
             for a in self._annotations.highlights:

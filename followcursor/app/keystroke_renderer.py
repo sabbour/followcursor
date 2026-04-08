@@ -368,48 +368,72 @@ def draw_keystrokes_qpainter(
         return
 
     gap = 8
-    total_w = sum(b[3] for b in badges) + gap * (len(badges) - 1)
-    max_badge_h = max(b[4] for b in badges)
+    # Available width for wrapping — use the screen width if available, else widget
+    avail_w = screen_rect_w if screen_rect_w > 0 else float(painter.device().width())
 
-    # Compute starting x so the row is centered or left-aligned
-    if config.position == "bottom-center":
-        row_start_x = base_x - total_w / 2
-    else:
-        row_start_x = base_x
+    # Lay out badges into rows, wrapping when a row would exceed available width
+    rows: list[list] = []
+    current_row: list = []
+    current_row_w = 0.0
+    for badge in badges:
+        badge_w = badge[3]
+        needed = badge_w if not current_row else gap + badge_w
+        if current_row and current_row_w + needed > avail_w:
+            rows.append(current_row)
+            current_row = [badge]
+            current_row_w = badge_w
+        else:
+            current_row.append(badge)
+            current_row_w += needed
+    if current_row:
+        rows.append(current_row)
 
-    x_offset = 0.0
-    for text, alpha, text_rect, badge_w, badge_h, padding_x, padding_y in badges:
-        badge_x = row_start_x + x_offset
-        badge_y = base_y - max_badge_h
-        
-        # Draw badge background
-        bg_alpha = int(255 * alpha * config.opacity)
-        font = QFont("Segoe UI", config.font_size, QFont.Weight.Medium)
-        painter.setFont(font)
-        painter.setPen(Qt.PenStyle.NoPen)
-        painter.setBrush(QBrush(QColor(*KEYSTROKE_BG_COLOR, bg_alpha)))
-        
-        if config.style == "floating-badge":
-            badge_rect = QRectF(badge_x, badge_y, badge_w, badge_h)
-            painter.drawRoundedRect(badge_rect, 8, 8)
-        elif config.style == "key-cap":
-            badge_rect = QRectF(badge_x, badge_y, badge_w, badge_h)
-            painter.drawRoundedRect(badge_rect, 4, 4)
-            highlight_rect = QRectF(badge_x + 2, badge_y + 2, badge_w - 4, badge_h / 2)
-            painter.setBrush(QBrush(QColor(255, 255, 255, int(30 * alpha))))
-            painter.drawRoundedRect(highlight_rect, 2, 2)
-        else:  # minimal-text
-            badge_rect = QRectF(badge_x, badge_y, badge_w, badge_h)
-            painter.drawRoundedRect(badge_rect, 4, 4)
-        
-        # Draw text
-        text_alpha = int(255 * alpha)
-        painter.setPen(QPen(QColor(*KEYSTROKE_TEXT_COLOR, text_alpha)))
-        text_x = badge_x + padding_x
-        text_y = badge_y + padding_y + text_rect.height()
-        painter.drawText(QPointF(text_x, text_y), text)
-        
-        x_offset += badge_w + gap
+    # Draw rows bottom-up
+    y_row_offset = 0.0
+    for row in reversed(rows):
+        row_w = sum(b[3] for b in row) + gap * (len(row) - 1)
+        row_max_h = max(b[4] for b in row)
+
+        if config.position == "bottom-center":
+            row_start_x = base_x - row_w / 2
+        else:
+            row_start_x = base_x
+
+        x_offset = 0.0
+        for text, alpha, text_rect, badge_w, badge_h, padding_x, padding_y in row:
+            badge_x = row_start_x + x_offset
+            badge_y = base_y - y_row_offset - row_max_h
+
+            # Draw badge background
+            bg_alpha = int(255 * alpha * config.opacity)
+            font = QFont("Segoe UI", config.font_size, QFont.Weight.Medium)
+            painter.setFont(font)
+            painter.setPen(Qt.PenStyle.NoPen)
+            painter.setBrush(QBrush(QColor(*KEYSTROKE_BG_COLOR, bg_alpha)))
+
+            if config.style == "floating-badge":
+                badge_rect = QRectF(badge_x, badge_y, badge_w, badge_h)
+                painter.drawRoundedRect(badge_rect, 8, 8)
+            elif config.style == "key-cap":
+                badge_rect = QRectF(badge_x, badge_y, badge_w, badge_h)
+                painter.drawRoundedRect(badge_rect, 4, 4)
+                highlight_rect = QRectF(badge_x + 2, badge_y + 2, badge_w - 4, badge_h / 2)
+                painter.setBrush(QBrush(QColor(255, 255, 255, int(30 * alpha))))
+                painter.drawRoundedRect(highlight_rect, 2, 2)
+            else:  # minimal-text
+                badge_rect = QRectF(badge_x, badge_y, badge_w, badge_h)
+                painter.drawRoundedRect(badge_rect, 4, 4)
+
+            # Draw text
+            text_alpha = int(255 * alpha)
+            painter.setPen(QPen(QColor(*KEYSTROKE_TEXT_COLOR, text_alpha)))
+            text_x = badge_x + padding_x
+            text_y = badge_y + padding_y + text_rect.height()
+            painter.drawText(QPointF(text_x, text_y), text)
+
+            x_offset += badge_w + gap
+
+        y_row_offset += row_max_h + gap
 
 
 # ── OpenCV/numpy-based keystroke rendering (for export) ────────────
@@ -498,88 +522,110 @@ def draw_keystrokes_cv(
         return
 
     gap = 12
-    total_w = sum(b[5] for b in badges) + gap * (len(badges) - 1)
-    max_badge_h = max(b[6] for b in badges)
+    avail_w = fw - 20  # 10px margin each side
 
-    # Compute starting x so the row is centered or left-aligned
-    if config.position == "bottom-center":
-        row_start_x = base_x - total_w // 2
-    else:
-        row_start_x = base_x
+    # Lay out badges into rows, wrapping when a row would exceed frame width
+    rows: list[list] = []
+    current_row: list = []
+    current_row_w = 0
+    for badge in badges:
+        badge_w = badge[5]
+        needed = badge_w if not current_row else gap + badge_w
+        if current_row and current_row_w + needed > avail_w:
+            rows.append(current_row)
+            current_row = [badge]
+            current_row_w = badge_w
+        else:
+            current_row.append(badge)
+            current_row_w += needed
+    if current_row:
+        rows.append(current_row)
 
-    # Draw each badge horizontally using a single overlay copy
+    # Draw rows bottom-up using a single overlay copy
     overlay = None
-    x_offset = 0
-    for text, alpha, text_w, text_h, baseline, badge_w, badge_h, padding_x, padding_y in badges:
-        badge_x = row_start_x + x_offset
-        badge_y = base_y - max_badge_h
-        
-        # Ensure badge is within frame bounds
-        badge_x = max(10, min(badge_x, fw - badge_w - 10))
-        badge_y = max(10, min(badge_y, fh - badge_h - 10))
-        
-        if overlay is None:
-            overlay = frame_bgr.copy()
-        
-        # Draw badge background
-        if config.style == "floating-badge":
-            cv2.rectangle(
-                overlay,
-                (badge_x, badge_y),
-                (badge_x + badge_w, badge_y + badge_h),
-                KEYSTROKE_BG_COLOR_BGR,
-                -1,
-            )
-        elif config.style == "key-cap":
-            cv2.rectangle(
-                overlay,
-                (badge_x, badge_y),
-                (badge_x + badge_w, badge_y + badge_h),
-                KEYSTROKE_BG_COLOR_BGR,
-                -1,
-            )
-            highlight_h = badge_h // 3
-            cv2.rectangle(
-                overlay,
-                (badge_x + 3, badge_y + 3),
-                (badge_x + badge_w - 3, badge_y + highlight_h),
-                (100, 90, 110),
-                -1,
-            )
-        else:  # minimal-text
-            cv2.rectangle(
-                overlay,
-                (badge_x, badge_y),
-                (badge_x + badge_w, badge_y + badge_h),
-                KEYSTROKE_BG_COLOR_BGR,
-                -1,
-            )
-        
-        # Blend badge region with frame using alpha
-        blend_alpha = alpha * config.opacity
-        np.copyto(
-            frame_bgr[badge_y:badge_y + badge_h, badge_x:badge_x + badge_w],
-            cv2.addWeighted(
+    y_row_offset = 0
+    for row in reversed(rows):
+        row_w = sum(b[5] for b in row) + gap * (len(row) - 1)
+        row_max_h = max(b[6] for b in row)
+
+        if config.position == "bottom-center":
+            row_start_x = base_x - row_w // 2
+        else:
+            row_start_x = base_x
+
+        x_offset = 0
+        for text, alpha, text_w, text_h, baseline, badge_w, badge_h, padding_x, padding_y in row:
+            badge_x = row_start_x + x_offset
+            badge_y = base_y - y_row_offset - row_max_h
+
+            # Clamp within frame bounds
+            badge_x = max(10, min(badge_x, fw - badge_w - 10))
+            badge_y = max(10, min(badge_y, fh - badge_h - 10))
+
+            if overlay is None:
+                overlay = frame_bgr.copy()
+
+            # Draw badge background
+            if config.style == "floating-badge":
+                cv2.rectangle(
+                    overlay,
+                    (badge_x, badge_y),
+                    (badge_x + badge_w, badge_y + badge_h),
+                    KEYSTROKE_BG_COLOR_BGR,
+                    -1,
+                )
+            elif config.style == "key-cap":
+                cv2.rectangle(
+                    overlay,
+                    (badge_x, badge_y),
+                    (badge_x + badge_w, badge_y + badge_h),
+                    KEYSTROKE_BG_COLOR_BGR,
+                    -1,
+                )
+                highlight_h = badge_h // 3
+                cv2.rectangle(
+                    overlay,
+                    (badge_x + 3, badge_y + 3),
+                    (badge_x + badge_w - 3, badge_y + highlight_h),
+                    (100, 90, 110),
+                    -1,
+                )
+            else:  # minimal-text
+                cv2.rectangle(
+                    overlay,
+                    (badge_x, badge_y),
+                    (badge_x + badge_w, badge_y + badge_h),
+                    KEYSTROKE_BG_COLOR_BGR,
+                    -1,
+                )
+
+            # Blend badge region with frame using alpha
+            blend_alpha = alpha * config.opacity
+            np.copyto(
                 frame_bgr[badge_y:badge_y + badge_h, badge_x:badge_x + badge_w],
-                1 - blend_alpha,
-                overlay[badge_y:badge_y + badge_h, badge_x:badge_x + badge_w],
-                blend_alpha,
-                0,
+                cv2.addWeighted(
+                    frame_bgr[badge_y:badge_y + badge_h, badge_x:badge_x + badge_w],
+                    1 - blend_alpha,
+                    overlay[badge_y:badge_y + badge_h, badge_x:badge_x + badge_w],
+                    blend_alpha,
+                    0,
+                )
             )
-        )
-        
-        # Draw text
-        text_x = badge_x + padding_x
-        text_y = badge_y + padding_y + text_h
-        cv2.putText(
-            frame_bgr,
-            text,
-            (text_x, text_y),
-            font,
-            font_scale,
-            KEYSTROKE_TEXT_COLOR_BGR,
-            font_thickness,
-            cv2.LINE_AA,
-        )
-        
-        x_offset += badge_w + gap
+
+            # Draw text
+            text_x = badge_x + padding_x
+            text_y = badge_y + padding_y + text_h
+            cv2.putText(
+                frame_bgr,
+                text,
+                (text_x, text_y),
+                font,
+                font_scale,
+                KEYSTROKE_TEXT_COLOR_BGR,
+                font_thickness,
+                cv2.LINE_AA,
+            )
+
+            x_offset += badge_w + gap
+
+        y_row_offset += row_max_h + gap

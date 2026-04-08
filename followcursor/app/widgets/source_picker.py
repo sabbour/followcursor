@@ -340,8 +340,8 @@ class SourcePickerDialog(QDialog):
     def _on_monitor_thumb(self, monitor_index: int, pixmap) -> None:
         card = self._card_by_monitor.get(monitor_index)
         if card and pixmap:
-            tw = card._thumb_label.width() or 400
-            th = card._thumb_label.height() or 200
+            tw = card._thumb_label.width() or 800
+            th = card._thumb_label.height() or 400
             card._thumb_label.setPixmap(
                 pixmap.scaled(tw, th,
                               Qt.AspectRatioMode.KeepAspectRatio,
@@ -351,8 +351,8 @@ class SourcePickerDialog(QDialog):
     def _on_window_thumb(self, hwnd: int, pixmap) -> None:
         card = self._card_by_hwnd.get(hwnd)
         if card and pixmap:
-            tw = card._thumb_label.width() or 400
-            th = card._thumb_label.height() or 200
+            tw = card._thumb_label.width() or 800
+            th = card._thumb_label.height() or 400
             card._thumb_label.setPixmap(
                 pixmap.scaled(tw, th,
                               Qt.AspectRatioMode.KeepAspectRatio,
