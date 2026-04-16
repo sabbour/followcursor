@@ -132,6 +132,44 @@ def enable_acrylic(hwnd: int, dark_mode: bool = True) -> bool:
     return success
 
 
+def enable_dwm_shadow(hwnd: int) -> bool:
+    """Re-enable DWM drop shadow for a frameless window.
+
+    ``Qt.FramelessWindowHint`` strips ``WS_THICKFRAME``, which causes DWM to
+    remove the window shadow.  Extending the frame by 1 px at the top
+    (a "ghost" non-client strip) convinces DWM to draw the shadow again
+    without adding any visible chrome.
+
+    Args:
+        hwnd: Window handle from ``QWidget.winId()``.
+
+    Returns:
+        True if the shadow was successfully re-enabled.
+    """
+    if sys.platform != "win32":
+        return False
+    try:
+        class MARGINS(ctypes.Structure):
+            _fields_ = [
+                ("cxLeftWidth",   ctypes.c_int),
+                ("cxRightWidth",  ctypes.c_int),
+                ("cyTopHeight",   ctypes.c_int),
+                ("cyBottomHeight",ctypes.c_int),
+            ]
+        margins = MARGINS(0, 0, 1, 0)  # 1 px ghost frame at the top
+        result = ctypes.windll.dwmapi.DwmExtendFrameIntoClientArea(
+            ctypes.c_void_p(hwnd), ctypes.byref(margins)
+        )
+        if result == 0:
+            logger.debug("DWM shadow enabled")
+        else:
+            logger.debug(f"DwmExtendFrameIntoClientArea returned {result:#x}")
+        return result == 0
+    except Exception as e:
+        logger.debug(f"DwmExtendFrameIntoClientArea failed: {e}")
+        return False
+
+
 def disable_backdrop(hwnd: int) -> bool:
     """Remove any backdrop effect. Returns window to default solid background.
     

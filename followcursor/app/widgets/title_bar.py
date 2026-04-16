@@ -41,12 +41,13 @@ class TitleBar(QWidget):
         self._logo_text.setObjectName("TitleBarLogo")
         layout.addWidget(self._logo_text)
 
-        ver_label = QLabel(f"v{__version__}")
-        ver_label.setStyleSheet(
+        self._ver_label = QLabel(f"v{__version__}")
+        self._ver_label.setObjectName("TitleBarVersion")
+        self._ver_label.setStyleSheet(
             f"color: {T.FG_3}; font-size: {T.FONT_SIZE_CAPTION}px;"
             f" background: transparent; padding-left: {T.SPACE_6}px;"
         )
-        layout.addWidget(ver_label)
+        layout.addWidget(self._ver_label)
 
         layout.addStretch()
 
@@ -100,6 +101,11 @@ class TitleBar(QWidget):
         """Reload title-bar icons with colours for the active theme."""
         icon_fg = T.FG_2 if dark else T.LIGHT_FG_2
         self._btn_theme.setIcon(load_icon("brightness_high", color=icon_fg))
+        ver_color = T.FG_3 if dark else T.LIGHT_FG_3
+        self._ver_label.setStyleSheet(
+            f"color: {ver_color}; font-size: {T.FONT_SIZE_CAPTION}px;"
+            f" background: transparent; padding-left: {T.SPACE_6}px;"
+        )
 
     def set_export_enabled(self, enabled: bool) -> None:
         """Enable or disable the export button."""

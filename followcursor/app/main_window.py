@@ -51,7 +51,7 @@ from .global_hotkeys import GlobalHotkeys
 from .project_file import PROJ_EXT
 from .backgrounds import PRESETS as BG_PRESETS
 from .frames import FRAME_PRESETS
-from .theme import get_theme
+from .theme import get_theme, get_base_palette
 from .icon_loader import clear_cache as clear_icon_cache
 from .fluent_effects import apply_shadow, install_focus_ring
 from .utils import fmt_time as _fmt_time
@@ -66,7 +66,7 @@ from .widgets.recording_border import RecordingBorderOverlay
 from .icon import create_app_icon
 from .icon_loader import load_icon
 from . import tokens as T
-from .mica import is_mica_supported, enable_mica
+from .mica import is_mica_supported, enable_mica, enable_dwm_shadow
 
 
 class _LoadProjectWorker(QThread):
@@ -725,6 +725,7 @@ class MainWindow(QMainWindow):
             success = enable_mica(hwnd, dark_mode=self._dark_mode)
             if success:
                 self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
+                enable_dwm_shadow(hwnd)
                 logger.info("Mica backdrop enabled with transparent background")
 
                 def _apply_mica_transparency() -> None:
@@ -732,11 +733,10 @@ class MainWindow(QMainWindow):
                     central = self.centralWidget()
                     if central:
                         central.setObjectName("micaCentralWidget")
-                    extra = (
-                        "QMainWindow#micaHostWindow { background-color: transparent; } "
-                        "QWidget#micaCentralWidget { background-color: transparent; }"
-                    )
-                    self.setStyleSheet(self.styleSheet() + extra)
+                    # Re-apply full theme now that object names are set so that:
+                    # 1. The transparent-background CSS rules match the named widgets.
+                    # 2. _refresh_icons() runs with all widgets already constructed.
+                    self._apply_theme()
 
                 QTimer.singleShot(0, _apply_mica_transparency)
 
@@ -4644,7 +4644,18 @@ class MainWindow(QMainWindow):
         if is_mica_supported():
             enable_mica(int(self.winId()), dark_mode=self._dark_mode)
         theme_stylesheet = get_theme(dark=self._dark_mode)
+        # When Mica transparent background is active (objectName set by
+        # _apply_mica_transparency), keep the transparent-background overlay
+        # rules so the Mica backdrop shows through on every theme switch.
+        if self.testAttribute(Qt.WidgetAttribute.WA_TranslucentBackground):
+            theme_stylesheet += (
+                " QMainWindow#micaHostWindow { background-color: transparent; }"
+                " QWidget#micaCentralWidget { background-color: transparent; }"
+            )
         self.setStyleSheet(theme_stylesheet)
+        # Sync the application palette so that widgets not fully covered by QSS
+        # (e.g. palette-driven native controls) use the correct theme colours.
+        QApplication.instance().setPalette(get_base_palette(dark=self._dark_mode))
         clear_icon_cache()
         self._refresh_icons()
         # Propagate theme to custom-painted widgets
