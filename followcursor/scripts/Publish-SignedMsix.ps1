@@ -106,10 +106,16 @@ if (-not (Test-Path $DlibPath -PathType Leaf)) { throw "DLib not found: $DlibPat
 
 $signingAccountId = az resource show --resource-group $ResourceGroupName `
     --resource-type "Microsoft.CodeSigning/codeSigningAccounts" `
-    --name $AzureCodeSigningAccountName --query id -o tsv
-if (-not $signingAccountId) { throw "Trusted Signing account was not found." }
+    --name $AzureCodeSigningAccountName --query id -o tsv 2>&1
+if ($LASTEXITCODE -ne 0 -or -not $signingAccountId) {
+    throw "Trusted Signing account lookup failed: $($signingAccountId -join [Environment]::NewLine)"
+}
 $profileId = "$signingAccountId/certificateProfiles/$AzureCertificateProfileName"
-$profile = az resource show --ids $profileId --api-version "2024-02-05-preview" -o json | ConvertFrom-Json
+$profileJson = az resource show --ids $profileId --api-version "2024-02-05-preview" -o json 2>&1
+if ($LASTEXITCODE -ne 0) {
+    throw "Certificate profile lookup failed: $($profileJson -join [Environment]::NewLine)"
+}
+$profile = $profileJson | ConvertFrom-Json
 if ($profile.properties.profileType -ne "PublicTrust") { throw "Certificate profile is not PublicTrust." }
 $expectedPublisher = $profile.properties.certificates[0].subjectName
 if (-not $expectedPublisher) { throw "Certificate profile has no active certificate subject." }
