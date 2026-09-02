@@ -121,10 +121,17 @@ New-Item -ItemType Directory -Path $StagingDir -Force | Out-Null
 # ── 3. Stage files ──────────────────────────────────────────────
 Write-Host "Staging MSIX content..." -ForegroundColor Cyan
 
-# Copy PyInstaller output (flatten _internal into root for MSIX)
-Copy-Item "$DistDir\FollowCursor.exe" $StagingDir
-if (Test-Path "$DistDir\_internal") {
-    Copy-Item "$DistDir\_internal\*" $StagingDir -Recurse -Force
+# Preserve the PyInstaller onedir layout. FollowCursor.exe resolves its runtime
+# DLLs relative to the _internal directory.
+$pythonRuntime = Get-ChildItem (Join-Path $DistDir "_internal\python[0-9][0-9][0-9].dll") -ErrorAction SilentlyContinue |
+    Select-Object -First 1
+if (-not $pythonRuntime) {
+    Write-Error "PyInstaller Python runtime DLL not found under $DistDir\_internal."
+}
+Copy-Item "$DistDir\*" $StagingDir -Recurse -Force
+$stagedPythonRuntime = Join-Path $StagingDir "_internal\$($pythonRuntime.Name)"
+if (-not (Test-Path $stagedPythonRuntime -PathType Leaf)) {
+    Write-Error "MSIX staging lost the PyInstaller runtime DLL: $stagedPythonRuntime"
 }
 
 # Copy assets
