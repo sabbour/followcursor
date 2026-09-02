@@ -4,6 +4,11 @@ All notable changes to FollowCursor are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.14.3] — 2026-09-02
+
+### Fixed
+- **Packaged startup** — includes the standard-library email, HTTP, and XML modules required during deferred initialization
+
 ## [0.14.2] — 2026-09-02
 
 ### Fixed
