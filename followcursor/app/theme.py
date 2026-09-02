@@ -393,6 +393,9 @@ QFrame#SourceCardSelected {{
     border-radius: {T.RADIUS_MEDIUM}px;
     padding: {T.SPACE_SM}px;
 }}
+QFrame#SourceCard:focus, QFrame#SourceCardSelected:focus {{
+    border: {T.FOCUS_RING_WIDTH}px solid {T.BRAND};
+}}
 
 /* ══════════════════════════════════════════════════════════════
    MENU — Fluent 2 Menu Pattern
@@ -635,6 +638,10 @@ QToolTip {{
     background-color: {T.BG_SUBTLE_HOVER};
     color: {T.FG_PRIMARY};
 }}
+QToolButton#SidebarBtn:disabled {{
+    background-color: {T.BG_SOLID};
+    color: {T.FG_DISABLED};
+}}
 #SidebarBtnActive {{
     background-color: {T.BRAND_TRANSLUCENT};
     color: {T.BRAND};
@@ -750,6 +757,24 @@ QPushButton#SaveBtn:disabled {{
     border: 2px dashed {T.STROKE_1};
     border-radius: {T.RADIUS_MEDIUM}px;
 }}
+QPushButton#SourceCtaBtn {{
+    min-height: 40px;
+    min-width: 220px;
+    margin-top: {T.SPACE_SM}px;
+    padding: 0 {T.SPACE_XL}px;
+    border: none;
+    border-radius: {T.RADIUS_SMALL}px;
+    background-color: {T.BRAND};
+    color: {T.FG_PRIMARY};
+    font-size: {T.FONT_SIZE_BODY_1}px;
+    font-weight: {T.FONT_WEIGHT_SEMIBOLD};
+}}
+QPushButton#SourceCtaBtn:hover {{
+    background-color: {T.BRAND_HOVER};
+}}
+QPushButton#SourceCtaBtn:pressed {{
+    background-color: {T.BRAND_ACTIVE};
+}}
 
 /* ── Recording Indicator ──── */
 #RecIndicator {{
@@ -777,6 +802,68 @@ QPushButton#SaveBtn:disabled {{
     border-left: 1px solid {T.STROKE_2};
     min-width: 280px;
     max-width: 280px;
+}}
+#InspectorTabs QTabWidget::pane {{
+    background-color: {T.BG_LAYER_1};
+}}
+QPushButton#InspectorSectionHeader {{
+    background-color: transparent;
+    color: {T.FG_2};
+    border: none;
+    border-bottom: 1px solid {T.STROKE_2};
+    border-radius: 0;
+    padding: 0 {T.SPACE_MD}px;
+    min-height: 32px;
+    text-align: left;
+    font-size: {T.FONT_SIZE_CAPTION_1}px;
+    font-weight: {T.FONT_WEIGHT_SEMIBOLD};
+    letter-spacing: 1px;
+}}
+QPushButton#InspectorSectionHeader:hover {{
+    background-color: {T.BG_LAYER_3};
+    color: {T.FG_PRIMARY};
+}}
+QPushButton#InspectorPrimaryAction {{
+    background-color: {T.BRAND};
+    color: rgb(255, 255, 255);
+    border-color: {T.BRAND};
+    font-weight: {T.FONT_WEIGHT_SEMIBOLD};
+}}
+QPushButton#InspectorPrimaryAction:hover {{
+    background-color: {T.BRAND_HOVER};
+    border-color: {T.BRAND_HOVER};
+}}
+QPushButton#InspectorPrimaryAction:pressed {{
+    background-color: {T.BRAND_ACTIVE};
+    border-color: {T.BRAND_ACTIVE};
+}}
+QPlainTextEdit#NarrationGuidance {{
+    background-color: {T.BG_LAYER_2};
+    color: {T.FG_PRIMARY};
+    border: 1px solid {T.STROKE_1};
+    border-radius: {T.RADIUS_SMALL}px;
+    padding: {T.SPACE_XS}px {T.SPACE_6}px;
+    font-size: {T.FONT_SIZE_BODY_1}px;
+}}
+QPlainTextEdit#NarrationGuidance:hover {{
+    border-color: {T.STROKE_ACCESSIBLE};
+}}
+QPlainTextEdit#NarrationGuidance:focus {{
+    border: 2px solid {T.BRAND};
+}}
+QLabel#InspectorStatus {{
+    color: {T.FG_2};
+    background-color: {T.BG_LAYER_2};
+    border: 1px solid {T.STROKE_2};
+    border-radius: {T.RADIUS_SMALL}px;
+    min-height: 20px;
+    max-height: 20px;
+    padding: 0 {T.SPACE_XS}px;
+    font-size: {T.FONT_SIZE_CAPTION_1}px;
+}}
+QWidget#InspectorBottomBar {{
+    background-color: {T.BG_LAYER_1};
+    border-top: 1px solid {T.STROKE_2};
 }}
 #EditorTitle {{
     color: {T.FG_2};

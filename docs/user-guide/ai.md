@@ -31,13 +31,13 @@ The AI Smart Zoom feature sends a summary of your mouse movements and clicks to 
 
 **To use AI Smart Zoom:**
 
-1. After recording, open the Editor Panel
-2. In the **SMART ZOOM** section, click **AI Auto-generate zoom**
+1. After recording, select **Motion** in the right-side inspector
+2. In **SMART ZOOM**, click **Generate with AI**
 3. Wait a moment while the AI processes your recording
 4. Zoom keyframes are applied automatically (up to 50 sections)
 
 !!! tip "AI vs. local auto-zoom"
-    The local **Auto-generate zoom keyframes** button is faster and works offline. AI Smart Zoom is better at understanding narrative pacing — for example, giving weight to visually important moments rather than just activity frequency.
+    **Generate locally** is faster and works offline. AI Smart Zoom is better at understanding narrative pacing — for example, giving weight to visually important moments rather than just activity frequency.
 
 ---
 
@@ -47,7 +47,7 @@ Generate chapter markers from the same shared recording understanding that power
 
 **To generate chapters:**
 
-1. After recording, open the **CHAPTERS** section
+1. After recording, select **Audio** and open **CHAPTERS**
 2. Click **Generate chapters**
 3. Wait while FollowCursor samples the recording and drafts the chapter markers
 4. Review the flag markers on the timeline. Hover a flag to see its name, left-click to jump there, or right-click to jump/delete it
@@ -71,8 +71,8 @@ For longer recordings, FollowCursor analyzes the visuals in provider-safe batche
 
 **To generate narration:**
 
-1. After recording, open the **NARRATION & VOICEOVER** section
-2. Click **Generate narration**
+1. After recording, select **Audio** and open **VOICEOVER**
+2. Click **Generate**
 3. Wait while FollowCursor writes the script, adds the generated voiceover segments, and starts speech automatically through the normal voiceover flow
 4. Review the generated segments on the timeline's **Voice** track. Each block keeps a short section label, while the editor shows the spoken line if you double-click or right-click to edit it, drag it to retime it, or delete it with confirmation
 5. Save the project if you want the narration to travel with the `.fcproj` file
@@ -87,7 +87,7 @@ Generate chapter markers from the same shared recording knowledge used by narrat
 
 **To generate AI chapters:**
 
-1. Open **CHAPTERS**
+1. Select **Audio** and open **CHAPTERS**
 2. Click **Generate chapters**
 3. Wait while FollowCursor analyzes the shared recording context and replaces the previously generated chapter markers
 4. Review the chapter flags on the timeline. Any manual chapter markers you added stay in place
@@ -104,7 +104,7 @@ Add spoken narration at specific points on the timeline. You write the text and 
 
 You can add a voiceover segment in two ways:
 
-- In the **NARRATION & VOICEOVER** section of the Editor Panel, click **Add Voiceover** — this places a segment at the current playback position
+- Select **Audio**, open **VOICEOVER**, and click **Add here** — this places a segment at the current playback position
 - Right-click the timeline and choose **Add Voiceover here**
 
 ### Working with a Voiceover Segment

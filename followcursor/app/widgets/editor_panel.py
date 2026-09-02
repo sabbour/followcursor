@@ -6,13 +6,13 @@ from typing import List, Tuple
 logger = logging.getLogger(__name__)
 
 from PySide6.QtCore import Qt, Signal
+from PySide6.QtGui import QResizeEvent
 from PySide6.QtWidgets import (
     QWidget,
     QVBoxLayout,
     QHBoxLayout,
     QLabel,
     QPushButton,
-    QFrame,
     QComboBox,
     QLineEdit,
     QPlainTextEdit,
@@ -20,10 +20,14 @@ from PySide6.QtWidgets import (
     QDialogButtonBox,
     QFormLayout,
     QScrollArea,
+    QSizePolicy,
+    QTabWidget,
+    QStyle,
 )
 
 from .. import tokens as T
 from ..fluent_effects import apply_shadow, install_focus_ring
+from ..fluent_tab_bar import FluentTabBar
 from ..icon_loader import load_icon
 from ..models import ZoomKeyframe, MousePosition, KeyEvent, ClickEvent, ClickEffectPreset, CLICK_EFFECT_PRESETS, DEFAULT_CLICK_EFFECT
 from ..activity_analyzer import analyze_activity
@@ -73,6 +77,8 @@ _cached_voices: list[str] = []
 class _CollapsibleSection(QWidget):
     """A section header that toggles visibility of its body widget."""
 
+    expanded = Signal()
+
     def __init__(self, title: str, body: QWidget, collapsed: bool = False, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         layout = QVBoxLayout(self)
@@ -81,16 +87,9 @@ class _CollapsibleSection(QWidget):
 
         # Header button
         self._btn = QPushButton()
+        self._btn.setObjectName("InspectorSectionHeader")
         self._btn.setFixedHeight(32)
         self._btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        self._btn.setStyleSheet(
-            f"QPushButton {{ background: {T.BG_ELEVATED}; color: {T.FG_SECONDARY};"
-            f"  font-size: {T.FONT_SIZE_CAPTION}px;"
-            f"  font-weight: 600; letter-spacing: 1px; border: none;"
-            f"  border-bottom: 1px solid {T.BORDER_SUBTLE}; text-align: left;"
-            f"  padding: 0 {T.SPACE_MD}px; }}"
-            f"QPushButton:hover {{ background: {T.BG_INTERACTIVE}; color: {T.FG_PRIMARY}; }}"
-        )
         self._btn.clicked.connect(self._toggle)
         layout.addWidget(self._btn)
 
@@ -103,13 +102,60 @@ class _CollapsibleSection(QWidget):
         self._update_text()
 
     def _toggle(self) -> None:
-        self._collapsed = not self._collapsed
-        self._body.setVisible(not self._collapsed)
+        self.set_collapsed(not self._collapsed)
+        if not self._collapsed:
+            self.expanded.emit()
+
+    def set_collapsed(self, collapsed: bool) -> None:
+        """Set the disclosure state without emitting an interaction signal."""
+        self._collapsed = collapsed
+        self._body.setVisible(not collapsed)
         self._update_text()
 
     def _update_text(self) -> None:
-        arrow = "▸" if self._collapsed else "▾"
-        self._btn.setText(f"  {arrow}  {self._title}")
+        icon_role = (
+            QStyle.StandardPixmap.SP_ArrowRight
+            if self._collapsed
+            else QStyle.StandardPixmap.SP_ArrowDown
+        )
+        self._btn.setProperty("collapsed", self._collapsed)
+        self._btn.setIcon(self.style().standardIcon(icon_role))
+        self._btn.setText(self._title)
+
+
+class _StatusLabel(QLabel):
+    """Single-line inspector feedback that preserves full text in its tooltip."""
+
+    def __init__(self, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self._full_text = ""
+        self.setObjectName("InspectorStatus")
+        self.setMinimumWidth(0)
+        self.setMaximumWidth(320 - (2 * T.SPACE_LG))
+        self.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
+        self.setVisible(False)
+
+    def set_status(self, text: str) -> None:
+        """Show compact feedback while retaining the complete message."""
+        self._full_text = text
+        self.setToolTip(text)
+        self.setAccessibleName(text)
+        self.setVisible(bool(text))
+        self._update_elided_text()
+
+    def resizeEvent(self, event: QResizeEvent) -> None:
+        super().resizeEvent(event)
+        self._update_elided_text()
+
+    def _update_elided_text(self) -> None:
+        available_width = max(0, self.contentsRect().width())
+        self.setText(
+            self.fontMetrics().elidedText(
+                self._full_text,
+                Qt.TextElideMode.ElideRight,
+                available_width,
+            )
+        )
 
 
 class _AISettingsDialog(QDialog):
@@ -222,29 +268,50 @@ class EditorPanel(QWidget):
     chapter_added = Signal(object)               # Chapter object
     chapter_removed = Signal(int)                # chapter timestamp_ms
 
+    @staticmethod
+    def _add_tab(tabs: QTabWidget, title: str) -> QVBoxLayout:
+        """Add a scrollable inspector tab and return its content layout."""
+        page = QWidget()
+        page_layout = QVBoxLayout(page)
+        page_layout.setContentsMargins(0, 0, 0, 0)
+        page_layout.setSpacing(0)
+
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        scroll.setStyleSheet("QScrollArea { border: none; background: transparent; }")
+
+        content = QWidget()
+        container = QVBoxLayout(content)
+        container.setContentsMargins(0, T.SPACE_SM, 0, T.SPACE_SM)
+        container.setSpacing(T.SPACE_SM)
+        scroll.setWidget(content)
+        page_layout.addWidget(scroll)
+        tabs.addTab(page, title)
+        return container
+
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self.setObjectName("EditorPanel")
         self.setFixedWidth(320)
 
-        # Outer layout: collapsible sections + fixed bottom bar
+        # Outer layout: task-focused inspector tabs + fixed bottom bar
         outer = QVBoxLayout(self)
         outer.setContentsMargins(0, 0, 0, 0)
         outer.setSpacing(0)
 
-        # Scrollable content area (for when many sections are expanded)
-        scroll = QScrollArea()
-        scroll.setWidgetResizable(True)
-        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        scroll.setStyleSheet(
-            f"QScrollArea {{ border: none; background: transparent; }}"
-        )
-        scroll_content = QWidget()
-        self._container = QVBoxLayout(scroll_content)
-        self._container.setContentsMargins(0, T.SPACE_SM, 0, T.SPACE_SM)
-        self._container.setSpacing(T.SPACE_LG)
-        scroll.setWidget(scroll_content)
-        outer.addWidget(scroll, 1)
+        self._tabs = QTabWidget()
+        self._tabs.setObjectName("InspectorTabs")
+        tab_bar = FluentTabBar()
+        tab_bar.setExpanding(True)
+        self._tabs.setTabBar(tab_bar)
+        self._motion_container = self._add_tab(self._tabs, "Motion")
+        self._style_container = self._add_tab(self._tabs, "Style")
+        self._audio_container = self._add_tab(self._tabs, "Audio")
+        self._tabs.setTabToolTip(0, "Zoom and camera movement")
+        self._tabs.setTabToolTip(1, "Background, frame, click effects, and output size")
+        self._tabs.setTabToolTip(2, "Chapters, narration, and voiceover")
+        outer.addWidget(self._tabs, 1)
 
         self._current_zoom_level = ZOOM_DEPTHS["Medium"]
         self._trim_start_ms: float = 0.0
@@ -256,11 +323,6 @@ class EditorPanel(QWidget):
         zoom_lay = QVBoxLayout(zoom_body)
         zoom_lay.setContentsMargins(T.SPACE_LG, T.SPACE_MD, T.SPACE_LG, T.SPACE_SM)
         zoom_lay.setSpacing(T.SPACE_SM)
-
-        qa_desc = QLabel("Analyze activity to auto-generate zoom keyframes.")
-        qa_desc.setObjectName("Secondary")
-        qa_desc.setWordWrap(True)
-        zoom_lay.addWidget(qa_desc)
 
         sens_row = QHBoxLayout()
         sens_row.setSpacing(T.SPACE_SM)
@@ -282,52 +344,33 @@ class EditorPanel(QWidget):
         sens_row.addWidget(self._sensitivity_combo, 1)
         zoom_lay.addLayout(sens_row)
 
-        activity_btn = QPushButton("Auto-generate zoom (local)")
-        activity_btn.setIcon(load_icon("gauge", color=T.FG_1))
-        activity_btn.setObjectName("CtrlBtn")
-        activity_btn.setFixedHeight(36)
+        zoom_actions = QHBoxLayout()
+        zoom_actions.setSpacing(T.SPACE_SM)
+
+        activity_btn = QPushButton("Local")
+        activity_btn.setObjectName("InspectorPrimaryAction")
+        activity_btn.setFixedHeight(32)
+        activity_btn.setAccessibleName("Generate zoom locally")
+        activity_btn.setToolTip("Generate camera moves from recorded activity on this device.")
         activity_btn.clicked.connect(self._auto_keyframe)
-        zoom_lay.addWidget(activity_btn)
+        zoom_actions.addWidget(activity_btn, 1)
 
-        self._auto_status = QLabel("")
-        self._auto_status.setObjectName("Secondary")
-        self._auto_status.setWordWrap(True)
-        self._auto_status.setVisible(False)
-        zoom_lay.addWidget(self._auto_status)
-
-        # "or" separator
-        or_row = QHBoxLayout()
-        or_row.setSpacing(T.SPACE_SM)
-        or_line_l = QFrame()
-        or_line_l.setFrameShape(QFrame.Shape.HLine)
-        or_line_l.setStyleSheet(f"background-color: {T.BORDER_SUBTLE}; max-height: 1px;")
-        or_row.addWidget(or_line_l, 1)
-        or_label = QLabel("or")
-        or_label.setObjectName("Secondary")
-        or_label.setStyleSheet(f"color: {T.FG_MUTED}; font-size: {T.FONT_SIZE_CAPTION}px;")
-        or_row.addWidget(or_label)
-        or_line_r = QFrame()
-        or_line_r.setFrameShape(QFrame.Shape.HLine)
-        or_line_r.setStyleSheet(f"background-color: {T.BORDER_SUBTLE}; max-height: 1px;")
-        or_row.addWidget(or_line_r, 1)
-        zoom_lay.addLayout(or_row)
-
-        ai_zoom_btn = QPushButton("  Auto-generate zoom (AI)")
-        ai_zoom_btn.setIcon(load_icon("search", color=T.FG_PRIMARY))
+        ai_zoom_btn = QPushButton("AI")
         ai_zoom_btn.setObjectName("CtrlBtn")
-        ai_zoom_btn.setFixedHeight(36)
+        ai_zoom_btn.setFixedHeight(32)
+        ai_zoom_btn.setAccessibleName("Generate zoom with AI")
         ai_zoom_btn.setToolTip("Use AI (Azure AI Foundry) to analyze activity\nand generate zoom keyframes.")
         ai_zoom_btn.clicked.connect(self._on_ai_zoom)
-        zoom_lay.addWidget(ai_zoom_btn)
+        zoom_actions.addWidget(ai_zoom_btn, 1)
+        zoom_lay.addLayout(zoom_actions)
         self._btn_ai_zoom = ai_zoom_btn
 
-        self._ai_zoom_status = QLabel("")
-        self._ai_zoom_status.setObjectName("Secondary")
-        self._ai_zoom_status.setWordWrap(True)
-        self._ai_zoom_status.setVisible(False)
-        zoom_lay.addWidget(self._ai_zoom_status)
+        self._zoom_status = _StatusLabel()
+        self._auto_status = self._zoom_status
+        self._ai_zoom_status = self._zoom_status
+        zoom_lay.addWidget(self._zoom_status)
 
-        self._container.addWidget(_CollapsibleSection("SMART ZOOM", zoom_body))
+        self._motion_container.addWidget(_CollapsibleSection("SMART ZOOM", zoom_body))
 
         # ── Chapters (collapsible) ───────────────────────────────────
         chapters_body = QWidget()
@@ -335,46 +378,38 @@ class EditorPanel(QWidget):
         chapters_lay.setContentsMargins(T.SPACE_LG, T.SPACE_MD, T.SPACE_LG, T.SPACE_SM)
         chapters_lay.setSpacing(T.SPACE_SM)
 
-        chapters_desc = QLabel(
-            "Generate AI chapter markers for navigation in long recordings.\n"
-            "Chapters reuse the same recording understanding as narration — shared frame samples, cursor activity, click beats, and zoom edits."
-        )
+        chapters_desc = QLabel("Build markers automatically or add one at the playhead.")
         chapters_desc.setObjectName("Secondary")
         chapters_desc.setWordWrap(True)
         chapters_lay.addWidget(chapters_desc)
 
-        self._btn_generate_chapters = QPushButton("  Generate chapters")
-        self._btn_generate_chapters.setIcon(load_icon("video", color=T.FG_PRIMARY))
-        self._btn_generate_chapters.setObjectName("CtrlBtn")
+        chapter_actions = QHBoxLayout()
+        chapter_actions.setSpacing(T.SPACE_SM)
+
+        self._btn_generate_chapters = QPushButton("Generate")
+        self._btn_generate_chapters.setObjectName("InspectorPrimaryAction")
         self._btn_generate_chapters.setFixedHeight(32)
         self._btn_generate_chapters.setToolTip(
             "Use GPT-5.4 to suggest chapter markers from the same shared recording context\n"
             "as narration. Re-running replaces only generated chapters and keeps manual markers."
         )
         self._btn_generate_chapters.clicked.connect(self._on_generate_chapters)
-        chapters_lay.addWidget(self._btn_generate_chapters)
+        chapter_actions.addWidget(self._btn_generate_chapters, 1)
 
-        self._btn_add_chapter = QPushButton("+ Add chapter manually")
+        self._btn_add_chapter = QPushButton("Add here")
         self._btn_add_chapter.setObjectName("CtrlBtn")
         self._btn_add_chapter.setFixedHeight(32)
+        self._btn_add_chapter.setAccessibleName("Add chapter at playhead")
         self._btn_add_chapter.setToolTip("Add a chapter marker at the current playback position.")
         self._btn_add_chapter.clicked.connect(self._on_add_chapter)
-        chapters_lay.addWidget(self._btn_add_chapter)
+        chapter_actions.addWidget(self._btn_add_chapter, 1)
+        chapters_lay.addLayout(chapter_actions)
 
-        chapters_hint = QLabel(
-            "Generated chapters refresh only the AI markers. Manual chapter markers stay where you place them."
-        )
-        chapters_hint.setObjectName("Secondary")
-        chapters_hint.setWordWrap(True)
-        chapters_lay.addWidget(chapters_hint)
-
-        self._chapters_status = QLabel("")
-        self._chapters_status.setObjectName("Secondary")
-        self._chapters_status.setWordWrap(True)
-        self._chapters_status.setVisible(False)
+        self._chapters_status = _StatusLabel()
         chapters_lay.addWidget(self._chapters_status)
 
-        self._container.addWidget(_CollapsibleSection("CHAPTERS", chapters_body, collapsed=True))
+        chapters_section = _CollapsibleSection("CHAPTERS", chapters_body, collapsed=True)
+        self._audio_container.addWidget(chapters_section)
 
         # ── Voiceover (collapsible) ──────────────────────────────────
         vo_body = QWidget()
@@ -382,47 +417,28 @@ class EditorPanel(QWidget):
         vo_lay.setContentsMargins(T.SPACE_LG, T.SPACE_MD, T.SPACE_LG, T.SPACE_SM)
         vo_lay.setSpacing(T.SPACE_SM)
 
-        vo_desc = QLabel(
-            "Draft five presentation-style voiceover segments for the full recording and\n"
-            "let FollowCursor voice them automatically. Narration reuses the same recording\n"
-            "understanding as AI chapters, while the script stays focused on the takeaway rather than on-screen mechanics."
-        )
+        vo_desc = QLabel("Generate a full script or add a voiceover at the playhead.")
         vo_desc.setObjectName("Secondary")
         vo_desc.setWordWrap(True)
         vo_lay.addWidget(vo_desc)
 
-        vo_guidance_label = QLabel("Guidance (optional)")
+        vo_guidance_label = QLabel("Optional guidance")
         vo_guidance_label.setObjectName("Secondary")
-        vo_guidance_label.setStyleSheet(
-            f"color: {T.FG_MUTED}; font-size: {T.FONT_SIZE_CAPTION}px;"
-        )
         vo_lay.addWidget(vo_guidance_label)
 
         self._narration_guidance = QPlainTextEdit()
         self._narration_guidance.setObjectName("NarrationGuidance")
         self._narration_guidance.setPlaceholderText(
-            "Steer what the narration focuses on - e.g. 'lead with the time saved' "
-            "or 'emphasize this is a one-click flow'."
+            "For example: Lead with the time saved."
         )
-        self._narration_guidance.setFixedHeight(64)
-        self._narration_guidance.setStyleSheet(
-            f"QPlainTextEdit#NarrationGuidance {{"
-            f"  background-color: {T.BG_ELEVATED};"
-            f"  color: {T.FG_PRIMARY};"
-            f"  border: 1px solid {T.BORDER_SUBTLE};"
-            f"  border-radius: 4px;"
-            f"  padding: 4px 6px;"
-            f"  font-size: {T.FONT_SIZE_BODY}px;"
-            f"}}"
-            f"QPlainTextEdit#NarrationGuidance:focus {{"
-            f"  border-color: {T.BRAND};"
-            f"}}"
-        )
+        self._narration_guidance.setFixedHeight(52)
         vo_lay.addWidget(self._narration_guidance)
 
-        self._btn_generate_narration = QPushButton("  Generate narration")
-        self._btn_generate_narration.setIcon(load_icon("edit", color=T.FG_PRIMARY))
-        self._btn_generate_narration.setObjectName("CtrlBtn")
+        voice_actions = QHBoxLayout()
+        voice_actions.setSpacing(T.SPACE_SM)
+
+        self._btn_generate_narration = QPushButton("Generate")
+        self._btn_generate_narration.setObjectName("InspectorPrimaryAction")
         self._btn_generate_narration.setFixedHeight(32)
         self._btn_generate_narration.setToolTip(
             "Use GPT-5.4 to draft five presentation-style voiceover segments,\n"
@@ -431,54 +447,28 @@ class EditorPanel(QWidget):
             "Open any generated segment to review the spoken line, then drag or delete it like any other voiceover."
         )
         self._btn_generate_narration.clicked.connect(self._on_generate_narration)
-        vo_lay.addWidget(self._btn_generate_narration)
+        voice_actions.addWidget(self._btn_generate_narration, 1)
 
-        self._narration_status = QLabel("")
-        self._narration_status.setObjectName("Secondary")
-        self._narration_status.setWordWrap(True)
-        self._narration_status.setVisible(False)
-        vo_lay.addWidget(self._narration_status)
-
-        vo_or_row = QHBoxLayout()
-        vo_or_row.setSpacing(T.SPACE_SM)
-        vo_or_line_l = QFrame()
-        vo_or_line_l.setFrameShape(QFrame.Shape.HLine)
-        vo_or_line_l.setStyleSheet(
-            f"background-color: {T.BORDER_SUBTLE}; max-height: 1px;"
-        )
-        vo_or_row.addWidget(vo_or_line_l, 1)
-        vo_or_label = QLabel("or")
-        vo_or_label.setObjectName("Secondary")
-        vo_or_label.setStyleSheet(
-            f"color: {T.FG_MUTED}; font-size: {T.FONT_SIZE_CAPTION}px;"
-        )
-        vo_or_row.addWidget(vo_or_label)
-        vo_or_line_r = QFrame()
-        vo_or_line_r.setFrameShape(QFrame.Shape.HLine)
-        vo_or_line_r.setStyleSheet(
-            f"background-color: {T.BORDER_SUBTLE}; max-height: 1px;"
-        )
-        vo_or_row.addWidget(vo_or_line_r, 1)
-        vo_lay.addLayout(vo_or_row)
-
-        self._btn_add_voiceover = QPushButton("  Add voiceover")
-        self._btn_add_voiceover.setIcon(load_icon("mic", color=T.FG_PRIMARY))
+        self._btn_add_voiceover = QPushButton("Add here")
         self._btn_add_voiceover.setObjectName("CtrlBtn")
         self._btn_add_voiceover.setFixedHeight(32)
+        self._btn_add_voiceover.setAccessibleName("Add voiceover at playhead")
         self._btn_add_voiceover.setToolTip(
             "Add a manual text-to-speech voiceover segment at the current playback position.\n"
             "Use the Voice track to review, drag, or delete it later."
         )
         self._btn_add_voiceover.clicked.connect(self._on_add_voiceover)
-        vo_lay.addWidget(self._btn_add_voiceover)
+        voice_actions.addWidget(self._btn_add_voiceover, 1)
+        vo_lay.addLayout(voice_actions)
 
-        self._vo_status = QLabel("")
-        self._vo_status.setObjectName("Secondary")
-        self._vo_status.setWordWrap(True)
-        self._vo_status.setVisible(False)
+        self._narration_status = _StatusLabel()
+        self._vo_status = _StatusLabel()
+        vo_lay.addWidget(self._narration_status)
         vo_lay.addWidget(self._vo_status)
 
-        self._container.addWidget(_CollapsibleSection("NARRATION & VOICEOVER", vo_body))
+        voice_section = _CollapsibleSection("VOICEOVER", vo_body)
+        self._audio_container.addWidget(voice_section)
+        self._connect_exclusive_sections([chapters_section, voice_section])
 
         # ── Background picker (collapsible) ──────────────────────────
         bg_body = QWidget()
@@ -512,7 +502,8 @@ class EditorPanel(QWidget):
         bg_lay.addWidget(self._bg_stack)
         self._current_bg_preset = DEFAULT_PRESET
 
-        self._container.addWidget(_CollapsibleSection("BACKGROUND", bg_body, collapsed=True))
+        background_section = _CollapsibleSection("BACKGROUND", bg_body, collapsed=True)
+        self._style_container.addWidget(background_section)
 
         # ── Frame picker (collapsible) ───────────────────────────────
         fr_body = QWidget()
@@ -530,7 +521,8 @@ class EditorPanel(QWidget):
         fr_lay.addWidget(self._frame_combo)
         self._current_frame_preset = DEFAULT_FRAME
 
-        self._container.addWidget(_CollapsibleSection("DEVICE FRAME", fr_body, collapsed=True))
+        frame_section = _CollapsibleSection("DEVICE FRAME", fr_body, collapsed=True)
+        self._style_container.addWidget(frame_section)
 
         # ── Click effect picker (collapsible) ────────────────────────
         click_body = QWidget()
@@ -548,7 +540,8 @@ class EditorPanel(QWidget):
         click_lay.addWidget(self._click_combo)
         self._current_click_preset = DEFAULT_CLICK_EFFECT
 
-        self._container.addWidget(_CollapsibleSection("CLICK EFFECTS", click_body, collapsed=True))
+        click_section = _CollapsibleSection("CLICK EFFECTS", click_body, collapsed=True)
+        self._style_container.addWidget(click_section)
 
         # ── Output dimensions (collapsible) ──────────────────────────
         dim_body = QWidget()
@@ -570,59 +563,46 @@ class EditorPanel(QWidget):
         dim_lay.addWidget(self._dim_combo)
 
         self._current_output_dim = "auto"
-        self._container.addWidget(_CollapsibleSection("OUTPUT SIZE", dim_body, collapsed=True))
+        output_section = _CollapsibleSection("OUTPUT SIZE", dim_body, collapsed=True)
+        self._style_container.addWidget(output_section)
+        self._connect_exclusive_sections(
+            [background_section, frame_section, click_section, output_section]
+        )
 
-        # End of scrollable content
-        self._container.addStretch()
+        # Keep each task group pinned to the top of its own scroll region.
+        self._motion_container.addStretch()
+        self._style_container.addStretch()
+        self._audio_container.addStretch()
 
         # ── Fixed bottom bar (outside scroll area) ──────────────────
         bottom_bar = QWidget()
-        bottom_bar.setStyleSheet(
-            f"background: {T.BG_SURFACE}; border-top: 1px solid {T.BORDER_SUBTLE};"
-        )
-        bottom_layout = QVBoxLayout(bottom_bar)
-        bottom_layout.setContentsMargins(T.SPACE_LG, T.SPACE_MD, T.SPACE_LG, T.SPACE_SM)
+        bottom_bar.setObjectName("InspectorBottomBar")
+        bottom_layout = QHBoxLayout(bottom_bar)
+        bottom_layout.setContentsMargins(T.SPACE_LG, T.SPACE_SM, T.SPACE_LG, T.SPACE_SM)
         bottom_layout.setSpacing(T.SPACE_XS)
 
-        # Undo / Redo row
-        undo_redo_row = QHBoxLayout()
-        undo_redo_row.setSpacing(T.SPACE_XS)
-        self._btn_undo = QPushButton("↩ Undo")
+        self._info_label = QLabel()
+        info_icon = self.style().standardIcon(QStyle.StandardPixmap.SP_MessageBoxInformation)
+        self._info_label.setPixmap(info_icon.pixmap(16, 16))
+        self._info_label.setObjectName("Secondary")
+        self._info_label.setToolTip("Duration: 0:00\nMouse samples: 0\nKeyframes: 0")
+        self._info_label.setCursor(Qt.CursorShape.WhatsThisCursor)
+        bottom_layout.addWidget(self._info_label)
+        bottom_layout.addStretch()
+
+        self._btn_undo = QPushButton("Undo")
         self._btn_undo.setObjectName("CtrlBtn")
         self._btn_undo.setFixedHeight(28)
         self._btn_undo.setToolTip("Undo last zoom change (Ctrl+Z)")
         self._btn_undo.clicked.connect(self.undo_requested.emit)
-        undo_redo_row.addWidget(self._btn_undo)
+        bottom_layout.addWidget(self._btn_undo)
 
-        self._btn_redo = QPushButton("Redo ↪")
+        self._btn_redo = QPushButton("Redo")
         self._btn_redo.setObjectName("CtrlBtn")
         self._btn_redo.setFixedHeight(28)
         self._btn_redo.setToolTip("Redo last undone change (Ctrl+Y)")
         self._btn_redo.clicked.connect(self.redo_requested.emit)
-        undo_redo_row.addWidget(self._btn_redo)
-        bottom_layout.addLayout(undo_redo_row)
-
-        # Info + settings row
-        info_row = QHBoxLayout()
-        info_row.setSpacing(T.SPACE_SM)
-
-        self._info_label = QLabel()
-        _info_icon = load_icon("info", color=T.FG_MUTED)
-        if not _info_icon.isNull():
-            self._info_label.setPixmap(_info_icon.pixmap(16, 16))
-        else:
-            self._info_label.setText("ℹ")
-        self._info_label.setObjectName("Secondary")
-        self._info_label.setToolTip("Duration: 0:00\nMouse samples: 0\nKeyframes: 0")
-        self._info_label.setCursor(Qt.CursorShape.WhatsThisCursor)
-        self._info_label.setStyleSheet(
-            f"QLabel {{ color: {T.FG_MUTED}; font-size: {T.FONT_SIZE_BODY}px; padding: {T.SPACE_XXS}px 0; }}"
-            f"QToolTip {{ background: {T.BG_INTERACTIVE}; color: {T.FG_PRIMARY};"
-            f"  border: 1px solid {T.CARD_BORDER}; padding: 6px; }}"
-        )
-        info_row.addWidget(self._info_label)
-
-        info_row.addStretch()
+        bottom_layout.addWidget(self._btn_redo)
 
         self._btn_settings = QPushButton("Settings")
         self._btn_settings.setObjectName("CtrlBtn")
@@ -630,9 +610,7 @@ class EditorPanel(QWidget):
         self._btn_settings.setToolTip("Settings")
         self._btn_settings.setCursor(Qt.CursorShape.PointingHandCursor)
         self._btn_settings.clicked.connect(self._show_settings_menu)
-        info_row.addWidget(self._btn_settings)
-
-        bottom_layout.addLayout(info_row)
+        bottom_layout.addWidget(self._btn_settings)
         outer.addWidget(bottom_bar)
 
         # Debug overlay state (managed via settings menu) — on by default
@@ -653,6 +631,17 @@ class EditorPanel(QWidget):
             install_focus_ring(child)
         for child in self.findChildren(QComboBox):
             install_focus_ring(child)
+
+    @staticmethod
+    def _connect_exclusive_sections(sections: list[_CollapsibleSection]) -> None:
+        """Keep at most one disclosure body open within a task tab."""
+        for section in sections:
+            def collapse_siblings(current: _CollapsibleSection = section) -> None:
+                for sibling in sections:
+                    if sibling is not current:
+                        sibling.set_collapsed(True)
+
+            section.expanded.connect(collapse_siblings)
 
     # ── position / depth controls ───────────────────────────────────
 
@@ -991,12 +980,10 @@ class EditorPanel(QWidget):
             filtered_clicks = list(self._click_events)
 
         if len(track) < 10:
-            self._auto_status.setText("Not enough mouse data to analyze.")
-            self._auto_status.setVisible(True)
+            self._auto_status.set_status("Not enough mouse data to analyze.")
             return
         if not self._monitor_rect:
-            self._auto_status.setText("No monitor info available.")
-            self._auto_status.setVisible(True)
+            self._auto_status.set_status("No monitor info available.")
             return
 
         # Get sensitivity settings
@@ -1014,21 +1001,18 @@ class EditorPanel(QWidget):
                 min_gap_ms=min_gap,
             )
         except Exception as exc:
-            self._auto_status.setText(f"Analysis error: {exc}")
-            self._auto_status.setVisible(True)
+            self._auto_status.set_status(f"Analysis error: {exc}")
             return
 
         if not keyframes:
-            self._auto_status.setText("No significant activity clusters detected.")
-            self._auto_status.setVisible(True)
+            self._auto_status.set_status("No significant activity clusters detected.")
             return
 
         # Count actual zoom-in keyframes (zoom > 1.0) as the cluster count
         n_clusters = sum(1 for kf in keyframes if kf.zoom > 1.0 and not kf.reason.startswith("Pan to:"))
-        self._auto_status.setText(
+        self._auto_status.set_status(
             f"Generated {len(keyframes)} keyframes from {n_clusters} activity cluster{'s' if n_clusters != 1 else ''}."
         )
-        self._auto_status.setVisible(True)
         self.auto_keyframes_generated.emit(keyframes)
 
     # ── AI features ─────────────────────────────────────────────────
@@ -1037,15 +1021,13 @@ class EditorPanel(QWidget):
         """Request AI-powered zoom analysis."""
         sens_name = self._sensitivity_combo.currentText()
         max_clusters, min_gap = SENSITIVITY_PRESETS.get(sens_name, (6, 4000))
-        self._ai_zoom_status.setText("Requesting AI analysis\u2026")
-        self._ai_zoom_status.setVisible(True)
+        self._ai_zoom_status.set_status("Requesting AI analysis\u2026")
         self._btn_ai_zoom.setEnabled(False)
         self.ai_zoom_requested.emit(max_clusters, self._current_zoom_level, min_gap)
 
     def set_ai_zoom_status(self, text: str) -> None:
         """Update the AI zoom status label from outside."""
-        self._ai_zoom_status.setText(text)
-        self._ai_zoom_status.setVisible(bool(text))
+        self._ai_zoom_status.set_status(text)
         self._btn_ai_zoom.setEnabled(True)
 
     def _on_add_voiceover(self) -> None:
@@ -1059,13 +1041,15 @@ class EditorPanel(QWidget):
 
     def set_narration_status(self, text: str) -> None:
         """Update the narration status label from outside."""
-        self._narration_status.setText(text)
-        self._narration_status.setVisible(bool(text))
+        self._narration_status.set_status(text)
+        if text:
+            self._vo_status.set_status("")
 
     def set_voiceover_status(self, text: str) -> None:
         """Update the voiceover status label from outside."""
-        self._vo_status.setText(text)
-        self._vo_status.setVisible(bool(text))
+        self._vo_status.set_status(text)
+        if text:
+            self._narration_status.set_status("")
         self._btn_add_voiceover.setEnabled(True)
 
     def set_ai_busy(self, busy: bool) -> None:
@@ -1156,8 +1140,7 @@ class EditorPanel(QWidget):
 
     def set_chapters_status(self, text: str) -> None:
         """Update the chapters status label from outside."""
-        self._chapters_status.setText(text)
-        self._chapters_status.setVisible(bool(text))
+        self._chapters_status.set_status(text)
 
     def _show_about(self) -> None:
         """Show the About dialog with links to GitHub."""

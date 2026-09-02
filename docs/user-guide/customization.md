@@ -2,6 +2,8 @@
 
 FollowCursor gives you full control over how your recording looks — from the background and device frame around the video to the effects shown when you click.
 
+After recording, select **Style** in the right-side inspector. Background, device frame, click effects, and output size stay collapsed until you open the setting you need.
+
 ---
 
 ## Backgrounds
@@ -14,7 +16,7 @@ The background fills the space around your recorded content. Choose from **84 pr
 | **Gradient** | 37 | Smooth color blends: 20 linear (top-to-bottom), 11 radial (glowing center), 6 spotlight (off-center glow) |
 | **Pattern** | 8 | Organic wavy designs layered over a gradient base |
 
-Use the category dropdown in the **BACKGROUND** section to switch between groups. Click any swatch to apply it — the preview updates immediately.
+Open **BACKGROUND** and use the category dropdown to switch between groups. Click any swatch to apply it — the preview updates immediately.
 
 ---
 

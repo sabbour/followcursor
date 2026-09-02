@@ -3,13 +3,14 @@
 import logging
 import os
 import subprocess
+import tempfile
 import threading
 import uuid
 from typing import Optional, List
 
 logger = logging.getLogger(__name__)
 
-from PySide6.QtCore import Qt, QTimer, QSettings, QByteArray, QEvent, QThread, Signal as CoreSignal, QSize
+from PySide6.QtCore import Qt, QTimer, QSettings, QByteArray, QEvent, QThread, Signal as CoreSignal, QSize, QRect
 from PySide6.QtGui import QIcon, QShortcut, QKeySequence
 from PySide6.QtWidgets import (
     QMainWindow,
@@ -140,6 +141,7 @@ class _FinalizeWorker(QThread):
     GUI thread stays responsive and the processing overlay can animate.
     """
     done = CoreSignal(list, list, list, list, float)  # mouse, keys, clicks, timestamps, fps
+    failed = CoreSignal(str)
 
     def __init__(
         self,
@@ -150,6 +152,10 @@ class _FinalizeWorker(QThread):
         video_path: str,
         rec_duration_ms: float,
         actual_fps_override: float,
+        append_to_path: str = "",
+        append_width: int = 0,
+        append_height: int = 0,
+        append_fps: float = 0.0,
         parent=None,
     ) -> None:
         super().__init__(parent)
@@ -161,6 +167,11 @@ class _FinalizeWorker(QThread):
         self._rec_duration_ms = rec_duration_ms
         self._actual_fps_override = actual_fps_override
         self._result_fps: float = actual_fps_override
+        self._append_to_path = append_to_path
+        self._append_width = append_width
+        self._append_height = append_height
+        self._append_fps = append_fps
+        self.output_video_path = video_path
 
     def run(self) -> None:  # noqa: D401 — required by QThread
         # These calls may block briefly (capture-thread join, hook-thread joins).
@@ -185,10 +196,28 @@ class _FinalizeWorker(QThread):
             for i, c in enumerate(click_events):
                 logger.debug("Click #%d: ts=%.0fms  x=%.0f y=%.0f", i, c.timestamp, c.x, c.y)
 
-        # Remux AVI with correct FPS
-        self._result_fps = self._remux_with_correct_fps(actual_fps)
-
-        self.done.emit(mouse_track, key_events, click_events, frame_timestamps, self._result_fps)
+        try:
+            # Remux AVI with correct FPS
+            self._result_fps = self._remux_with_correct_fps(actual_fps)
+            if self._append_to_path:
+                from .utils import append_video
+                append_video(
+                    self._append_to_path,
+                    self._video_path,
+                    self._append_width,
+                    self._append_height,
+                    self._append_fps,
+                    timeout=max(3600, int(self._rec_duration_ms / 1000) * 4),
+                )
+                self.output_video_path = self._append_to_path
+                try:
+                    os.remove(self._video_path)
+                except OSError:
+                    logger.warning("Could not remove appended capture: %s", self._video_path)
+            self.done.emit(mouse_track, key_events, click_events, frame_timestamps, self._result_fps)
+        except Exception as exc:
+            logger.exception("Failed to finalize recording")
+            self.failed.emit(str(exc))
 
     # ── remux (runs in worker thread) ───────────────────────────────
 
@@ -774,6 +803,12 @@ class MainWindow(QMainWindow):
         self._startup_ready_emitted = False
 
         self._recording = False
+        self._append_capture = False
+        self._append_base_video_path: str = ""
+        self._append_base_monitor_rect: dict = {}
+        self._append_base_duration_ms: float = 0.0
+        self._append_base_fps: float = 0.0
+        self._pending_capture_duration_ms: float = 0.0
         self._selected_monitor: int = 0  # 0 = none selected
         self._monitor_rect: dict = {}    # {left, top, width, height} of selected monitor
         self._source_type: str = "monitor"  # "monitor" | "window"
@@ -797,6 +832,7 @@ class MainWindow(QMainWindow):
         self._trim_end_ms: float = 0.0    # trim end point (0 = full duration)
         self._project_path: str = ""      # path to current .fcproj file
         self._unsaved_changes: bool = False  # True when edits exist since last save
+        self._project_media_changed: bool = False
         self._keystroke_config = None  # KeystrokeOverlayConfig or None
         self._annotations = None  # AnnotationCollection or None
         self._chapters: list = []  # List[Chapter]
@@ -997,6 +1033,7 @@ class MainWindow(QMainWindow):
 
         # Show initial title (Untitled project)
         self._update_title()
+        self._sync_project_actions()
 
         # Register persistent Ctrl+Shift+R hotkey
         self._hotkeys.register_record_hotkey()
@@ -1071,7 +1108,7 @@ class MainWindow(QMainWindow):
         self._btn_record_view = self._make_sidebar_btn(
             load_icon("record", variant="filled", color=T.BRAND), "Record", active=True
         )
-        self._btn_record_view.clicked.connect(lambda: self._set_view("record"))
+        self._btn_record_view.clicked.connect(self._on_record_view_requested)
 
         self._btn_edit_view = self._make_sidebar_btn(
             load_icon("play", color=T.FG_PRIMARY), "Edit"
@@ -1080,7 +1117,7 @@ class MainWindow(QMainWindow):
 
         sep = QFrame()
         sep.setFixedSize(40, 1)
-        sep.setStyleSheet("background-color: #2d2b45;")
+        sep.setStyleSheet(f"background-color: {T.STROKE_2};")
 
         self._btn_load = self._make_sidebar_btn(
             load_icon("folder_open", color=T.FG_PRIMARY), "Open"
@@ -1133,20 +1170,33 @@ class MainWindow(QMainWindow):
     def _build_placeholder(self) -> QWidget:
         w = QWidget()
         w.setObjectName("PlaceholderWidget")
-        w.setCursor(Qt.CursorShape.PointingHandCursor)
         w.setMinimumSize(480, 270)
-        w.mousePressEvent = lambda e: self._select_source()
         layout = QVBoxLayout(w)
         layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.setSpacing(14)
-        text = QLabel("Click to select a screen")
+        layout.setContentsMargins(T.SPACE_XL, T.SPACE_XL, T.SPACE_XL, T.SPACE_XL)
+        layout.setSpacing(T.SPACE_SM)
+
+        text = QLabel("Start a new recording")
         text.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        text.setStyleSheet("color: #b0aec4; font-size: 15px; font-weight: 500; background: transparent;")
+        text.setStyleSheet(
+            f"color: {T.FG_PRIMARY}; font-size: {T.FONT_SIZE_SUBTITLE_2}px;"
+            f" font-weight: {T.FONT_WEIGHT_SEMIBOLD}; background: transparent;"
+        )
         layout.addWidget(text)
-        hint = QLabel("Choose what you want to record")
+
+        hint = QLabel("Choose a screen or window. Nothing records until you press Record.")
         hint.setAlignment(Qt.AlignmentFlag.AlignCenter)
         hint.setObjectName("Muted")
         layout.addWidget(hint)
+
+        choose_btn = QPushButton("Choose recording source")
+        choose_btn.setObjectName("SourceCtaBtn")
+        choose_btn.setIcon(load_icon("desktop", color=T.FG_PRIMARY))
+        choose_btn.setAccessibleName("Choose recording source")
+        choose_btn.setAccessibleDescription("Choose a screen or window to record")
+        choose_btn.clicked.connect(self._select_source)
+        install_focus_ring(choose_btn)
+        layout.addWidget(choose_btn, 0, Qt.AlignmentFlag.AlignHCenter)
         return w
 
     def _build_control_bar(self) -> QWidget:
@@ -1169,6 +1219,13 @@ class MainWindow(QMainWindow):
         self._btn_record.clicked.connect(self._start_recording)
         self._btn_record.setVisible(False)
 
+        self._btn_add_capture = QPushButton("  Add Capture")
+        self._btn_add_capture.setIcon(load_icon("record", variant="filled", color=T.BRAND))
+        self._btn_add_capture.setObjectName("CtrlBtn")
+        self._btn_add_capture.setToolTip("Choose a screen or window to add to this project")
+        self._btn_add_capture.clicked.connect(self._show_add_capture_view)
+        self._btn_add_capture.setVisible(False)
+
         self._btn_stop = QPushButton("  Stop Recording")
         self._btn_stop.setIcon(load_icon("stop", variant="filled", color=T.DANGER))
         self._btn_stop.setObjectName("StopBtn")
@@ -1176,11 +1233,13 @@ class MainWindow(QMainWindow):
         self._btn_stop.setVisible(False)
 
         layout.addWidget(self._btn_change_source)
+        layout.addWidget(self._btn_add_capture)
         layout.addWidget(self._btn_record)
         layout.addWidget(self._btn_stop)
 
         # Fluent 2 — keyboard focus glow on control buttons
-        for btn in (self._btn_change_source, self._btn_record, self._btn_stop):
+        for btn in (self._btn_change_source, self._btn_add_capture,
+                    self._btn_record, self._btn_stop):
             install_focus_ring(btn)
 
         return bar
@@ -1235,6 +1294,18 @@ class MainWindow(QMainWindow):
     #  Actions
     # ════════════════════════════════════════════════════════════════
 
+    def _on_record_view_requested(self) -> None:
+        """Open Record mode, selecting a fresh source when extending a project."""
+        if self._video_path and os.path.isfile(self._video_path):
+            self._show_add_capture_view()
+        else:
+            self._set_view("record")
+
+    def _show_add_capture_view(self) -> None:
+        """Open the source picker before adding another project capture."""
+        self._set_view("record")
+        QTimer.singleShot(0, self._select_source)
+
     def _select_source(self) -> None:
         """Open the source picker dialog and start capturing the chosen source."""
         dlg = SourcePickerDialog(self, exclude_hwnd=int(self.winId()))
@@ -1268,28 +1339,12 @@ class MainWindow(QMainWindow):
 
     def _start_recording(self) -> None:
         """Initiate recording: show countdown, then begin capture + tracking."""
+        self._append_capture = bool(self._video_path and os.path.isfile(self._video_path))
+        if self._append_capture and not self._append_base_video_path:
+            self._snapshot_append_base()
         if self._selected_monitor == 0 and self._source_type != "window":
             self._select_source()
             return
-
-        # Prompt if there are unsaved edits from the previous session
-        if self._unsaved_changes and self._video_path:
-            dlg = QMessageBox(self)
-            dlg.setWindowTitle("Unsaved Changes")
-            dlg.setText("Starting a new recording will discard unsaved changes.\nDo you want to save first?")
-            dlg.setIcon(QMessageBox.Icon.Warning)
-            btn_save = dlg.addButton("Save", QMessageBox.ButtonRole.AcceptRole)
-            dlg.addButton("Discard", QMessageBox.ButtonRole.DestructiveRole)
-            btn_cancel = dlg.addButton("Cancel", QMessageBox.ButtonRole.RejectRole)
-            dlg.setDefaultButton(btn_cancel)
-            dlg.exec()
-            clicked = dlg.clickedButton()
-            if clicked == btn_cancel:
-                return
-            if clicked == btn_save:
-                self._save_session()
-                if self._unsaved_changes:
-                    return  # user cancelled save dialog
 
         # Show countdown overlay, then start recording
         self._btn_record.setVisible(False)
@@ -1339,6 +1394,7 @@ class MainWindow(QMainWindow):
         self._preview.set_annotations(None)
         self._project_path = ""
         self._unsaved_changes = False
+        self._project_media_changed = False
         self._output_dim = "auto"
         self._update_title()
 
@@ -1347,7 +1403,11 @@ class MainWindow(QMainWindow):
         import time as _time
 
         try:
-            self._reset_session()
+            if not self._append_capture:
+                self._reset_session()
+            else:
+                self._preview.stop_playback()
+                self._preserve_append_base()
             self._preview.set_recording_mode(True)  # blur + indicator
 
             # Single shared epoch — recorder + all activity trackers use the
@@ -1384,6 +1444,8 @@ class MainWindow(QMainWindow):
             self._minimize_to_tray()
         except Exception:
             logger.exception("Failed to start recording")
+            if self._append_capture and self._append_base_video_path:
+                self._video_path = self._append_base_video_path
             self._recording = False
             self._preview.set_recording_mode(False)
             self._btn_record.setVisible(True)
@@ -1407,7 +1469,9 @@ class MainWindow(QMainWindow):
         try:
             # Snapshot wall-clock duration and signal recorder to stop writing
             # frames (non-blocking — just toggles a flag).
-            self._rec_duration_ms = self._recorder.recording_duration_ms
+            self._pending_capture_duration_ms = self._recorder.recording_duration_ms
+            if not self._append_capture:
+                self._rec_duration_ms = self._pending_capture_duration_ms
             self._video_path = self._recorder.stop_recording()
             self._actual_fps_override = self._recorder.actual_fps
         except Exception:
@@ -1440,11 +1504,16 @@ class MainWindow(QMainWindow):
             keyboard_tracker=self._keyboard_tracker,
             click_tracker=self._click_tracker,
             video_path=self._video_path,
-            rec_duration_ms=self._rec_duration_ms,
+            rec_duration_ms=self._pending_capture_duration_ms,
             actual_fps_override=self._actual_fps_override,
+            append_to_path=self._append_base_video_path if self._append_capture else "",
+            append_width=int(self._append_base_monitor_rect.get("width", 0)),
+            append_height=int(self._append_base_monitor_rect.get("height", 0)),
+            append_fps=self._append_base_fps,
             parent=self,
         )
         self._finalize_worker.done.connect(self._on_finalize_done)
+        self._finalize_worker.failed.connect(self._on_finalize_failed)
         self._finalize_worker.start()
 
     def _on_finalize_done(
@@ -1457,7 +1526,39 @@ class MainWindow(QMainWindow):
     ) -> None:
         """Called on the GUI thread when the finalize worker finishes."""
         try:
-            self._mouse_track = mouse_track
+            if self._append_capture:
+                capture_rect = dict(self._monitor_rect)
+                offset = self._append_base_duration_ms
+                for event in [*mouse_track, *click_events]:
+                    event.x, event.y = self._map_capture_point(
+                        event.x,
+                        event.y,
+                        capture_rect,
+                        self._append_base_monitor_rect,
+                    )
+                    event.timestamp += offset
+                frame_timestamps = [timestamp + offset for timestamp in frame_timestamps]
+                self._mouse_track.extend(mouse_track)
+                self._click_events.extend(click_events)
+                self._frame_timestamps.extend(frame_timestamps)
+                self._rec_duration_ms = offset + self._pending_capture_duration_ms
+                self._video_segments.append(
+                    VideoSegment.create(start_ms=offset, end_ms=self._rec_duration_ms)
+                )
+                self._video_path = self._finalize_worker.output_video_path
+                self._monitor_rect = dict(self._append_base_monitor_rect)
+                self._actual_fps_override = self._append_base_fps
+                self._trim_end_ms = 0.0
+                self._zoom_engine.trim_end_ms = 0.0
+                self._project_media_changed = True
+            else:
+                self._mouse_track = mouse_track
+                self._click_events = click_events
+                self._frame_timestamps = frame_timestamps
+                self._actual_fps_override = actual_fps
+                self._video_segments = [
+                    VideoSegment.create(start_ms=0.0, end_ms=self._rec_duration_ms)
+                ]
             self._mouse_track_timestamps = [mp.timestamp for mp in self._mouse_track]
             if key_events:
                 logger.info(
@@ -1465,16 +1566,9 @@ class MainWindow(QMainWindow):
                     len(key_events),
                 )
             self._key_events = []
-            self._click_events = click_events
             self._zoom_engine.click_events = self._click_events
             self._zoom_engine.video_segments = self._video_segments
             self._zoom_engine.voiceover_segments = self._voiceover_segments
-            self._frame_timestamps = frame_timestamps
-            self._actual_fps_override = actual_fps
-
-            # Initialize a single video segment spanning the full recording
-            self._video_segments = [VideoSegment.create(start_ms=0.0, end_ms=self._rec_duration_ms)]
-            self._zoom_engine.video_segments = self._video_segments
 
             self._processing_overlay.hide_overlay()
             self._status_text.setText("Ready")
@@ -1486,9 +1580,85 @@ class MainWindow(QMainWindow):
             self._processing_overlay.hide_overlay()
             self._status_text.setText("Error finalizing recording")
 
+        self._clear_append_state()
         # Clean up worker reference
         self._finalize_worker.deleteLater()
         self._finalize_worker = None
+
+    def _on_finalize_failed(self, error: str) -> None:
+        """Restore the existing project when an additional capture cannot be appended."""
+        if self._append_capture:
+            self._video_path = self._append_base_video_path
+            self._monitor_rect = dict(self._append_base_monitor_rect)
+            self._rec_duration_ms = self._append_base_duration_ms
+            self._actual_fps_override = self._append_base_fps
+        self._processing_overlay.hide_overlay()
+        self._status_text.setOpenExternalLinks(False)
+        self._status_text.setText(f"Could not add capture: {error}")
+        self._set_view("edit" if self._video_path else "record")
+        self._clear_append_state()
+        self._finalize_worker.deleteLater()
+        self._finalize_worker = None
+
+    @staticmethod
+    def _map_capture_point(
+        x: float,
+        y: float,
+        source_rect: dict,
+        target_rect: dict,
+    ) -> tuple[float, float]:
+        """Map an absolute capture coordinate onto the existing project canvas."""
+        source_width = max(float(source_rect.get("width", 1)), 1.0)
+        source_height = max(float(source_rect.get("height", 1)), 1.0)
+        target_width = max(float(target_rect.get("width", 1)), 1.0)
+        target_height = max(float(target_rect.get("height", 1)), 1.0)
+        scale = min(target_width / source_width, target_height / source_height)
+        padding_x = (target_width - source_width * scale) / 2.0
+        padding_y = (target_height - source_height * scale) / 2.0
+        mapped_x = (
+            float(target_rect.get("left", 0))
+            + padding_x
+            + (x - float(source_rect.get("left", 0))) * scale
+        )
+        mapped_y = (
+            float(target_rect.get("top", 0))
+            + padding_y
+            + (y - float(source_rect.get("top", 0))) * scale
+        )
+        return mapped_x, mapped_y
+
+    def _snapshot_append_base(self) -> None:
+        """Remember the current project media before recording another capture."""
+        self._append_base_video_path = self._video_path
+        self._append_base_monitor_rect = dict(self._monitor_rect)
+        self._append_base_duration_ms = self._rec_duration_ms
+        self._append_base_fps = (
+            self._actual_fps_override
+            if self._actual_fps_override > 0
+            else self._recorder.actual_fps
+        )
+
+    def _preserve_append_base(self) -> None:
+        """Move current media away from the recorder's previous output path."""
+        source_path = self._append_base_video_path
+        if not source_path or not os.path.isfile(source_path):
+            raise FileNotFoundError("The current project recording is unavailable")
+        preserved_path = os.path.join(
+            tempfile.gettempdir(),
+            f"followcursor_append_base_{uuid.uuid4().hex}.mp4",
+        )
+        os.replace(source_path, preserved_path)
+        self._append_base_video_path = preserved_path
+        self._video_path = preserved_path
+
+    def _clear_append_state(self) -> None:
+        """Clear temporary state used while adding a capture to a project."""
+        self._append_capture = False
+        self._append_base_video_path = ""
+        self._append_base_monitor_rect = {}
+        self._append_base_duration_ms = 0.0
+        self._append_base_fps = 0.0
+        self._pending_capture_duration_ms = 0.0
 
     def _remux_with_correct_fps(self) -> None:
         """Remux the recording so its metadata FPS matches reality.
@@ -1577,6 +1747,8 @@ class MainWindow(QMainWindow):
 
     def _set_view(self, view: str) -> None:
         """Switch between 'record' and 'edit' views, updating sidebar and widgets."""
+        if view == "edit" and not self._has_recording():
+            return
         self._view = view
 
         # sidebar highlight
@@ -1592,28 +1764,50 @@ class MainWindow(QMainWindow):
             self._preview.stop_playback()
             self._zoom_sync_timer.stop()
             self._stop_voiceover_audio()
+            self._btn_add_capture.setVisible(False)
+            if self._video_path and os.path.isfile(self._video_path):
+                self._snapshot_append_base()
+                self._btn_record.setText("  Add Capture  (Ctrl+Shift+R)")
+                self._btn_record_view.setText("Add")
+                self._btn_record_view.setToolTip("Add capture")
+            else:
+                self._clear_append_state()
+                self._btn_record.setText("  Record  (Ctrl+Shift+R)")
+                self._btn_record_view.setText("Record")
+                self._btn_record_view.setToolTip("Record")
 
             self._timeline.setVisible(False)
             self._editor.setVisible(False)
             self._title_bar.set_export_enabled(False)
-            if self._selected_monitor:
+            has_monitor_source = self._selected_monitor > 0
+            has_window_source = self._source_type == "window" and self._window_hwnd != 0
+            if has_monitor_source:
                 self._btn_record.setVisible(True)
                 self._btn_change_source.setVisible(True)
-            elif self._source_type == "window":
+            elif has_window_source:
                 self._btn_record.setVisible(True)
                 self._btn_change_source.setVisible(True)
+            else:
+                self._btn_record.setVisible(False)
+                self._btn_change_source.setVisible(False)
+                self._preview_stack.setCurrentWidget(self._placeholder)
             # switch back to live capture if a source is selected
             if not self._recorder.is_capturing:
-                if self._source_type == "window" and self._window_hwnd:
+                if has_window_source:
                     self._recorder.start_capture_window(self._window_hwnd, DEFAULT_FPS)
                     self._preview_stack.setCurrentWidget(self._preview)
-                elif self._selected_monitor:
+                elif has_monitor_source:
                     self._recorder.start_capture(self._selected_monitor, DEFAULT_FPS)
                     self._preview_stack.setCurrentWidget(self._preview)
+            elif has_monitor_source or has_window_source:
+                self._preview_stack.setCurrentWidget(self._preview)
 
         elif view == "edit":
             self._btn_record.setVisible(False)
             self._btn_change_source.setVisible(False)
+            self._btn_add_capture.setVisible(bool(self._video_path))
+            self._btn_record_view.setText("Add" if self._video_path else "Record")
+            self._btn_record_view.setToolTip("Add capture" if self._video_path else "Record")
             self._preview_stack.setCurrentWidget(self._preview)
             self._title_bar.set_export_enabled(bool(self._video_path))
             self._title_bar.set_discard_visible(bool(self._video_path))
@@ -1640,6 +1834,32 @@ class MainWindow(QMainWindow):
             self._editor.setVisible(True)
             self._refresh_editor()
             self._zoom_sync_timer.start()
+
+        self._sync_project_actions()
+
+    def _has_recording(self) -> bool:
+        """Return whether the current project has usable recorded media."""
+        return bool(self._video_path and os.path.isfile(self._video_path))
+
+    def _sync_project_actions(self) -> None:
+        """Keep project commands consistent with the current recording state."""
+        has_recording = self._has_recording()
+        self._btn_edit_view.setEnabled(has_recording)
+        self._btn_save.setEnabled(has_recording)
+        action_color = (
+            T.FG_PRIMARY if has_recording and self._dark_mode
+            else T.LIGHT_FG_1 if has_recording
+            else T.FG_DISABLED
+        )
+        self._btn_edit_view.setIcon(load_icon("play", color=action_color))
+        self._btn_save.setIcon(load_icon("save", color=action_color))
+        self._btn_edit_view.setToolTip(
+            "Edit" if has_recording else "Record or open a project to edit"
+        )
+        self._btn_save.setToolTip(
+            "Save" if has_recording else "Record or open a project to save"
+        )
+        self._title_bar.set_export_enabled(has_recording and self._view == "edit")
 
     # ── title & dirty state ─────────────────────────────────────────
 
@@ -1684,6 +1904,8 @@ class MainWindow(QMainWindow):
         """Handle Ctrl+Shift+R global hotkey — start or stop recording."""
         if self._recording:
             self._stop_recording()
+        elif self._view == "edit" and self._video_path and os.path.isfile(self._video_path):
+            self._show_add_capture_view()
         else:
             self._start_recording()
 
@@ -4361,6 +4583,7 @@ class MainWindow(QMainWindow):
                 not save_as
                 and self._project_path == path
                 and os.path.isfile(path)
+                and not self._project_media_changed
             )
             self._status_text.setText(
                 "Saving metadata\u2026" if is_resave else "Saving project\u2026"
@@ -4368,7 +4591,8 @@ class MainWindow(QMainWindow):
             # Run on background thread so the UI stays responsive
             self._save_worker = _SaveProjectWorker(
                 path, self._video_path, session,
-                self._monitor_rect, self._recorder.actual_fps,
+                self._monitor_rect,
+                self._actual_fps_override if self._actual_fps_override > 0 else self._recorder.actual_fps,
                 self._bg_preset, self._frame_preset, self._click_preset,
                 metadata_only=is_resave,
                 parent=self,
@@ -4387,9 +4611,9 @@ class MainWindow(QMainWindow):
 
     def _on_save_done(self, path: str) -> None:
         """Background save finished successfully."""
+        self._project_media_changed = False
         self._title_bar.set_export_text("\u2b06  Export")
-        self._title_bar.set_export_enabled(True)
-        self._btn_save.setEnabled(True)
+        self._sync_project_actions()
         name = os.path.basename(path)
         self._status_text.setText(
             f'Saved <a href="file:///{path.replace(os.sep, "/")}" '
@@ -4402,8 +4626,7 @@ class MainWindow(QMainWindow):
     def _on_save_failed(self, error: str) -> None:
         """Background save failed."""
         self._title_bar.set_export_text("\u2b06  Export")
-        self._title_bar.set_export_enabled(True)
-        self._btn_save.setEnabled(True)
+        self._sync_project_actions()
         self._unsaved_changes = True
         self._update_title()
         self._status_text.setText(f"Save error: {error}")
@@ -4508,6 +4731,7 @@ class MainWindow(QMainWindow):
             self._set_view("edit")
             self._project_path = path
             self._unsaved_changes = False
+            self._project_media_changed = False
             self._update_title()
             name = os.path.basename(path)
             self._status_text.setOpenExternalLinks(False)
@@ -4661,6 +4885,8 @@ class MainWindow(QMainWindow):
         # Propagate theme to custom-painted widgets
         if hasattr(self, "_timeline"):
             self._timeline.set_dark_mode(self._dark_mode)
+        if hasattr(self, "_btn_edit_view"):
+            self._sync_project_actions()
         logger.info(f"Applied {'dark' if self._dark_mode else 'light'} theme")
 
     def _refresh_icons(self) -> None:
@@ -4687,3 +4913,28 @@ class MainWindow(QMainWindow):
         geom = self._settings.value("windowGeometry")
         if geom and isinstance(geom, QByteArray):
             self.restoreGeometry(geom)
+            restored_state = self.windowState() & ~Qt.WindowState.WindowMinimized
+            was_maximized = bool(restored_state & Qt.WindowState.WindowMaximized)
+            if was_maximized:
+                self.setWindowState(restored_state & ~Qt.WindowState.WindowMaximized)
+            else:
+                self.setWindowState(restored_state)
+            self._constrain_to_available_screen()
+            if was_maximized:
+                self.setWindowState(restored_state)
+
+    def _constrain_to_available_screen(self) -> None:
+        """Keep restored normal geometry visible after display or DPI changes."""
+        window_rect = self.geometry()
+        screen = QApplication.screenAt(window_rect.center())
+        if screen is None:
+            screen = QApplication.primaryScreen()
+        if screen is None:
+            return
+
+        available = screen.availableGeometry()
+        width = min(window_rect.width(), available.width())
+        height = min(window_rect.height(), available.height())
+        left = min(max(window_rect.left(), available.left()), available.right() - width + 1)
+        top = min(max(window_rect.top(), available.top()), available.bottom() - height + 1)
+        self.setGeometry(QRect(left, top, width, height))

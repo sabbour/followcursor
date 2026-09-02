@@ -1,5 +1,8 @@
 """Tests for app.utils — fmt_time, encoder profiles, build_encoder_args, GIF."""
 
+import os
+from types import SimpleNamespace
+
 import pytest
 from unittest.mock import patch
 
@@ -12,6 +15,7 @@ from app.utils import (
     detect_available_encoders,
     GIF_FPS,
     build_gif_args,
+    append_video,
 )
 
 # ── fmt_time ────────────────────────────────────────────────────────
@@ -39,6 +43,50 @@ class TestFmtTime:
 
     def test_pads_seconds(self) -> None:
         assert fmt_time(3000) == "0:03"  # "03" not "3"
+
+
+class TestAppendVideo:
+    def test_normalizes_and_atomically_replaces_existing_video(self, tmp_path) -> None:
+        existing = tmp_path / "existing.mp4"
+        additional = tmp_path / "additional.mp4"
+        existing.write_bytes(b"existing")
+        additional.write_bytes(b"additional")
+        captured_cmd = []
+
+        def fake_run(cmd, **kwargs):
+            captured_cmd.extend(cmd)
+            with open(cmd[-1], "wb") as output:
+                output.write(b"combined")
+            return SimpleNamespace(returncode=0, stderr=b"")
+
+        with patch("app.utils.ffmpeg_exe", return_value="ffmpeg"), \
+             patch("app.utils.subprocess.run", side_effect=fake_run):
+            result = append_video(str(existing), str(additional), 1920, 1080, 30.0)
+
+        assert result == str(existing)
+        assert existing.read_bytes() == b"combined"
+        assert additional.read_bytes() == b"additional"
+        assert not os.path.exists(f"{existing}.append.mp4")
+        filter_graph = captured_cmd[captured_cmd.index("-filter_complex") + 1]
+        assert "scale=1920:1080" in filter_graph
+        assert "fps=30.0000" in filter_graph
+        assert "concat=n=2:v=1:a=0" in filter_graph
+
+    def test_failed_append_preserves_existing_video(self, tmp_path) -> None:
+        existing = tmp_path / "existing.mp4"
+        additional = tmp_path / "additional.mp4"
+        existing.write_bytes(b"existing")
+        additional.write_bytes(b"additional")
+
+        with patch("app.utils.ffmpeg_exe", return_value="ffmpeg"), \
+             patch(
+                 "app.utils.subprocess.run",
+                 return_value=SimpleNamespace(returncode=1, stderr=b"failure"),
+             ):
+            with pytest.raises(RuntimeError, match="Could not append capture"):
+                append_video(str(existing), str(additional), 1280, 720, 60.0)
+
+        assert existing.read_bytes() == b"existing"
 
 
 # ── ENCODER_PROFILES ────────────────────────────────────────────────

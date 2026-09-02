@@ -19,6 +19,7 @@ from PySide6.QtGui import QPixmap, QImage
 
 from .. import tokens as T
 from ..fluent_effects import apply_shadow
+from ..icon_loader import load_icon
 
 # ScreenRecorder imported lazily inside methods to avoid pulling in
 # cv2/numpy/mss at startup.
@@ -101,6 +102,9 @@ def _stop_thumb_worker(worker: QThread | None) -> None:
 
 class _SourceCard(QFrame):
     """Clickable thumbnail card representing one capture source (monitor or window)."""
+
+    activated = QtSignal(object)
+
     def __init__(self, info: dict, thumb: Optional[QPixmap] = None,
                  parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -108,6 +112,7 @@ class _SourceCard(QFrame):
         self._selected = False
         self.setObjectName("SourceCard")
         self.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         self.setMinimumSize(200, 155)
         self.setMaximumHeight(170)
 
@@ -130,6 +135,8 @@ class _SourceCard(QFrame):
         layout.addWidget(self._thumb_label)
 
         display_name = info.get("name", info.get("title", "Unknown"))
+        self.setAccessibleName(f"{display_name} capture source")
+        self.setAccessibleDescription("Not selected")
         name_label = QLabel(display_name)
         name_label.setObjectName("Secondary")
         name_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -147,17 +154,26 @@ class _SourceCard(QFrame):
     def selected(self, value: bool) -> None:
         self._selected = value
         self.setObjectName("SourceCardSelected" if value else "SourceCard")
+        self.setAccessibleDescription("Selected" if value else "Not selected")
         self.style().unpolish(self)
         self.style().polish(self)
 
     def mousePressEvent(self, event) -> None:  # type: ignore[override]
+        if event.button() == Qt.MouseButton.LeftButton:
+            self._activate()
+        super().mousePressEvent(event)
+
+    def keyPressEvent(self, event) -> None:  # type: ignore[override]
+        if event.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter, Qt.Key.Key_Space):
+            self._activate()
+            event.accept()
+            return
+        super().keyPressEvent(event)
+
+    def _activate(self) -> None:
+        """Select this source and notify the owning dialog."""
         self.selected = True
-        # deselect siblings
-        parent = self.parentWidget()
-        if parent:
-            for child in parent.findChildren(_SourceCard):
-                if child is not self:
-                    child.selected = False
+        self.activated.emit(self.source_info)
 
 
 # ── dialog ──────────────────────────────────────────────────────
@@ -209,8 +225,16 @@ class SourcePickerDialog(QDialog):
             f"  border-bottom: 2px solid {T.BRAND}; }}"
             f"QTabBar::tab:hover {{ color: {T.FG_PRIMARY}; }}"
         )
-        self._tabs.addTab(self._build_screens_tab(), "\U0001f5a5  Screens")
-        self._tabs.addTab(self._build_windows_tab(), "\U0001fa9f  Windows")
+        self._tabs.addTab(
+            self._build_screens_tab(),
+            load_icon("desktop", color=T.FG_PRIMARY),
+            "Screens",
+        )
+        self._tabs.addTab(
+            self._build_windows_tab(),
+            load_icon("window", color=T.FG_SECONDARY),
+            "Windows",
+        )
         layout.addWidget(self._tabs, 1)
 
         # Action buttons
@@ -221,11 +245,13 @@ class SourcePickerDialog(QDialog):
         cancel_btn.clicked.connect(self.reject)
         btn_row.addWidget(cancel_btn)
 
-        select_btn = QPushButton("Select")
-        select_btn.setObjectName("SaveBtn")
-        select_btn.clicked.connect(self._confirm)
-        btn_row.addWidget(select_btn)
+        self._select_btn = QPushButton("Select")
+        self._select_btn.setObjectName("SaveBtn")
+        self._select_btn.clicked.connect(self._confirm)
+        btn_row.addWidget(self._select_btn)
         layout.addLayout(btn_row)
+        self._tabs.currentChanged.connect(self._on_tab_changed)
+        self._on_tab_changed(self._tabs.currentIndex())
 
     # ── tabs ────────────────────────────────────────────────────
 
@@ -256,7 +282,9 @@ class SourcePickerDialog(QDialog):
             if i == 0:
                 card.selected = True
                 self.chosen_source = mon
-            card.mousePressEvent = self._make_card_click(card, card.mousePressEvent)
+            card.activated.connect(
+                lambda _info, selected_card=card: self._select_card(selected_card)
+            )
             self._monitor_cards.append(card)
             self._card_by_monitor[mon["index"]] = card
             grid.addWidget(card, i // 3, i % 3)
@@ -325,7 +353,9 @@ class SourcePickerDialog(QDialog):
 
         for i, win in enumerate(windows):
             card = _SourceCard(win, None)
-            card.mousePressEvent = self._make_card_click(card, card.mousePressEvent)
+            card.activated.connect(
+                lambda _info, selected_card=card: self._select_card(selected_card)
+            )
             self._window_cards.append(card)
             self._card_by_hwnd[win["hwnd"]] = card
             self._win_grid.addWidget(card, i // 3, i % 3)
@@ -359,21 +389,24 @@ class SourcePickerDialog(QDialog):
                               Qt.TransformationMode.SmoothTransformation)
             )
 
-    # ── card click handler ──────────────────────────────────────
+    # ── source selection ────────────────────────────────────────
 
-    def _make_card_click(self, card: _SourceCard, original):
-        def handler(event):
-            original(event)
-            self.chosen_source = card.source_info
-            # Deselect all cards in the other group
-            all_cards = self._monitor_cards + self._window_cards
-            for c in all_cards:
-                if c is not card:
-                    c.selected = False
-        return handler
+    def _select_card(self, card: _SourceCard) -> None:
+        self.chosen_source = card.source_info
+        for candidate in self._monitor_cards + self._window_cards:
+            if candidate is not card:
+                candidate.selected = False
+        self._select_btn.setEnabled(True)
+
+    def _on_tab_changed(self, index: int) -> None:
+        cards = self._monitor_cards if index == 0 else self._window_cards
+        selected = next((card for card in cards if card.selected), None)
+        self.chosen_source = selected.source_info if selected else {}
+        self._select_btn.setEnabled(selected is not None)
 
     def _confirm(self) -> None:
-        self.accept()
+        if self.chosen_source:
+            self.accept()
 
     def done(self, result: int) -> None:
         """Stop background thumbnail workers before closing the dialog."""

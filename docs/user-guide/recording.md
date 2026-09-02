@@ -9,14 +9,16 @@ FollowCursor captures your screen or any individual window, then tracks your mou
 
 ## Choosing a Source
 
-Click **Select Source** in the sidebar to open the Source Picker. Two tabs let you choose what to capture:
+Click **Choose recording source** in the preview to open the Source Picker. Two tabs let you choose what to capture:
 
 | Tab | What it captures |
 | --- | ---------------- |
 | **Screens** | An entire monitor — useful for full-screen demos and walkthroughs |
 | **Windows** | A single application window — the recording stays isolated to that app, even if other windows overlap it |
 
-Each option shows a live thumbnail preview so you can confirm the right source before you start.
+Each option shows a live thumbnail preview so you can confirm the right source before you start. Selecting a source starts its preview only. FollowCursor does not record until you press **Record**.
+
+Use **Tab** to move keyboard focus through the source cards. Press **Enter** or **Space** to select the focused source, then choose **Select**.
 
 !!! tip "Multiple monitors"
     If you have more than one monitor, each one appears separately under the **Screens** tab. Pick the one you want.
@@ -26,7 +28,7 @@ Each option shows a live thumbnail preview so you can confirm the right source b
 ## Starting a Recording
 
 1. Select your source in the Source Picker
-2. Click the red **Start Recording** button
+2. Click the red **Record** button
 
 A **3-second countdown** (3, 2, 1) appears on the preview — this gives you time to switch to the app you're recording before the camera starts rolling.
 
@@ -64,3 +66,11 @@ The app comes back up and switches straight to the editor with your recording lo
 
 !!! note "Processing moment"
     A brief processing overlay appears while the recording is being finalised. It disappears automatically when your video is ready to edit.
+
+## Adding Captures to a Project
+
+To continue recording in the same project, click **Add Capture** below the preview. You can also select **Add** in the sidebar. FollowCursor opens the source picker each time, so you can choose any screen or window for the new section. Record the section and stop as usual.
+
+FollowCursor adds the capture to the end of the current timeline. Existing zooms, voiceovers, chapters, and edits stay in place. You can repeat this workflow to build one project from multiple recording sessions.
+
+Additional sources are fitted to the first capture's canvas without stretching. FollowCursor adds padding when the aspect ratios differ and remaps cursor and click positions to the fitted image.

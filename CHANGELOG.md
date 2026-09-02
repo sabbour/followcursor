@@ -4,6 +4,20 @@ All notable changes to FollowCursor are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.14.0] — 2026-09-02
+
+### Added
+- **Multiple captures per project** — record additional screens or windows into an existing project while preserving edits and joining captures into one timeline-compatible video
+
+### Changed
+- **Post-recording inspector** — reorganized editing into focused Motion, Style, and Audio tabs with exclusive disclosure, compact action rows, bounded status feedback, and dark/light theme parity
+- **Recording source selection** — clarified preview-only selection, added keyboard-operable source cards, and improved command and disabled-state hierarchy
+- **Startup experience** — replaced the generic splash treatment with a product-specific editing viewport and cursor-follow camera path
+- **Project saving** — rebundles media only after captures change, then returns to the faster metadata-only save path
+
+### Fixed
+- **Window restoration** — restores saved geometry within the available desktop area so the app remains reachable after monitor-layout changes
+
 ## [0.13.0] — 2026-04-15
 
 ### Added

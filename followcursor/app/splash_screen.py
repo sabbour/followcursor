@@ -35,12 +35,14 @@ def create_splash_pixmap(icon: QIcon, dark_mode: bool, version: str) -> QPixmap:
     panel_color = QColor(T.bg_track(dark=dark_mode))
     panel_color = panel_color.lighter(108) if dark_mode else panel_color
     panel_border = QColor(T.bg_track_border(dark=dark_mode))
+    scene_color = QColor(T.bg_canvas(dark=dark_mode))
+    scene_layer = QColor(T.bg_track(dark=dark_mode))
     title_color = QColor(T.fg_primary(dark=dark_mode))
     body_color = QColor(T.fg_muted(dark=dark_mode))
     accent = QColor(T.BRAND if dark_mode else T.LIGHT_BRAND_BG)
     accent_alt = QColor(T.BRAND_ACTIVE if dark_mode else T.LIGHT_BRAND_BG_HOVER)
-    pill_fill = QColor(T.BRAND if dark_mode else T.LIGHT_BRAND_BG)
-    pill_fill.setAlpha(46 if dark_mode else 28)
+    accent_soft = QColor(accent)
+    accent_soft.setAlpha(38 if dark_mode else 24)
 
     painter = QPainter(pixmap)
     painter.setRenderHint(QPainter.RenderHint.Antialiasing)
@@ -59,7 +61,7 @@ def create_splash_pixmap(icon: QIcon, dark_mode: bool, version: str) -> QPixmap:
 
     painter.save()
     painter.setClipPath(card_path)
-    accent_bar = QRectF(card_rect.left(), card_rect.top(), card_rect.width(), 6)
+    accent_bar = QRectF(card_rect.left(), card_rect.top(), card_rect.width(), 5)
     accent_gradient = QLinearGradient(accent_bar.topLeft(), accent_bar.topRight())
     accent_gradient.setColorAt(0.0, accent_alt)
     accent_gradient.setColorAt(0.5, accent)
@@ -67,18 +69,51 @@ def create_splash_pixmap(icon: QIcon, dark_mode: bool, version: str) -> QPixmap:
     painter.fillRect(accent_bar, accent_gradient)
     painter.restore()
 
-    icon_size = QSize(84, 84)
-    icon_x = int(card_rect.left()) + 26
-    icon_y = int(card_rect.top()) + 34
-    painter.drawPixmap(icon_x, icon_y, icon.pixmap(icon_size))
+    scene_rect = QRectF(42, 54, 142, 132)
+    scene_gradient = QLinearGradient(scene_rect.topLeft(), scene_rect.bottomRight())
+    scene_gradient.setColorAt(0.0, scene_layer)
+    scene_gradient.setColorAt(1.0, scene_color)
+    painter.setPen(QPen(panel_border, 1))
+    painter.setBrush(scene_gradient)
+    painter.drawRoundedRect(scene_rect, T.RADIUS_LARGE, T.RADIUS_LARGE)
+
+    mock_surface = QColor(panel_border)
+    mock_surface.setAlpha(70 if dark_mode else 42)
+    painter.setPen(Qt.PenStyle.NoPen)
+    painter.setBrush(mock_surface)
+    painter.drawRoundedRect(QRectF(54, 66, 118, 9), 4, 4)
+    painter.drawRoundedRect(QRectF(54, 84, 47, 56), T.RADIUS_SMALL, T.RADIUS_SMALL)
+    painter.drawRoundedRect(QRectF(108, 84, 64, 24), T.RADIUS_SMALL, T.RADIUS_SMALL)
+    painter.drawRoundedRect(QRectF(108, 115, 64, 25), T.RADIUS_SMALL, T.RADIUS_SMALL)
+
+    camera_path = QPainterPath()
+    camera_path.moveTo(65, 158)
+    camera_path.cubicTo(82, 153, 94, 143, 108, 128)
+    camera_path.cubicTo(122, 112, 135, 102, 151, 94)
+    path_pen = QPen(accent, 2)
+    path_pen.setDashPattern([3, 3])
+    painter.setPen(path_pen)
+    painter.setBrush(Qt.BrushStyle.NoBrush)
+    painter.drawPath(camera_path)
+
+    painter.setPen(Qt.PenStyle.NoPen)
+    painter.setBrush(accent)
+    painter.drawEllipse(QRectF(61, 154, 8, 8))
+    painter.drawEllipse(QRectF(104, 124, 8, 8))
+    painter.setBrush(accent_soft)
+    painter.drawEllipse(QRectF(119, 62, 64, 64))
+    painter.setPen(QPen(accent, 2))
+    painter.setBrush(Qt.BrushStyle.NoBrush)
+    painter.drawEllipse(QRectF(124, 67, 54, 54))
+    painter.drawPixmap(127, 70, icon.pixmap(QSize(48, 48)))
 
     title_font = QFont("Segoe UI Variable")
-    title_font.setPixelSize(T.FONT_SIZE_TITLE_2)
+    title_font.setPixelSize(T.FONT_SIZE_TITLE_3)
     title_font.setWeight(QFont.Weight(T.FONT_WEIGHT_SEMIBOLD))
     painter.setFont(title_font)
     painter.setPen(title_color)
     painter.drawText(
-        QRectF(icon_x + 108, icon_y + 2, card_rect.width() - 166, 42),
+        QRectF(208, 57, 226, 38),
         Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter,
         "FollowCursor",
     )
@@ -89,35 +124,32 @@ def create_splash_pixmap(icon: QIcon, dark_mode: bool, version: str) -> QPixmap:
     painter.setFont(subtitle_font)
     painter.setPen(body_color)
     painter.drawText(
-        QRectF(icon_x + 108, icon_y + 42, card_rect.width() - 166, 32),
-        Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter,
+        QRectF(208, 101, 222, 62),
+        Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop | Qt.TextFlag.TextWordWrap,
         "Cinematic screen recording with cursor-following zoom",
     )
 
-    helper_font = QFont("Segoe UI Variable")
-    helper_font.setPixelSize(T.FONT_SIZE_BODY_1)
-    helper_font.setWeight(QFont.Weight(T.FONT_WEIGHT_REGULAR))
-    painter.setFont(helper_font)
-    painter.drawText(
-        QRectF(icon_x, icon_y + 116, card_rect.width() - 52, 40),
-        Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter,
-        "Preparing the recorder, editor, and tray controls…",
-    )
+    separator = QColor(panel_border)
+    separator.setAlpha(130 if dark_mode else 90)
+    painter.setPen(QPen(separator, 1))
+    painter.drawLine(42, 205, 438, 205)
 
-    pill_rect = QRectF(icon_x, card_rect.bottom() - 72, 132, 34)
+    painter.setPen(QPen(accent, 2))
+    painter.setBrush(accent_soft)
+    painter.drawEllipse(QRectF(43, 220, 14, 14))
     painter.setPen(Qt.PenStyle.NoPen)
-    painter.setBrush(pill_fill)
-    painter.drawRoundedRect(pill_rect, T.RADIUS_CIRCULAR, T.RADIUS_CIRCULAR)
+    painter.setBrush(accent)
+    painter.drawEllipse(QRectF(48, 225, 4, 4))
 
-    pill_font = QFont("Segoe UI Variable")
-    pill_font.setPixelSize(T.FONT_SIZE_CAPTION_1)
-    pill_font.setWeight(QFont.Weight(T.FONT_WEIGHT_SEMIBOLD))
-    painter.setFont(pill_font)
-    painter.setPen(title_color)
+    status_font = QFont("Segoe UI Variable")
+    status_font.setPixelSize(T.FONT_SIZE_CAPTION_1)
+    status_font.setWeight(QFont.Weight(T.FONT_WEIGHT_MEDIUM))
+    painter.setFont(status_font)
+    painter.setPen(body_color)
     painter.drawText(
-        pill_rect,
-        Qt.AlignmentFlag.AlignCenter,
-        "Starting up…",
+        QRectF(66, 214, 270, 28),
+        Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter,
+        "Preparing your walkthrough studio…",
     )
 
     version_font = QFont("Segoe UI Variable")
@@ -126,7 +158,7 @@ def create_splash_pixmap(icon: QIcon, dark_mode: bool, version: str) -> QPixmap:
     painter.setFont(version_font)
     painter.setPen(body_color)
     painter.drawText(
-        QRectF(card_rect.left(), card_rect.bottom() - 70, card_rect.width() - 26, 32),
+        QRectF(344, 214, 94, 28),
         Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter,
         f"Version {version}",
     )

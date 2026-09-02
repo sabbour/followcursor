@@ -1,0 +1,179 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-09-01T22:00:00-07:00",
+  "title": "Design System: FollowCursor",
+  "extensions": {
+    "colorMeta": {
+      "brand": {
+        "role": "primary",
+        "displayName": "Studio Violet",
+        "canonical": "#8b5cf6",
+        "tonalRamp": ["oklch(15% 0.10 294)", "oklch(26% 0.14 294)", "oklch(38% 0.18 294)", "oklch(50% 0.21 294)", "oklch(62% 0.22 294)", "oklch(73% 0.17 294)", "oklch(84% 0.10 294)", "oklch(95% 0.03 294)"]
+      },
+      "record-red": {
+        "role": "secondary",
+        "displayName": "Record Red",
+        "canonical": "#ef4444",
+        "tonalRamp": ["oklch(15% 0.09 26)", "oklch(26% 0.13 26)", "oklch(38% 0.17 26)", "oklch(50% 0.20 26)", "oklch(62% 0.21 26)", "oklch(73% 0.16 26)", "oklch(84% 0.09 26)", "oklch(95% 0.03 26)"]
+      },
+      "timeline-teal": {
+        "role": "secondary",
+        "displayName": "Timeline Teal",
+        "canonical": "#14b8a6",
+        "tonalRamp": ["oklch(15% 0.05 181)", "oklch(26% 0.08 181)", "oklch(38% 0.11 181)", "oklch(50% 0.13 181)", "oklch(62% 0.14 181)", "oklch(73% 0.11 181)", "oklch(84% 0.07 181)", "oklch(95% 0.02 181)"]
+      },
+      "marker-amber": {
+        "role": "secondary",
+        "displayName": "Marker Amber",
+        "canonical": "#f59e0b",
+        "tonalRamp": ["oklch(15% 0.07 70)", "oklch(26% 0.11 70)", "oklch(38% 0.14 70)", "oklch(50% 0.17 70)", "oklch(62% 0.18 70)", "oklch(73% 0.14 70)", "oklch(84% 0.08 70)", "oklch(95% 0.03 70)"]
+      },
+      "layer-1": {
+        "role": "neutral",
+        "displayName": "App Base",
+        "canonical": "#141414",
+        "tonalRamp": ["#141414", "#1f1f1f", "#292929", "#333333", "#3d3d3d", "#666666", "#adadad", "#f5f5f5"]
+      },
+      "light-canvas": {
+        "role": "neutral",
+        "displayName": "Light Canvas",
+        "canonical": "#ffffff",
+        "tonalRamp": ["#242424", "#424242", "#616161", "#707070", "#d1d1d1", "#e0e0e0", "#f5f5f5", "#ffffff"]
+      }
+    },
+    "typographyMeta": {
+      "display": {"displayName": "Display", "purpose": "Rare display moments outside persistent editor chrome."},
+      "headline": {"displayName": "Headline", "purpose": "Major workflow and dialog headings."},
+      "title": {"displayName": "Title", "purpose": "Prominent sections and overlay titles."},
+      "body": {"displayName": "Body", "purpose": "Default controls, menus, labels, and supporting copy."},
+      "label": {"displayName": "Inspector Label", "purpose": "Uppercase disclosure headers and compact categories."},
+      "timecode": {"displayName": "Timecode", "purpose": "Stable-width playback and duration values."}
+    },
+    "shadows": [
+      {"name": "control", "value": "0 1px 2px rgba(0, 0, 0, 0.28)", "purpose": "Minimal lift for controls at rest."},
+      {"name": "card", "value": "0 2px 4px rgba(0, 0, 0, 0.28)", "purpose": "Source cards and the editor panel."},
+      {"name": "command", "value": "0 4px 8px rgba(0, 0, 0, 0.28)", "purpose": "Menus, tooltips, source picker, and settings dialogs."},
+      {"name": "dialog", "value": "0 8px 16px rgba(0, 0, 0, 0.28)", "purpose": "Modal and callout surfaces."},
+      {"name": "focus", "value": "0 0 6px rgba(139, 92, 246, 0.71)", "purpose": "Visible focus when a widget can dedicate its Qt graphics-effect slot."}
+    ],
+    "motion": [
+      {"name": "ultra-fast", "value": "50ms", "purpose": "Focus rings and immediate feedback."},
+      {"name": "fast", "value": "150ms", "purpose": "Button press, toggle, and checkbox feedback."},
+      {"name": "normal", "value": "200ms", "purpose": "Default hover, focus, and state transitions."},
+      {"name": "slow", "value": "300ms", "purpose": "Drawers and panel reveals."},
+      {"name": "easy-ease", "value": "cubic-bezier(0.33, 0, 0.67, 1)", "purpose": "Elements moving within the viewport."},
+      {"name": "decelerate", "value": "cubic-bezier(0.1, 0.9, 0.2, 1)", "purpose": "Elements entering the viewport."}
+    ],
+    "breakpoints": [
+      {"name": "minimum-window", "value": "900x600"},
+      {"name": "initial-window", "value": "1200x800"},
+      {"name": "source-picker-minimum", "value": "760x500"}
+    ]
+  },
+  "components": [
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "The default neutral action for compact editor controls.",
+      "html": "<button class=\"ds-btn-secondary\">Cancel</button>",
+      "css": ".ds-btn-secondary { min-height: 32px; padding: 6px 12px; border: 1px solid #666666; border-radius: 6px; background: #292929; color: #ffffff; font: 500 14px/20px 'Segoe UI Variable', 'Segoe UI', sans-serif; transition: background 200ms, border-color 200ms; } .ds-btn-secondary:hover { background: #333333; border-color: #adadad; } .ds-btn-secondary:active { background: #1f1f1f; } .ds-btn-secondary:focus-visible { outline: 2px solid #8b5cf6; outline-offset: 2px; } .ds-btn-secondary:disabled { background: #1f1f1f; color: #5c5c5c; border-color: #525252; }"
+    },
+    {
+      "name": "Brand Action Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "A confident primary action for Save, Export, and workflow completion.",
+      "html": "<button class=\"ds-btn-primary\">Export</button>",
+      "css": ".ds-btn-primary { min-height: 32px; padding: 6px 12px; border: 1px solid #8b5cf6; border-radius: 6px; background: #8b5cf6; color: #ffffff; font: 600 14px/20px 'Segoe UI Variable', 'Segoe UI', sans-serif; transition: background 150ms, border-color 150ms; } .ds-btn-primary:hover { background: #9d74f7; border-color: #9d74f7; } .ds-btn-primary:active { background: #7c3aed; border-color: #7c3aed; } .ds-btn-primary:focus-visible { outline: 2px solid #ffffff; outline-offset: 2px; } .ds-btn-primary:disabled { background: #4c3d7a; border-color: #4c3d7a; color: #adadad; }"
+    },
+    {
+      "name": "Record Button",
+      "kind": "button",
+      "refersTo": "button-record",
+      "description": "The large, unmistakable action that begins capture.",
+      "html": "<button class=\"ds-btn-record\"><span class=\"ds-record-dot\"></span>Start Recording</button>",
+      "css": ".ds-btn-record { min-width: 200px; height: 48px; padding: 0 16px; border: none; border-radius: 8px; background: #ef4444; color: #ffffff; font: 700 20px/28px 'Segoe UI Variable', 'Segoe UI', sans-serif; } .ds-btn-record:hover { background: #f87171; } .ds-btn-record:active { background: #dc2626; } .ds-btn-record:focus-visible { outline: 2px solid #8b5cf6; outline-offset: 2px; } .ds-record-dot { display: inline-block; width: 10px; height: 10px; margin-right: 8px; border-radius: 9999px; background: #ffffff; }"
+    },
+    {
+      "name": "Text Field",
+      "kind": "input",
+      "refersTo": "input-default",
+      "description": "The standard compact field for editor values and names.",
+      "html": "<label class=\"ds-field\"><span>Project name</span><input value=\"Product walkthrough\"></label>",
+      "css": ".ds-field { display: grid; gap: 6px; color: #d6d6d6; font: 600 12px/16px 'Segoe UI Variable', 'Segoe UI', sans-serif; } .ds-field input { min-height: 32px; padding: 6px 8px; border: 1px solid #666666; border-radius: 6px; background: #1f1f1f; color: #ffffff; font: 400 14px/20px 'Segoe UI Variable', 'Segoe UI', sans-serif; } .ds-field input:hover { border-color: #adadad; } .ds-field input:focus-visible { border-color: #8b5cf6; outline: 2px solid #8b5cf6; outline-offset: 2px; } .ds-field input:disabled { background: #141414; color: #5c5c5c; border-color: #525252; }"
+    },
+    {
+      "name": "Sidebar Navigation Item",
+      "kind": "nav",
+      "refersTo": null,
+      "description": "A fixed rail destination with an icon above a compact label.",
+      "html": "<button class=\"ds-nav-item ds-nav-item-active\"><span class=\"ds-nav-icon\">&#9679;</span><span>EDIT</span></button>",
+      "css": ".ds-nav-item { display: grid; place-items: center; align-content: center; gap: 4px; width: 64px; height: 64px; border: none; border-radius: 8px; background: transparent; color: #d6d6d6; font: 600 12px/16px 'Segoe UI Variable', 'Segoe UI', sans-serif; } .ds-nav-item:hover { background: #383838; color: #ffffff; } .ds-nav-item:focus-visible { outline: 2px solid #8b5cf6; outline-offset: -2px; } .ds-nav-item-active { background: rgba(139, 92, 246, 0.18); color: #9d74f7; } .ds-nav-icon { font-size: 20px; line-height: 20px; }"
+    },
+    {
+      "name": "Source Card",
+      "kind": "card",
+      "refersTo": "source-card",
+      "description": "A thumbnail-first monitor or window choice with a strong selected state.",
+      "html": "<button class=\"ds-source-card ds-source-card-selected\"><span class=\"ds-source-preview\"></span><strong>Display 1</strong><small>1920 x 1080</small></button>",
+      "css": ".ds-source-card { display: grid; gap: 6px; min-width: 200px; min-height: 155px; padding: 8px; border: 1px solid #666666; border-radius: 8px; background: #333333; color: #ffffff; text-align: left; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.28); font-family: 'Segoe UI Variable', 'Segoe UI', sans-serif; } .ds-source-card:hover { background: #3d3d3d; border-color: #adadad; } .ds-source-card:focus-visible { outline: 2px solid #8b5cf6; outline-offset: 2px; } .ds-source-card-selected { border: 2px solid #8b5cf6; background: #383838; } .ds-source-preview { min-height: 100px; border-radius: 4px; background: #141414; } .ds-source-card small { color: #adadad; }"
+    },
+    {
+      "name": "Inspector Task Panel",
+      "kind": "custom",
+      "refersTo": null,
+      "description": "The fixed task inspector with equal Motion, Style, and Audio tabs, token-driven disclosures, one local primary action, and persistent utilities.",
+      "html": "<aside class=\"ds-inspector\"><nav class=\"ds-inspector-tabs\" aria-label=\"Inspector tasks\"><button class=\"ds-inspector-tab ds-inspector-tab-active\">Motion</button><button class=\"ds-inspector-tab\">Style</button><button class=\"ds-inspector-tab\">Audio</button></nav><div class=\"ds-inspector-scroll\"><section class=\"ds-inspector-section\"><button class=\"ds-inspector-header\"><span class=\"ds-disclosure\">&#9662;</span><span>SMART ZOOM</span></button><div class=\"ds-inspector-body\"><label>Sensitivity<select><option>Medium</option></select></label><button class=\"ds-inspector-primary\">Generate locally</button><div class=\"ds-inspector-or\"><span></span>or<span></span></div><button class=\"ds-inspector-secondary\">Generate with AI</button></div></section></div><footer class=\"ds-inspector-footer\"><div><button>Undo</button><button>Redo</button></div><div><span class=\"ds-info\" title=\"Recording information\">i</span><button>Settings</button></div></footer></aside>",
+      "css": ".ds-inspector { display: grid; grid-template-rows: 42px 1fr auto; width: 320px; height: 560px; border-left: 1px solid #525252; background: #141414; color: #ffffff; font-family: 'Segoe UI Variable', 'Segoe UI', sans-serif; } .ds-inspector-tabs { display: grid; grid-template-columns: repeat(3, 1fr); } .ds-inspector-tab { border: 0; border-bottom: 2px solid transparent; background: transparent; color: #d6d6d6; font: 500 14px/20px 'Segoe UI Variable', 'Segoe UI', sans-serif; } .ds-inspector-tab:hover { background: #383838; color: #ffffff; } .ds-inspector-tab:focus-visible, .ds-inspector button:focus-visible, .ds-inspector select:focus-visible { outline: 2px solid #8b5cf6; outline-offset: -2px; } .ds-inspector-tab-active { border-bottom-color: #8b5cf6; color: #ffffff; font-weight: 600; } .ds-inspector-scroll { overflow: auto; padding-top: 8px; } .ds-inspector-header { display: flex; align-items: center; gap: 8px; width: 100%; height: 32px; padding: 0 12px; border: 0; border-bottom: 1px solid #525252; border-radius: 6px; background: #333333; color: #d6d6d6; font: 600 12px/16px 'Segoe UI Variable', 'Segoe UI', sans-serif; letter-spacing: 1px; text-align: left; } .ds-inspector-header:hover { background: #3d3d3d; color: #ffffff; } .ds-disclosure { font-size: 10px; } .ds-inspector-body { display: grid; gap: 8px; padding: 12px 16px 8px; color: #d6d6d6; font-size: 14px; } .ds-inspector-body label { display: grid; grid-template-columns: 1fr 1fr; align-items: center; gap: 8px; } .ds-inspector select, .ds-inspector-secondary, .ds-inspector-footer button { min-height: 30px; border: 1px solid #666666; border-radius: 6px; background: #292929; color: #ffffff; } .ds-inspector-primary { height: 36px; border: 1px solid #8b5cf6; border-radius: 6px; background: #8b5cf6; color: #ffffff; font-weight: 600; } .ds-inspector-primary:hover { background: #9d74f7; } .ds-inspector-primary:active { background: #7c3aed; } .ds-inspector-secondary:hover, .ds-inspector-footer button:hover { border-color: #adadad; background: #333333; } .ds-inspector-or { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 8px; color: #adadad; } .ds-inspector-or span { height: 1px; background: #525252; } .ds-inspector-footer { display: grid; gap: 4px; padding: 12px 16px 8px; border-top: 1px solid #525252; } .ds-inspector-footer div { display: flex; align-items: center; justify-content: space-between; gap: 4px; } .ds-inspector-footer button { flex: 1; height: 28px; min-height: 28px; } .ds-info { display: grid; place-items: center; width: 16px; height: 16px; border: 1px solid #adadad; border-radius: 9999px; color: #d6d6d6; font: 600 11px/16px 'Segoe UI Variable', 'Segoe UI', sans-serif; }"
+    },
+    {
+      "name": "Timeline Zoom Segment",
+      "kind": "custom",
+      "refersTo": null,
+      "description": "The signature camera-motion segment with temporal and pan-point cues.",
+      "html": "<div class=\"ds-timeline\"><span class=\"ds-zoom-segment\"><b>2.0x</b><i>1</i></span><span class=\"ds-playhead\"></span></div>",
+      "css": ".ds-timeline { position: relative; width: 320px; height: 46px; border: 1px solid #525252; border-radius: 4px; background: #1f1f1f; } .ds-zoom-segment { position: absolute; inset: 8px 72px 8px 32px; display: flex; align-items: center; justify-content: center; border: 2px solid #9d74f7; border-radius: 4px; background: rgba(139, 92, 246, 0.40); color: #ffffff; font: 600 12px/16px 'Segoe UI Variable', 'Segoe UI', sans-serif; } .ds-zoom-segment:hover { background: rgba(139, 92, 246, 0.55); } .ds-zoom-segment:focus-visible { outline: 2px solid #ffffff; outline-offset: 2px; } .ds-zoom-segment i { position: absolute; right: 28px; width: 18px; height: 18px; border-radius: 9999px; background: #f59e0b; color: #242424; font-style: normal; text-align: center; line-height: 18px; } .ds-playhead { position: absolute; left: 58%; top: 0; bottom: 0; width: 2px; background: #f59e0b; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Precision Glass Studio",
+    "overview": "FollowCursor is a focused, precise Windows editing environment with the calm material hierarchy and control clarity associated with iOS. It remains a native PySide6 desktop application: familiar under mouse and keyboard, dense enough for repeated editing work, and composed enough that the recording remains the visual subject.\n\nThe interface uses quiet translucent chrome, generous optical spacing, and confident actions. Neutral layers organize the workflow while Studio Violet marks primary actions, active navigation, selection, and focus. Record Red is reserved for capture and destructive urgency. Timeline Teal and Marker Amber give media and editing events stable identities without turning the whole shell colorful.\n\nThe adaptation borrows visual principles, not platform behavior. It does not introduce mobile navigation, touch-only gestures, safe-area layout, ReplayKit, or iPhone and iPad runtime assumptions. New work should extend the centralized tokens and existing component patterns before introducing a local visual treatment.",
+    "keyCharacteristics": [
+      "Windows-native interaction patterns with iOS-inspired material restraint.",
+      "A fixed editing frame around a fluid, aspect-preserving preview.",
+      "Translucent tonal layers with restrained ambient lift and crisp separators.",
+      "Semantic accent color in the timeline and high-confidence actions.",
+      "Compact desktop typography with clear, calm hierarchy and optical spacing.",
+      "Equal design intent in dark and light themes."
+    ],
+    "rules": [
+      {"name": "The Semantic Timeline Color Rule", "body": "Studio Violet means camera and cursor activity, Timeline Teal means media, and Marker Amber means temporal structure or attention. Preserve those meanings in custom-painted editing surfaces.", "section": "colors"},
+      {"name": "The Accent Economy Rule", "body": "Use Studio Violet to identify action, selection, or focus. Do not wash large passive surfaces in brand color.", "section": "colors"},
+      {"name": "The Operational Scale Rule", "body": "Keep persistent editor chrome within the caption-to-subtitle range. Large display type must not compete with the preview or timeline.", "section": "typography"},
+      {"name": "The Tonal Before Shadow Rule", "body": "Establish hierarchy with the neutral layer ramp first. Add elevation only where a surface must visibly detach from its parent.", "section": "elevation"},
+      {"name": "The Inspector Task Ownership Rule", "body": "Motion controls camera movement, Style controls presentation, and Audio controls chapters and voice. Keep new inspector controls with the task they change rather than adding another top-level tab.", "section": "components"},
+      {"name": "The Inspector Action Hierarchy Rule", "body": "Use one violet primary action within the active task. Optional, alternate, and utility actions remain neutral secondary controls.", "section": "components"}
+    ],
+    "dos": [
+      "Do use centralized tokens for spacing, type, color, shape, motion, and custom paint.",
+      "Do preserve the fixed rail, fluid preview, timeline, and inspector hierarchy for editor workflows.",
+      "Do maintain semantic timeline colors across default, hover, selected, generating, and unavailable states.",
+      "Do provide dark- and light-theme behavior for every new QSS rule, icon, and custom-painted element.",
+      "Do keep primary and destructive color rare enough that active choices remain obvious.",
+      "Do use tooltips and visible focus for icon-only or unfamiliar controls.",
+      "Do preserve the inspector's Motion, Style, and Audio task ownership, disclosure defaults, and fixed utility footer.",
+      "Do translate iOS inspiration through material, spacing, hierarchy, and motion while preserving Windows input conventions."
+    ],
+    "donts": [
+      "Don't promote one-off dark violet-gray values from dialogs, overlays, or timeline paint code into new primitives.",
+      "Don't use Studio Violet as passive decoration or as a substitute for hierarchy.",
+      "Don't make cards float inside cards; use tonal panels, dividers, and collapsible sections for structure.",
+      "Don't use large display typography in persistent editor chrome.",
+      "Don't canonize glyph and emoji controls where the established icon pipeline provides a clear symbol.",
+      "Don't promote optional AI or footer utilities to violet primary actions inside the inspector.",
+      "Don't claim formal accessibility conformance; preserve keyboard access and focus treatment while documenting verified behavior only.",
+      "Don't introduce ReplayKit, safe-area constraints, edge-swipe navigation, mobile tab bars, or touch-only interactions."
+    ]
+  }
+}
