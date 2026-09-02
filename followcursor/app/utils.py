@@ -1,6 +1,7 @@
 """Shared utilities used by multiple modules."""
 
 import logging
+import os
 import subprocess
 import sys
 from typing import Dict, List, Tuple
@@ -30,6 +31,64 @@ def fmt_time(ms: float) -> str:
     s = int(ms / 1000)
     m = s // 60
     return f"{m}:{s % 60:02d}"
+
+
+def append_video(
+    existing_path: str,
+    additional_path: str,
+    width: int,
+    height: int,
+    fps: float,
+    timeout: int = 3600,
+) -> str:
+    """Append one capture to another and atomically replace the first file."""
+    if not os.path.isfile(existing_path):
+        raise FileNotFoundError(existing_path)
+    if not os.path.isfile(additional_path):
+        raise FileNotFoundError(additional_path)
+    if width <= 0 or height <= 0 or fps <= 0:
+        raise ValueError("Video dimensions and FPS must be positive")
+
+    output_path = existing_path + ".append.mp4"
+    filter_graph = (
+        f"[0:v]fps={fps:.4f},scale={width}:{height}:"
+        "force_original_aspect_ratio=decrease,"
+        f"pad={width}:{height}:(ow-iw)/2:(oh-ih)/2,setsar=1,"
+        "format=yuv420p,setpts=PTS-STARTPTS[first];"
+        f"[1:v]fps={fps:.4f},scale={width}:{height}:"
+        "force_original_aspect_ratio=decrease,"
+        f"pad={width}:{height}:(ow-iw)/2:(oh-ih)/2,setsar=1,"
+        "format=yuv420p,setpts=PTS-STARTPTS[second];"
+        "[first][second]concat=n=2:v=1:a=0[out]"
+    )
+    cmd = [
+        ffmpeg_exe(), "-y",
+        "-i", existing_path,
+        "-i", additional_path,
+        "-filter_complex", filter_graph,
+        "-map", "[out]",
+        "-c:v", "libx264",
+        "-preset", "veryfast",
+        "-crf", "18",
+        "-pix_fmt", "yuv420p",
+        "-movflags", "+faststart",
+        output_path,
+    ]
+    try:
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            timeout=timeout,
+            **subprocess_kwargs(),
+        )
+        if result.returncode != 0 or not os.path.isfile(output_path):
+            stderr = result.stderr.decode(errors="replace")[:500] if result.stderr else ""
+            raise RuntimeError(f"Could not append capture: {stderr}")
+        os.replace(output_path, existing_path)
+    finally:
+        if os.path.isfile(output_path):
+            os.remove(output_path)
+    return existing_path
 
 
 # ── Hardware-accelerated encoder support ────────────────────────────

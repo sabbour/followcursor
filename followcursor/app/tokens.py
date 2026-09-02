@@ -1,7 +1,7 @@
 """Fluent 2 design tokens for FollowCursor.
 
 Centralized design constants aligned with Windows 11 / Fluent 2.
-All spacing uses a 4px base grid.  Corner radii use 4px (controls) / 8px
+All spacing uses a 4px base grid.  Corner radii use 6px (controls) / 8px
 (containers).  Colors follow Fluent 2 neutral palette (grey ramp) and
 semantic color roles.  Elevation system uses Fluent 2 shadow spec.
 
@@ -34,7 +34,7 @@ SPACE_64: int = 64   # size640 — extra-large divisions
 # Based on https://fluent2.microsoft.design/shapes
 # Global-Corner-Radius tokens
 RADIUS_NONE: int = 0      # Navigation bars, tabs, edge-aligned elements
-RADIUS_SMALL: int = 4     # Global-Corner-Radius-40 — buttons, inputs, small controls
+RADIUS_SMALL: int = 6     # Compact buttons, inputs, and small controls
 RADIUS_MEDIUM: int = 8    # Global-Corner-Radius-80 — large buttons, cards
 RADIUS_LARGE: int = 12    # Global-Corner-Radius-120 — sheets, popovers, large surfaces
 RADIUS_XLARGE: int = 16   # Global-Corner-Radius-160 — extra-large containers

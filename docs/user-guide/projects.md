@@ -13,6 +13,8 @@ FollowCursor saves your entire session — the raw recording, zoom keyframes, na
 !!! tip "Re-saves are instant"
     When you save over an existing project, only the metadata is updated — the video is never re-copied. This makes saves near-instant even for long recordings.
 
+    After you add a capture, the next save rebundles `recording.mp4` once. Later saves return to the fast metadata-only path.
+
 The title bar shows the project name. A small dot appears next to it whenever you have unsaved changes, so you always know the current state.
 
 ---
@@ -24,10 +26,12 @@ A `.fcproj` file is a ZIP bundle containing everything needed to restore your se
 | File | Contents |
 | ---- | -------- |
 | `project.json` | All session data — mouse positions, clicks, zoom keyframes, trim range, narration markdown, AI/manual chapter markers, and visual settings |
-| `recording.mp4` | Your raw recorded video |
+| `recording.mp4` | All captures joined in timeline order |
 | `voiceover_*.wav` | One audio file per synthesized voiceover segment (if any) |
 
 Generated narration markdown is stored in `project.json`, generated voiceover segments travel as normal `voiceover_*.wav` segment files, and chapter markers reopen exactly where you left them. When you reopen the project, FollowCursor rewrites the sidecar `<video_name>_voiceover.md` file beside the extracted recording so the saved script stays available.
+
+Multiple captures remain compatible with existing `.fcproj` readers because FollowCursor normalizes and joins them into one `recording.mp4`. Each capture also becomes a separate video segment on the timeline.
 
 Older `.fcproj` files that still contain removed keystroke or annotation payloads will still open safely. FollowCursor ignores those legacy fields when loading and does not write them back out when you save again.
 

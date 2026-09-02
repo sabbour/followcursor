@@ -38,9 +38,11 @@ The app operates in two modes, switchable via the sidebar:
 
 `MainWindow._set_view()` manages mode transitions, showing/hiding widgets and loading video when entering edit mode.
 
+The fixed post-recording `EditorPanel` separates work into Motion, Style, and Audio tabs. Multi-section tabs use exclusive disclosure so only one section body is open at a time. Related alternatives share compact action rows, and dynamic feedback is constrained to one line with the full message retained in its tooltip and accessible name.
+
 ### Startup Flow
 
-`main.py` creates the `QApplication`, applies the app icon/palette, and shows a lightweight splash screen before constructing `MainWindow`. `MainWindow._deferred_init()` then performs post-show work such as tray setup, encoder label refresh, and optional TTS voice preloading; when that first deferred pass completes, it emits `startup_ready` on the next event-loop turn so the splash can close without blocking startup on background voice loading.
+`main.py` creates the `QApplication`, applies the app icon/palette, and shows a lightweight splash screen before constructing `MainWindow`. The theme-aware splash renders a miniature editing viewport with a camera path converging on the FollowCursor icon, giving the brief wait product-specific character without adding animation or delaying startup. `MainWindow._deferred_init()` then performs post-show work such as tray setup, encoder label refresh, and optional TTS voice preloading; when that first deferred pass completes, it emits `startup_ready` on the next event-loop turn so the splash can close without blocking startup on background voice loading.
 
 ### Recording Flow
 
@@ -59,12 +61,16 @@ User presses Ctrl+Shift+R (stop)
   --> _stop_recording()
     --> All trackers stop
     --> recording_finished signal
+    --> Existing project media is normalized and concatenated when adding a capture
+    --> New event timestamps are offset and appended as a video segment
     --> Restore app, switch to Edit mode
 ```
 
 ### Shared Epoch
 
 Video frames, mouse positions, clicks, and related activity signals share a single `time.time()` epoch set at the start of recording. This ensures timestamps are perfectly aligned without post-hoc synchronization.
+
+When a capture is added to an existing project, its local timestamps are offset by the prior project duration. ffmpeg fits the new source into the original project canvas with aspect-ratio-preserving padding, and cursor coordinates are mapped through the same scale and padding. The bundle keeps a single `recording.mp4`, so older project files and the single-path preview/export pipeline remain compatible.
 
 ---
 
@@ -338,6 +344,8 @@ When you load a project, `MainWindow` recombines generated voiceover segment mar
 
 `save_project(metadata_only=True)` rewrites only `project.json` in-place. Total I/O: O(JSON_size), typically a few KB regardless of video size.
 
+Adding a capture marks project media as changed. The next save performs a full bundle write so the concatenated `recording.mp4` replaces the prior ZIP entry; subsequent saves can use the metadata-only path again.
+
 ---
 
 ## Build & Distribution
@@ -397,7 +405,7 @@ Python `logging` module. Format: `%(name)s | %(levelname)s | %(message)s`. `Rota
 | `app/widgets/preview_widget.py` | Live/playback preview |
 | `app/widgets/timeline_widget.py` | QPainter timeline with heatmap |
 | `app/widgets/timeline_math.py` | Pixel-time conversion helpers |
-| `app/widgets/editor_panel.py` | Collapsible editor sections, narration, and voiceover controls |
+| `app/widgets/editor_panel.py` | Task-tabbed Motion, Style, and Audio inspector controls |
 | `app/widgets/countdown_overlay.py` | 3-2-1 countdown animation |
 | `app/widgets/processing_overlay.py` | Pulsing banner overlay |
 | `app/widgets/recording_border.py` | Red border during recording |

@@ -14,7 +14,7 @@ You add **zoom segments** to your timeline. Each segment tells the camera to zoo
 
 FollowCursor can analyze your recorded activity and automatically suggest where to zoom.
 
-1. In the **Editor Panel** (right sidebar), find the **SMART ZOOM** section
+1. In the right-side inspector, select **Motion** and open **SMART ZOOM**
 2. Pick a sensitivity level:
 
 | Sensitivity | What it generates |
@@ -23,7 +23,7 @@ FollowCursor can analyze your recorded activity and automatically suggest where 
 | **Medium** | Up to 6 zoom areas, 4-second gap |
 | **High** | Up to 10 zoom areas, 2.5-second gap |
 
-3. Click **Auto-generate zoom keyframes**
+3. Click **Generate locally**
 
 The analyzer looks for two kinds of activity in your recording:
 
@@ -43,7 +43,7 @@ For even smarter results, you can have an AI model analyze your recording and ge
 
 See [AI Features](ai.md) for setup instructions. Once configured:
 
-1. In the **SMART ZOOM** section, click **AI Auto-generate zoom**
+1. In **SMART ZOOM**, click **Generate with AI**
 2. The AI reviews the rhythm and flow of your activity
 3. Zoom keyframes are applied automatically — up to 50 sections
 

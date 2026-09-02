@@ -54,18 +54,18 @@ python main.py
 
 ### Step 1 — Pick a source
 
-Click **Select Source** in the sidebar to open the Source Picker.
+Click **Choose recording source** in the preview to open the Source Picker. Selecting a source starts its preview, but FollowCursor does not record until you press **Record**.
 
 | Tab | What it captures | Method |
 | --- | ---------------- | ------ |
 | **Screens** | An entire monitor | Windows Graphics Capture (hardware-accelerated) |
 | **Windows** | A single application window | Win32 PrintWindow (no bleed-through) |
 
-Each option shows a live thumbnail so you can confirm the correct source.
+Each option shows a live thumbnail so you can confirm the correct source. You can use **Tab** to focus a source and press **Enter** or **Space** to select it.
 
 ### Step 2 — Start recording
 
-Click the red **Start Recording** button. A **3-second countdown** (3, 2, 1) gives you time to switch to the target app. Then:
+Click the red **Record** button. A **3-second countdown** (3, 2, 1) gives you time to switch to the target app. Then:
 
 - The app minimizes to the **system tray**
 - A subtle **red border** pulses around the captured area
@@ -80,15 +80,17 @@ Press **Ctrl+Shift+R** (global hotkey) or right-click the tray icon and select *
 
 The app restores and switches to the **Edit** view with your recording loaded.
 
+To record another section in the same project, click **Add Capture** below the preview. Choose the screen or window for the new section, then record normally. The new capture is added to the end of the timeline without removing your existing edits.
+
 ---
 
 ## 3. Edit & Add Zoom
 
 ### Auto-generate zoom keyframes
 
-1. In the **Editor Panel** (right side), find the **SMART ZOOM** section
+1. In the right-side inspector, select **Motion** and open **SMART ZOOM**
 2. Choose a sensitivity: **Low** (few zooms), **Medium**, or **High** (many zooms)
-3. Click **Auto-generate zoom keyframes**
+3. Click **Generate locally**
 
 The analyzer detects:
 
@@ -118,7 +120,7 @@ While viewing a zoom segment, right-click the preview and select **Add pan point
 
 ### Generate narration
 
-1. In the **NARRATION & VOICEOVER** section, click **Generate narration**
+1. Select **Audio**, open **VOICEOVER**, and click **Generate**
 2. FollowCursor uses **GPT-5.4** to draft five presentation-style, timestamped voiceover segments — **Context**, **Background**, **Prompt / Action**, **Walkthrough**, and **Result** — from frame samples plus activity and zoom cues. The wording stays focused on the point of the work rather than on-screen mechanics
 3. The combined script is saved as `<video_name>_voiceover.md` beside the recording, then speech starts automatically with the current default TTS voice from **AI Settings**, using timing-aware pacing so the narration stays close to the recording length without obvious silence padding
 4. The generated segments appear on the timeline's **Voice** track with short labels such as **Context** and **Result**. Double-click or right-click a segment to review the spoken line, drag it to retime it, or delete it with confirmation
@@ -127,7 +129,7 @@ While viewing a zoom segment, right-click the preview and select **Add pan point
 
 ### Generate chapters
 
-1. In the **CHAPTERS** section, click **Generate chapters**
+1. Select **Audio**, open **CHAPTERS**, and click **Generate chapters**
 2. FollowCursor reuses the same shared recording understanding as narration — frame samples, activity, and zoom beats — to suggest timeline-friendly chapter markers with **GPT-5.4**
 3. Hover a chapter flag to review its name, left-click it to jump there, or right-click it to delete the marker
 4. Regenerating chapters replaces the previous generated chapter markers but keeps any manual chapter markers you added
@@ -136,6 +138,8 @@ While viewing a zoom segment, right-click the preview and select **Add pan point
 ---
 
 ## 4. Customize the Look
+
+Select **Style** in the right-side inspector, then open only the setting you want to change.
 
 | Setting | Options |
 | ------- | ------- |

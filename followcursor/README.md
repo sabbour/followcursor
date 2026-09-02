@@ -23,6 +23,7 @@ Record your screen or any individual window, then export a polished MP4 video wh
 ## Features
 
 - **Screen & Window Recording** — Capture any monitor (hardware-accelerated via Windows Graphics Capture) or individual windows
+- **Multiple Captures per Project** — Return to Record mode and add more captures to the end of the current timeline without losing existing edits; sources with different aspect ratios are fitted to the original project canvas
 - **Smart Auto-Zoom** — Automatically detects mouse settlements and click clusters to generate zoom keyframes with configurable sensitivity (Low / Medium / High). Spatial-aware clustering merges nearby same-area events into sustained zooms, and consecutive clusters are chained together (up to 4 per chain) — the camera stays zoomed in and pans smoothly between them instead of zooming out and back in
 - **AI Smart Zoom** — Use Azure AI Foundry chat models to analyze your recording and generate intelligent zoom-and-pan keyframes. The AI acts like a professional cameraman — identifying significant activity, creating smooth sustained zooms with panning when action moves across the screen, and maintaining calm, deliberate pacing. Bring your own Azure OpenAI API key
 - **AI Narration** — Use GPT-5.4 to turn a recording into a five-part presentation script backed by frame samples, activity, and zoom edits. FollowCursor saves the combined markdown sidecar, creates timestamped generated voiceover segments, and starts speech automatically through the normal voiceover flow so the timeline keeps short section labels while the editor shows clean spoken lines you can review, drag, delete, or ripple-edit. The wording stays presenter-style and focused on the takeaway rather than on-screen mechanics
@@ -43,7 +44,8 @@ Record your screen or any individual window, then export a polished MP4 video wh
 - **Output Dimensions** — Choose from Auto, 16:9, 3:2, 4:3, 1:1, or 9:16 aspect ratios for the exported video. Preview shows crop boundaries with a semi-transparent overlay
 - **Background Presets** — 84 backgrounds (39 solids + 37 gradients + 8 patterns) with category picker
 - **Device Frames** — 5 frame styles: Wide Bezel, Slim Bezel, Thin Border, Shadow Only, No Frame
-- **Project Files** — Save/load `.fcproj` bundles (ZIP with metadata + raw video + voiceover audio) to resume editing later. Ctrl+S re-saves to the current file with incremental metadata-only updates (video is not re-written). Title bar shows project name and unsaved-changes indicator (●). Export filename defaults to the project name
+- **Focused Edit Inspector** — Motion, Style, and Audio tabs keep post-recording controls available without showing every option at once
+- **Project Files** — Save/load `.fcproj` bundles (ZIP with metadata + joined capture video + voiceover audio) to resume editing later. Ctrl+S uses incremental metadata-only updates unless capture media changed. Title bar shows project name and unsaved-changes indicator (●). Export filename defaults to the project name
 - **Close Confirmation** — Prompts to save unsaved changes before closing the app
 - **Open in Clipchamp** — One-click handoff to Clipchamp for further editing
 - **Debug Overlay** — Per-time zoom marker overlay on the preview for fine-tuning keyframes (toggle via ⚙ settings menu)

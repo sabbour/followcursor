@@ -52,6 +52,102 @@ class TestEditorPanelChapters:
         assert "keystroke" not in visible_copy
 
 
+class TestEditorPanelNavigation:
+    """Verify the inspector reveals one editing task group at a time."""
+
+    def test_task_tabs_are_ordered_by_primary_workflow(self, qapp):
+        panel = EditorPanel()
+
+        assert [panel._tabs.tabText(index) for index in range(panel._tabs.count())] == [
+            "Motion",
+            "Style",
+            "Audio",
+        ]
+        assert panel._tabs.currentIndex() == 0
+
+    def test_sections_are_grouped_by_editing_task(self, qapp):
+        panel = EditorPanel()
+
+        section_titles = []
+        for index in range(panel._tabs.count()):
+            page = panel._tabs.widget(index)
+            section_titles.append(
+                {
+                    button.text()
+                    for button in page.findChildren(type(panel._btn_undo))
+                    if button.objectName() == "InspectorSectionHeader"
+                }
+            )
+
+        assert section_titles == [
+            {"SMART ZOOM"},
+            {"BACKGROUND", "DEVICE FRAME", "CLICK EFFECTS", "OUTPUT SIZE"},
+            {"CHAPTERS", "VOICEOVER"},
+        ]
+
+    def test_style_options_start_collapsed(self, qapp):
+        panel = EditorPanel()
+        style_page = panel._tabs.widget(1)
+        section_buttons = [
+            button
+            for button in style_page.findChildren(type(panel._btn_undo))
+            if button.objectName() == "InspectorSectionHeader"
+        ]
+
+        assert len(section_buttons) == 4
+        assert all(button.property("collapsed") for button in section_buttons)
+
+    def test_style_sections_open_exclusively(self, qapp):
+        panel = EditorPanel()
+        style_page = panel._tabs.widget(1)
+        section_buttons = [
+            button
+            for button in style_page.findChildren(type(panel._btn_undo))
+            if button.objectName() == "InspectorSectionHeader"
+        ]
+
+        section_buttons[0].click()
+        assert not section_buttons[0].property("collapsed")
+
+        section_buttons[1].click()
+        assert section_buttons[0].property("collapsed")
+        assert not section_buttons[1].property("collapsed")
+
+    def test_audio_sections_open_exclusively(self, qapp):
+        panel = EditorPanel()
+        audio_page = panel._tabs.widget(2)
+        section_buttons = [
+            button
+            for button in audio_page.findChildren(type(panel._btn_undo))
+            if button.objectName() == "InspectorSectionHeader"
+        ]
+
+        assert section_buttons[0].property("collapsed")
+        assert not section_buttons[1].property("collapsed")
+
+        section_buttons[0].click()
+        assert not section_buttons[0].property("collapsed")
+        assert section_buttons[1].property("collapsed")
+
+    def test_status_feedback_is_compact_and_preserves_full_text(self, qapp):
+        panel = EditorPanel()
+        panel.resize(320, 600)
+        panel.show()
+        qapp.processEvents()
+        message = "Narration is ready. Saved a-very-long-generated-voiceover-script-name.md."
+
+        panel.set_narration_status(message)
+        qapp.processEvents()
+
+        assert panel._narration_status.toolTip() == message
+        assert panel._narration_status.accessibleName() == message
+        assert panel._narration_status.text() != message
+
+        panel.set_voiceover_status("Voiceover ready.")
+        assert panel._narration_status.isHidden()
+        assert not panel._vo_status.isHidden()
+
+
 class TestEditorPanelNarrationGuidance:
     """Verify the narration guidance prompt input is wired correctly."""
 
