@@ -8,8 +8,8 @@
     3. Copies PyInstaller dist + manifest + assets into a staging folder.
     4. Runs MakeAppx.exe to create the .msix.
     5. Signs the .msix with a local PFX certificate or Azure Trusted
-       Signing DLib.  In CI the script is invoked with -SkipSign and
-       signing is handled by azure/artifact-signing-action.
+         Signing DLib. CI uses -SkipSign and retains the package as a
+         short-lived artifact for Publish-SignedMsix.ps1.
 
 .PARAMETER Version
     Semantic version (e.g. "0.5.0"). A ".0" build number is appended
@@ -68,7 +68,7 @@ param(
     [string]$LocalPfx = "",
     [string]$PfxPassword = "",
 
-    # Azure Trusted Signing parameters (local signing only; CI uses azure/artifact-signing-action)
+    # Azure Trusted Signing parameters (local signing only)
     [string]$AzureEndpoint = "",
     [string]$AzureCodeSigningAccountName = "",
     [string]$AzureCertificateProfileName = "",

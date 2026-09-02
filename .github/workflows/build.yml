@@ -13,7 +13,7 @@ on:
   workflow_dispatch:
     inputs:
       test-release:
-        description: 'Run the release job (build + sign MSIX) without creating a GitHub Release'
+        description: 'Run the release packaging job without creating a GitHub Release'
         type: boolean
         default: false
 
@@ -217,12 +217,12 @@ jobs:
             -Publisher "${{ secrets.MSIX_PUBLISHER }}" `
             -SkipSign
 
-      - name: Upload MSIX artifact
+      - name: Upload unsigned MSIX for local signing
         uses: actions/upload-artifact@v4
         with:
-          name: FollowCursor-${{ steps.version.outputs.APP_VERSION }}-msix
+          name: FollowCursor-${{ steps.version.outputs.APP_VERSION }}-msix-unsigned
           path: followcursor/dist/FollowCursor-${{ steps.version.outputs.APP_VERSION }}.msix
-          retention-days: 30
+          retention-days: 7
 
       - name: Zip release artifact
         shell: pwsh
@@ -237,4 +237,3 @@ jobs:
           generate_release_notes: true
           files: |
             FollowCursor-${{ steps.version.outputs.APP_VERSION }}-windows.zip
-            followcursor/dist/FollowCursor-${{ steps.version.outputs.APP_VERSION }}.msix

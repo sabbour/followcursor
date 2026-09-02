@@ -47,7 +47,8 @@ followcursor/                    ← repo root
 │   │   ├── Build-App.ps1        ← PyInstaller build script
 │   │   ├── Start-Dev.ps1        ← Dev setup & launch script
 │   │   ├── Build-Msix.ps1      ← MSIX packaging + signing (local PFX or Azure)
-│   │   └── Setup-AzureSigning.ps1 ← Provision Azure Trusted Signing resources
+│   │   ├── Publish-SignedMsix.ps1 ← Locally sign, verify, and publish release MSIX
+│   │   └── Setup-AzureSigning.ps1 ← Provision local Azure Trusted Signing resources
 │   └── app/                     ← Application package
 │       ├── main_window.py       ← Central coordinator
 │       ├── models.py            ← Data classes
