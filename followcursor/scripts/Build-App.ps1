@@ -111,9 +111,6 @@ try {
         --exclude-module "PySide6.QtAsyncio" `
         --exclude-module "tkinter" `
         --exclude-module "unittest" `
-        --exclude-module "email" `
-        --exclude-module "http" `
-        --exclude-module "xml" `
         --exclude-module "pydoc" `
         main.py
 
