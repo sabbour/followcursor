@@ -123,7 +123,7 @@ Write-Host "Staging MSIX content..." -ForegroundColor Cyan
 
 # Preserve the PyInstaller onedir layout. FollowCursor.exe resolves its runtime
 # DLLs relative to the _internal directory.
-$pythonRuntime = Get-ChildItem (Join-Path $DistDir "_internal\python*.dll") -ErrorAction SilentlyContinue |
+$pythonRuntime = Get-ChildItem (Join-Path $DistDir "_internal\python[0-9][0-9][0-9].dll") -ErrorAction SilentlyContinue |
     Select-Object -First 1
 if (-not $pythonRuntime) {
     Write-Error "PyInstaller Python runtime DLL not found under $DistDir\_internal."

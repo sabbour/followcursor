@@ -53,6 +53,30 @@ function Assert-Command {
     }
 }
 
+function Invoke-AzCommand {
+    param(
+        [Parameter(Mandatory)][string[]]$Arguments,
+        [Parameter(Mandatory)][string]$Description
+    )
+
+    $stdoutPath = [System.IO.Path]::GetTempFileName()
+    $stderrPath = [System.IO.Path]::GetTempFileName()
+    try {
+        & az @Arguments 1> $stdoutPath 2> $stderrPath
+        $exitCode = $LASTEXITCODE
+        $stdout = (Get-Content $stdoutPath -Raw) ?? ""
+        $stderr = (Get-Content $stderrPath -Raw) ?? ""
+    }
+    finally {
+        Remove-Item $stdoutPath, $stderrPath -Force -ErrorAction SilentlyContinue
+    }
+
+    if ($exitCode -ne 0) {
+        throw "$Description failed: $($stderr.Trim())"
+    }
+    return $stdout.Trim()
+}
+
 Assert-Command "az"
 Assert-Command "dotnet"
 Assert-Command "gh"
@@ -104,17 +128,22 @@ if (-not $DlibPath) {
 }
 if (-not (Test-Path $DlibPath -PathType Leaf)) { throw "DLib not found: $DlibPath" }
 
-$signingAccountId = az resource show --resource-group $ResourceGroupName `
-    --resource-type "Microsoft.CodeSigning/codeSigningAccounts" `
-    --name $AzureCodeSigningAccountName --query id -o tsv 2>&1
-if ($LASTEXITCODE -ne 0 -or -not $signingAccountId) {
-    throw "Trusted Signing account lookup failed: $($signingAccountId -join [Environment]::NewLine)"
-}
+$signingAccountId = Invoke-AzCommand -Description "Trusted Signing account lookup" -Arguments @(
+    "resource", "show",
+    "--resource-group", $ResourceGroupName,
+    "--resource-type", "Microsoft.CodeSigning/codeSigningAccounts",
+    "--name", $AzureCodeSigningAccountName,
+    "--query", "id",
+    "-o", "tsv"
+)
+if (-not $signingAccountId) { throw "Trusted Signing account lookup returned no resource ID." }
 $profileId = "$signingAccountId/certificateProfiles/$AzureCertificateProfileName"
-$profileJson = az resource show --ids $profileId --api-version "2024-02-05-preview" -o json 2>&1
-if ($LASTEXITCODE -ne 0) {
-    throw "Certificate profile lookup failed: $($profileJson -join [Environment]::NewLine)"
-}
+$profileJson = Invoke-AzCommand -Description "Certificate profile lookup" -Arguments @(
+    "resource", "show",
+    "--ids", $profileId,
+    "--api-version", "2024-02-05-preview",
+    "-o", "json"
+)
 $profile = $profileJson | ConvertFrom-Json
 if ($profile.properties.profileType -ne "PublicTrust") { throw "Certificate profile is not PublicTrust." }
 $expectedPublisher = $profile.properties.certificates[0].subjectName
