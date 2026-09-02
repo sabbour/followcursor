@@ -219,8 +219,11 @@ __version__ = "X.Y.Z"
 5. Merge to `main`
 6. Tag: `git tag vX.Y.Z`
 7. Push: `git push origin main --tags`
-8. CI builds `.exe` + signed MSIX and creates a GitHub Release
-9. The tag push automatically triggers the docs site to rebuild and deploy — the version number shown in all pages updates to the new release automatically (no manual docs edits needed)
+8. Wait for CI to publish the ZIP, create the GitHub Release, and retain the unsigned MSIX artifact
+9. Run `pwsh -NoProfile -File .\scripts\Publish-SignedMsix.ps1 -Version X.Y.Z`
+10. Confirm the release contains the ZIP and signed MSIX
+11. The tag push triggers the docs site deployment
+12. Confirm that all documentation pages show the new version
 
 ---
 
@@ -272,7 +275,9 @@ GitHub Actions runs on every push/PR to `main`:
 3. Runs the pytest suite
 4. Builds with PyInstaller
 5. Uploads versioned artifact
-6. On `v*` tags: builds MSIX, signs with Azure Trusted Signing, creates GitHub Release
+6. On `v*` tags: publishes the ZIP, creates the GitHub Release, and retains an unsigned MSIX for local signing for 7 days
+
+PowerShell 7 signs release MSIX files outside CI with the signed-in Azure user. The script restores the signing client through the Microsoft NuGet proxy. It does not use nuget.org. `Publish-SignedMsix.ps1` uploads a package only after the Authenticode, timestamp, and publisher checks pass.
 
 ---
 

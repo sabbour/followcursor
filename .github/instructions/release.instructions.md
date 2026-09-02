@@ -13,7 +13,7 @@ applyTo: "**/version.py"
 __version__ = "X.Y.Z"
 ```
 
-CI and the MSIX build script (`Build-Msix.ps1`) read this value automatically.
+CI and the MSIX release scripts read this value automatically.
 Do **not** hard-code version strings anywhere else.
 
 ## Semantic Versioning Rules
@@ -59,11 +59,19 @@ Only include categories that have entries. Bold the feature/area name, then dash
 4. Run the **Run Tests** VS Code task — all tests must pass
 5. Commit with message: `release: vX.Y.Z`
 6. Merge to `main`
-7. Tag: `git tag vX.Y.Z` on `main` — CI will build the release artifacts
+7. Tag: `git tag vX.Y.Z` on `main` — CI will publish the ZIP and stage the unsigned MSIX
+8. Wait for the tag workflow to succeed
+9. Run `pwsh -NoProfile -File .\followcursor\scripts\Publish-SignedMsix.ps1 -Version X.Y.Z`
+10. Verify the GitHub Release contains the ZIP and signed MSIX
 
 ## What CI Does on a Tag Push
 
 - Runs tests
 - Builds PyInstaller executable
-- Builds & signs MSIX package (using version from `version.py`)
-- Creates a GitHub Release with zip + MSIX assets
+- Builds an unsigned MSIX package (using version from `version.py`)
+- Retains the unsigned MSIX as an Actions artifact for 7 days
+- Creates a GitHub Release with the ZIP asset
+
+## Local MSIX Publication
+
+`Publish-SignedMsix.ps1` requires PowerShell 7, authenticated `az` and `gh` sessions, and the Windows SDK. It restores `Microsoft.Trusted.Signing.Client` through `https://packagefeedproxy.microsoft.io/nuget/v3/index.json`, signs with the local Azure identity, and uploads only after the signature, timestamp, and manifest publisher checks pass. CI must never publish the unsigned MSIX.

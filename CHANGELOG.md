@@ -4,6 +4,13 @@ All notable changes to FollowCursor are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.14.1] — 2026-09-02
+
+### Fixed
+- **MSIX installation** — restores public Trusted Signing for release packages and prevents unsigned MSIX artifacts from being published
+- **Release verification** — adds a local PowerShell 7 publishing step that verifies the signature, timestamp, and manifest publisher before uploading an installer
+- **Signing setup** — provisions PublicTrust certificate profiles and grants the signed-in Azure user permission to sign locally
+
 ## [0.14.0] — 2026-09-02
 
 ### Added

@@ -148,6 +148,17 @@ PyInstaller output, then run `Build-Msix.ps1` to package and optionally sign it:
 
 Requires the Windows SDK (`MakeAppx.exe`, `SignTool.exe`).
 
+Official release installers are signed from PowerShell 7 after tag CI succeeds:
+
+```powershell
+pwsh -NoProfile -File .\scripts\Publish-SignedMsix.ps1 -Version "0.14.1"
+```
+
+The publisher downloads the short-lived unsigned artifact from the tag workflow.
+It restores the Trusted Signing client through the Microsoft NuGet proxy.
+It signs with the local Azure identity. It verifies the signature, timestamp, and
+manifest publisher before it uploads the MSIX to the GitHub Release.
+
 #### Local Sideloading with a Self-Signed Certificate
 
 Unsigned MSIX packages cannot be installed directly — Windows requires a trusted
@@ -193,7 +204,7 @@ A GitHub Actions workflow (`.github/workflows/build.yml`) runs on every push/PR 
 4. Runs the pytest test suite
 5. Builds with PyInstaller
 6. Uploads the versioned build artifact (retained 30 days)
-7. On tag pushes (`v*`): builds an unsigned MSIX, signs it with `azure/artifact-signing-action`, and creates a GitHub Release
+7. On tag pushes (`v*`): publishes the ZIP and retains an unsigned MSIX artifact for local signing for 7 days
 
 You can also trigger a build manually from the Actions tab.
 
@@ -204,7 +215,9 @@ You can also trigger a build manually from the Actions tab.
 3. Run the **Run Tests** VS Code task — all tests must pass
 4. Commit and push to `main`
 5. Tag the commit: `git tag v0.2.0 && git push --tags`
-6. The CI workflow automatically builds the `.exe` + signed `.msix` and creates a GitHub Release
+6. Wait for the tag workflow to create the GitHub Release and unsigned MSIX artifact
+7. Run `pwsh -NoProfile -File .\scripts\Publish-SignedMsix.ps1 -Version "0.2.0"`
+8. Confirm the GitHub Release contains the ZIP and signed MSIX
 
 To build locally before tagging, use the **Build** task (`Ctrl+Shift+B`) or the **Build MSIX** tasks from the VS Code task list.
 
@@ -265,7 +278,8 @@ followcursor/
 │   ├── Build-App.ps1                # PyInstaller build script
 │   ├── Start-Dev.ps1                # Dev setup & launch script
 │   ├── Build-Msix.ps1               # MSIX packaging + signing (local PFX or Azure)
-│   └── Setup-AzureSigning.ps1        # Provision Azure Trusted Signing resources
+│   ├── Publish-SignedMsix.ps1        # Verify and publish a locally signed release MSIX
+│   └── Setup-AzureSigning.ps1        # Provision local Azure Trusted Signing resources
 ├── tests/                           # Unit test suite (pytest)
 │   ├── conftest.py                  # Shared fixtures
 │   ├── test_models.py               # Dataclass serialization roundtrips

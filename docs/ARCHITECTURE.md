@@ -356,11 +356,13 @@ Adding a capture marks project media as changed. The next save performs a full b
 
 ### MSIX
 
-`Build-Msix.ps1` packages into signed MSIX. Supports local PFX and Azure Trusted Signing.
+`Build-Msix.ps1` packages the PyInstaller output. It supports a local PFX or Azure Trusted Signing.
+
+Tag CI retains an unsigned MSIX as a short-lived artifact. `Publish-SignedMsix.ps1` downloads and signs that artifact with the local Azure user. It verifies the signature, timestamp, and manifest publisher. Then it uploads the MSIX to the GitHub Release.
 
 ### CI/CD
 
-GitHub Actions on push/PR to `main` and `v*` tags. Python 3.13 on Windows. Runs pytest, builds with PyInstaller. On tag: MSIX + GitHub Release.
+GitHub Actions runs on push and pull requests to `main`. It also runs on `v*` tags with Python 3.13 on Windows. It runs pytest and builds with PyInstaller. On tags, it publishes the ZIP and creates the GitHub Release. It retains the unsigned MSIX for seven days.
 
 ---
 
