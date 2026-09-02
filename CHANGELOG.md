@@ -7,7 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 ## [0.14.2] — 2026-09-02
 
 ### Fixed
-- **MSIX startup** — preserves the PyInstaller `_internal` directory so installed builds can load `python313.dll` and start correctly
+- **MSIX startup** — preserves the PyInstaller `_internal` directory so installed builds can load the versioned Python runtime DLL and start correctly
 - **Release tooling** — reports Azure CLI failures when the local publisher resolves the Trusted Signing account or certificate profile
 
 ## [0.14.1] — 2026-09-02
